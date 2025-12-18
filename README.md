@@ -180,9 +180,9 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ### Phase 2: Implementation (When Ready)
 
 1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
-2. Test your infrastructure code locally with `opentofu plan`
+2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
-4. Publish with `make` to make bundles available in Massdriver
+4. Publish with `make` (or git push with our [GitHub Actions](https://github.com/massdriver-cloud/actions)) to make bundles available in Massdriver
 5. Deploy packages to test environments and validate everything works
 
 **Goal**: Fill in the infrastructure code that matches your architectural model.
