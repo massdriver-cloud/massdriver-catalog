@@ -9,21 +9,11 @@ A bootstrap catalog for self-hosted Massdriver instances containing artifact def
 This catalog is yours to customize and extend. Here's the recommended workflow:
 
 1. **Clone this repository** to your organization (keep it private—it will contain your infrastructure code)
-2. **Set up GitHub Actions** to automatically publish to your private Massdriver instance (coming soon, use `make` for now)
-3. **Start experimenting** with bundles in VS Code—edit schemas, add parameters, define connections
+2. **Set up GitHub Actions** to automatically publish to your private Massdriver or use included `make` task to publish
+3. **Start experimenting** with bundles in your editor—edit schemas, add parameters, define connections
 4. **Watch the developer experience get built** in real-time in Massdriver as you iterate on your abstractions
 
 The beauty of this approach: you can refine the entire developer experience—what parameters developers see, how bundles connect, what artifacts are produced—all before writing a single line of infrastructure code.
-
----
-
-After setting up a self-hosted Massdriver instance, teams often face a chicken-and-egg problem:
-
-1. **Where do I start?** You need to configure supported clouds, design artifact abstractions, write Terraform/OpenTofu modules, *and then* think about developer experience.
-2. **Analysis paralysis**: It's hard to visualize project structure, environments, and service offerings before writing infrastructure code.
-3. **Missing baseline**: No starting point for credential definitions or artifact abstractions that work across cloud providers.
-
-This catalog flips the script: **model first, implement later**. This repo is a sandbox for now, and your platform teams foundation for developing bundles and artifact definitions later.
 
 ## Key Concepts
 
