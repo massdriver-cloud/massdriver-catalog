@@ -4,15 +4,13 @@ A bootstrap catalog for self-hosted Massdriver instances containing artifact def
 
 **Start here**: Use this catalog to design your infrastructure architecture, test the developer experience, and plan your platform—then fill in your OpenTofu/Terraform implementation when you're ready.
 
-## The Problem This Solves
-
 After setting up a self-hosted Massdriver instance, teams often face a chicken-and-egg problem:
 
 1. **Where do I start?** You need to configure supported clouds, design artifact abstractions, write Terraform/OpenTofu modules, *and then* think about developer experience.
 2. **Analysis paralysis**: It's hard to visualize project structure, environments, and service offerings before writing infrastructure code.
 3. **Missing baseline**: No starting point for credential definitions or artifact abstractions that work across cloud providers.
 
-This catalog flips the script: **model first, implement later**.
+This catalog flips the script: **model first, implement later**. This repo is a sandbox for now, and your platform teams foundation for developing bundles and artifact definitions later.
 
 ## Key Concepts
 
