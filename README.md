@@ -234,19 +234,22 @@ The credential definitions in `credential-artifact-definitions/` define the auth
 
 ### Artifact Definitions
 
-Artifact definitions in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another.
+[Artifact definitions](https://docs.massdriver.cloud/concepts/artifact-definitions) in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another.
 
 Each artifact definition must have two top-level sections:
 - **`data`**: Encrypted-at-rest information like credentials, connection strings, IAM policies, and security group IDs. This data is securely passed to downstream bundles that need it.
 - **`specs`**: Public metadata like cloud region, tags, or capability flags. This information is searchable and displayed in the UI but doesn't contain secrets.
 
-Customize artifact definitions to:
+[Customize artifact definitions](https://docs.massdriver.cloud/guides/custom-artifact-definition) to:
 - Add cloud-specific metadata in `specs` (region, availability zones, resource tags)
 - Include additional connection details in `data` that your applications need (ports, endpoints, credentials)
 - Define IAM policy structures and security group references
 - Add validation rules to ensure data integrity
 
 **Example**: If your applications need to know whether a database supports read replicas, add a `read_replicas` field to the artifact's `specs`. If they need the replica endpoint, add it to the artifact's `data`.
+
+> [!TIP]
+> When you standardize what your bundles produce—defining consistent artifact schemas—you can automate compliance and security policies across all resources of that type. This eliminates the brittle copy-paste scripts and custom glue code typically needed to wire infrastructure together, replacing them with validated, reusable contracts.
 
 ### Bundle Schemas
 
@@ -280,7 +283,7 @@ To implement a bundle:
    - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name, package ID, environment)
 5. **Output** artifact data that matches your artifacts schema (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.params.database_name`. If your connections schema requires a network artifact, access its VPC ID as `var.connections.network.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your connections schema requires a `network` artifact named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
 
 ## What's Next?
 
@@ -301,14 +304,13 @@ Once you've modeled your architecture and started implementing bundles, dive dee
 
 These resources complement this catalog by showing you how to work with bundles once you have them implemented.
 
+### Automation
+
+- 🚀 **[GitHub Actions](https://github.com/massdriver-cloud/actions)** - Automate artifact definition and bundle publishing with CI/CD workflows
+
 ### Coming Soon
 
-- 🚀 GitHub Actions workflow for automated publishing
-- 📦 Additional bundle templates (Kubernetes, VMs, Functions, Queues)
-- 🎨 Bundle icon generation
-- 🔗 Landing zone bundle (combines multiple artifacts)
-
-See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues) for the full roadmap.
+See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues) for upcoming features and the full roadmap.
 
 ## Best Practices
 
