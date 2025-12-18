@@ -1,0 +1,43 @@
+schema: draft-07
+name: bucket
+description: Demo storage bucket bundle for arcade demos
+source_url: https://github.com/massdriver-cloud/demos
+version: 0.0.0
+
+params:
+  required:
+    - bucket_name
+  properties:
+    bucket_name:
+      type: string
+      title: Bucket Name
+      description: Name of the storage bucket
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+    versioning_enabled:
+      type: boolean
+      title: Enable Versioning
+      description: Enable versioning for the bucket
+      default: false
+
+connections:
+  required: []
+  properties: {}
+
+artifacts:
+  required:
+    - bucket
+  properties:
+    bucket:
+      $ref: personal-58674/bucket
+      title: Storage Bucket
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - bucket_name
+    - versioning_enabled
+    - "*"
+

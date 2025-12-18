@@ -1,0 +1,60 @@
+schema: draft-07
+name: network
+description: Demo network bundle for arcade demos
+source_url: https://github.com/massdriver-cloud/demos
+version: 0.0.0
+
+params:
+  required:
+    - cidr
+  properties:
+    cidr:
+      type: string
+      title: Network CIDR
+      description: CIDR block for the network
+      default: "10.0.0.0/16"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    subnets:
+      type: array
+      title: Subnets
+      default:
+        - name: "subnet-a"
+          cidr: "10.0.1.0/24"
+        - name: "subnet-b"
+          cidr: "10.0.2.0/24"
+      items:
+        type: object
+        required:
+          - name
+          - cidr
+        properties:
+          name:
+            type: string
+            title: Subnet Name
+          cidr:
+            type: string
+            title: Subnet CIDR
+            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+
+connections:
+  required: []
+  properties: {}
+
+artifacts:
+  required:
+    - network
+  properties:
+    network:
+      $ref: personal-58674/network
+      title: Network Artifact
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - cidr
+    - subnets
+    - "*"
+

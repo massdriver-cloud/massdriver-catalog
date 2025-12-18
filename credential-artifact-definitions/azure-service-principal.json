@@ -1,0 +1,94 @@
+{
+    "$md": {
+        "export": [],
+        "extensions": {
+            "costReporting": true
+        },
+        "icon": "https://raw.githubusercontent.com/massdriver-cloud/artifact-definitions/refs/heads/main/definitions/artifacts/azure-service-principal/icon.png",
+        "importing": {
+            "group": "authentication"
+        },
+        "label": "Azure Service Principal",
+        "name": "azure-service-principal",
+        "ui": {
+            "connectionOrientation": "environmentDefault",
+            "environmentDefaultGroup": "credentials",
+            "instructions": [
+                {
+                    "content": "IyBDcmVhdGluZyBhbiBBenVyZSBzZXJ2aWNlIHByaW5jaXBhbCB1c2luZyBBenVyZSBDTEkKCiMjIEluc3RhbGwgQXp1cmUgQ0xJCgpUbyBnZXQgc3RhcnRlZCwgeW91J2xsIG5lZWQgdGhlIFtBenVyZSBDTEldKGh0dHBzOi8vbGVhcm4ubWljcm9zb2Z0LmNvbS9lbi11cy9jbGkvYXp1cmUvaW5zdGFsbC1henVyZS1jbGkpIGluc3RhbGxlZCBsb2NhbGx5IG9uIHlvdXIgbWFjaGluZS4gVGhlIEF6dXJlIENsb3VkIFNoZWxsIGF2YWlsYWJsZSBpbiB0aGUgQXp1cmUgUG9ydGFsIGRvZXMgKipub3QqKiBoYXZlIHRoZSBhYmlsaXR5IHRvIGdyYW50IHRoZSBzZXJ2aWNlIHByaW5jaXBhbCB0aGUgcmVxdWlyZWQgcGVybWlzc2lvbnMuCgoxLiBQYXN0ZSB0aGlzIHNjcmlwdCBpbnRvIHRoZSBjb21tYW5kLWxpbmUgdG8gbGlzdCB5b3VyIHN1YnNjcmlwdGlvbnM6CgpgYGBCYXNoCmF6IGFjY291bnQgbGlzdCAtLW91dHB1dCB0YWJsZQpgYGAKCjIuIENvcHkgdGhlIHZhbHVlIG9mIHRoZSBgU3Vic2NyaXB0aW9uSWRgIGFuZCBgVGVuYW50SWRgIHlvdSB3YW50IHRvIHVzZSBhbmQgcGFzdGUgaXQgaW50byBNYXNzZHJpdmVyIHVuZGVyICoqU3Vic2NyaXB0aW9uIElEKiogYW5kICoqVGVuYW50IElEKiosIGFuZCBhbHNvIHN0b3JlIHRoZSBgU3Vic2NyaXB0aW9uSWRgIGZvciB0aGUgbmV4dCBzdGVwLgoKMy4gUGFzdGUgdGhpcyBzY3JpcHQgaW4gdGhlIGNvbW1hbmQtbGluZSB0byBjcmVhdGUgYW4gQXp1cmUgc2VydmljZSBwcmluY2lwYWwsIGFuZCByZXBsYWNlIGA8bXlTdWJzY3JpcHRpb25JRD5gIHdpdGggdGhlIHN1YnNjcmlwdGlvbiBJRCB5b3UgY29waWVkIGZyb20gdGhlIGxhc3Qgc3RlcDoKCmBgYEJhc2gKYXogYWQgc3AgY3JlYXRlLWZvci1yYmFjIC0tbmFtZSBtYXNzZHJpdmVyLXNlcnZpY2UtcHJpbmNpcGFsIFwKICAgICAgICAgICAgICAgICAgICAgICAgIC0tcm9sZSBvd25lciBcCiAgICAgICAgICAgICAgICAgICAgICAgICAtLXNjb3BlcyAvc3Vic2NyaXB0aW9ucy88bXlTdWJzY3JpcHRpb25JRD4KYGBgCgo0LiBDb3B5IHRoZSBmb2xsb3dpbmcgYXR0cmlidXRlcyBhbmQgcGFzdGUgdGhlbSBpbnRvIE1hc3Nkcml2ZXI6CgotIGFwcElkICZyYXJyOyAqKkNsaWVudCBJRCoqCi0gcGFzc3dvcmQgJnJhcnI7ICoqQ2xpZW50IFNlY3JldCoqCgpDbGljayBgQ3JlYXRlYCBhbmQgaGVhZCB0byB0aGUgW3Byb2plY3RzIHBhZ2VdKC9wcm9qZWN0cykgdG8gc3RhcnQgYnVpbGRpbmcgeW91ciBpbmZyYXN0cnVjdHVyZS4K",
+                    "label": "Azure CLI"
+                },
+                {
+                    "content": "IyBDcmVhdGluZyBhbiBBenVyZSBzZXJ2aWNlIHByaW5jaXBhbCB1c2luZyB0aGUgQXp1cmUgcG9ydGFsCgojIyBSZWdpc3RlcmluZyB0aGUgc2VydmljZSBwcmluY2lwYWwgYXBwIGluIEF6dXJlIEFECgoxLiBTaWduIGludG8geW91ciBBenVyZSBhY2NvdW50IHRocm91Z2ggdGhlIFtBenVyZSBwb3J0YWxdKGh0dHBzOi8vcG9ydGFsLmF6dXJlLmNvbS8pCjIuIFNlYXJjaCBmb3IgYW5kIHNlbGVjdCAqKk1pY3Jvc29mdCBFbnRyYSBJRCoqCjMuIFNlbGVjdCAqKkFwcCByZWdpc3RyYXRpb24qKgo0LiBTZWxlY3QgKipOZXcgcmVnaXN0cmF0aW9uKioKCiFbTWFzc2RyaXZlciBleGFtcGxlIDFdKC9pbWcvbWRzcGNyZWF0ZTEucG5nICJNYXNzZHJpdmVyIGV4YW1wbGUgMSIpCgo1LiBOYW1lIHlvdXIgYXBwbGljYXRpb246IGBtYXNzZHJpdmVyLXNlcnZpY2UtcHJpbmNpcGFsYAo2LiBTZWxlY3QgKipBY2NvdW50cyBpbiB0aGlzIG9yZ2FuaXphdGlvbiBkaXJlY3Rvcnkgb25seSoqCjcuIExlYXZlICoqUmVkaXJlY3QgVVJJKiogYmxhbmsKCiFbTWFzc2RyaXZlciBleGFtcGxlIDJdKC9pbWcvbWRzcGNyZWF0ZTIucG5nICJNYXNzZHJpdmVyIGV4YW1wbGUgMiIpCgo4LiBDbGljayAqKlJlZ2lzdGVyKioKOS4gT24gdGhlIE92ZXJ2aWV3IG1lbnUsIGNvcHkgdGhlIGZvbGxvd2luZyB2YWx1ZXMgYW5kIHBhc3RlIHRoZW0gaW50byBNYXNzZHJpdmVyOgoKLSBBcHBsaWNhdGlvbiAoY2xpZW50KSBJRCAmcmFycjsgKipDbGllbnQgSUQqKgotIERpcmVjdG9yeSAodGVuYW50KSBJRCAmcmFycjsgKipUZW5hbnQgSUQqKgoKIVtNYXNzZHJpdmVyIGV4YW1wbGUgM10oL2ltZy9tZHNwY3JlYXRlMy5wbmcgIk1hc3Nkcml2ZXIgZXhhbXBsZSAzIikKCjEwLiBTZWxlY3QgKipDZXJ0aWZpY2F0ZXMgJiBzZWNyZXRzKiogb24gdGhlIGxlZnQKMTEuIFNlbGVjdCAqKk5ldyBjbGllbnQgc2VjcmV0KioKMTIuIFNldCB0aGUgZGVzY3JpcHRpb24sIHNldCBleHBpcmF0aW9uIGRhdGUsIGFuZCBjbGljayAqKkFkZCoqCgohW01hc3Nkcml2ZXIgZXhhbXBsZSA0XSgvaW1nL21kc3BjcmVhdGU0LnBuZyAiTWFzc2RyaXZlciBleGFtcGxlIDQiKQoKMS4gQ29weSB0aGUgKipWYWx1ZSoqIHBhc3N3b3JkIGFuZCBwYXN0ZSBpbnRvIE1hc3Nkcml2ZXIgdW5kZXIgKipDbGllbnQgU2VjcmV0KiouIDxzcGFuIHN0eWxlPSJjb2xvcjpyZWQiPioqRG8gbm90IHVzZSB0aGUgU2VjcmV0IElEKio8L3NwYW4+LgoKIVtNYXNzZHJpdmVyIGV4YW1wbGUgNV0oL2ltZy9tZHNwY3JlYXRlNi5wbmcgIk1hc3Nkcml2ZXIgZXhhbXBsZSA1IikKCiMjIEFzc2lnbiBzdWJzY3JpcHRpb24gT3duZXIgdGhlIHNlcnZpY2UgcHJpbmNpcGFsCgoxLiBJbiB0aGUgQXp1cmUgcG9ydGFsLCBzZWFyY2ggZm9yIGFuZCBzZWxlY3QgKipTdWJzY3JpcHRpb24qKgoyLiBTZWxlY3QgdGhlIHN1YnNjcmlwdGlvbiB5b3Ugd2FudCB0byB1c2UgaW4gTWFzc2RyaXZlcgozLiBJbiB0aGUgT3ZlcnZpZXcgbWVudSwgY29weSB5b3VyICoqU3Vic2NyaXB0aW9uIElEKiogYW5kIHBhc3RlIGl0IGludG8gTWFzc2RyaXZlciB1bmRlciAqKlN1YnNjcmlwdGlvbiBJRCoqCjQuIFNlbGVjdCAqKkFjY2VzcyBjb250cm9sIChJQU0pKioKNS4gU2VsZWN0ICoqQWRkKiogPiAqKkFkZCByb2xlIGFzc2lnbm1lbnQqKgo2LiBTZWxlY3QgKipQcml2aWxlZ2VkIEFkbWluaXN0cmF0b3IgUm9sZXMqKiB0YWIgYW5kIHRoZW4gdGhlICoqT3duZXIqKiByb2xlIGFuZCBjbGljayAqKk5leHQqKgo3LiBTZWxlY3QgKipTZWxlY3QgbWVtYmVycyoqLCBzZWFyY2ggZm9yIGBtYXNzZHJpdmVyLXNlcnZpY2UtcHJpbmNpcGFsYCwgY2xpY2sgb24gdGhlIHNlcnZpY2UgcHJpbmNpcGFsLCBhbmQgdGhlbiBjbGljayAqKlNlbGVjdCoqIGF0IHRoZSBib3R0b20sIHRoZW4gKipOZXh0KioKOC4gU2VsZWN0ICoqQWxsb3cgdXNlciB0byBhc3NpZ24gYWxsIHJvbGVzIGV4Y2VwdCBwcml2aWxlZ2VkIGFkbWluaXN0cmF0b3Igcm9sZXMqKiBhbmQgY2xpY2sgKipOZXh0KiogdGhlbiAqKlJldmlldyArIGFzc2lnbioqIHR3aWNlIHRvIGZpbmlzaC4KCiMjIEFkZGluZyB0aGUgQXp1cmUgc2VydmljZSBwcmluY2lwYWwgdG8geW91ciBNYXNzZHJpdmVyIG9yZ2FuaXphdGlvbgoKMS4gSW4gTWFzc2RyaXZlciwgY2xpY2sgb24gdGhlIG1lbnUgb24gdGhlIHRvcCBsZWZ0IGFuZCBleHBhbmQgKipPcmdhbml6YXRpb24gU2V0dGluZ3MqKgoyLiBDbGljayAqKkNvbmZpZ3VyZSBDcmVkZW50aWFscyoqCjMuIFNlbGVjdCAqKkF6dXJlIFNlcnZpY2UgUHJpbmNpcGFsKioKNC4gU2V0IHRoZSBjcmVkZW50aWFsIG5hbWUgdG8gYSBmcmllbmRseSBuYW1lCjUuIEZpbGwgaW4gdGhlIGZpZWxkcyBhcyBndWlkZWQgYmVsb3c6CgotIENsaWVudCBJRCAoYXBwSWQgaW4gQXp1cmUgQ0xJKQotIENsaWVudCBTZWNyZXQgKHNlcnZpY2UgcHJpbmNpcGFsIHBhc3N3b3JkKQotIFN1YnNjcmlwdGlvbiBJRAotIFRlbmFudCBJRCAodGVuYW50IGluIEF6dXJlIENMSSkKCkNsaWNrICoqQ3JlYXRlKiogYW5kIGhlYWQgdG8gdGhlIFtwcm9qZWN0cyBwYWdlXSgvcHJvamVjdHMpIHRvIHN0YXJ0IGJ1aWxkaW5nIHlvdXIgaW5mcmFzdHJ1Y3R1cmUuCgojIyBUcm91Ymxlc2hvb3RpbmcgY3JlZGVudGlhbCB2YWxpZGF0aW9uCgpJZiB5b3VyIGNyZWRlbnRpYWxzIGZhaWxlZCB0byB2YWxpZGF0ZSwgYmUgc3VyZSB0byBjaGVjayB0aGUgZm9sbG93aW5nOgoKLSBUaGUgKipDbGllbnQgSUQqKiwgKipDbGllbnQgU2VjcmV0KiosICoqU3Vic2NyaXB0aW9uIElEKiosIGFuZCAqKlRlbmFudCBJRCoqIGFyZSBjb3JyZWN0IGFuZCBkbyBub3QgY29udGFpbiBzcGFjZXMgYmVmb3JlIG9yIGFmdGVyCg==",
+                    "label": "Azure Console"
+                }
+            ]
+        }
+    },
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "additionalProperties": false,
+    "description": "",
+    "properties": {
+        "data": {
+            "properties": {
+                "client_id": {
+                    "$schema": "http://json-schema.org/draft-07/schema",
+                    "description": "A valid UUID field",
+                    "examples": [
+                        "123xyz99-ab34-56cd-e7f8-456abc1q2w3e"
+                    ],
+                    "format": "uuid",
+                    "title": "Client ID",
+                    "type": "string"
+                },
+                "client_secret": {
+                    "message": {
+                        "pattern": "Not a valid Client Secret."
+                    },
+                    "pattern": "[-_.~a-zA-Z0-9]{1,40}",
+                    "title": "Client Secret",
+                    "type": "string"
+                },
+                "subscription_id": {
+                    "$schema": "http://json-schema.org/draft-07/schema",
+                    "description": "A valid UUID field",
+                    "examples": [
+                        "123xyz99-ab34-56cd-e7f8-456abc1q2w3e"
+                    ],
+                    "format": "uuid",
+                    "title": "Subscription ID",
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "$schema": "http://json-schema.org/draft-07/schema",
+                    "description": "A valid UUID field",
+                    "examples": [
+                        "123xyz99-ab34-56cd-e7f8-456abc1q2w3e"
+                    ],
+                    "format": "uuid",
+                    "title": "Tenant ID",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "client_id",
+                "tenant_id",
+                "client_secret",
+                "subscription_id"
+            ],
+            "title": "Artifact Data",
+            "type": "object"
+        },
+        "specs": {
+            "properties": {},
+            "title": "Artifact Specs",
+            "type": "object"
+        }
+    },
+    "required": [
+        "data",
+        "specs"
+    ],
+    "title": "Azure Service Principal",
+    "type": "object"
+}

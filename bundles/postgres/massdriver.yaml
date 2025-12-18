@@ -1,0 +1,55 @@
+schema: draft-07
+name: postgres
+description: Demo PostgreSQL database bundle for arcade demos
+source_url: https://github.com/massdriver-cloud/demos
+version: 0.0.0
+
+params:
+  required:
+    - db_version
+    - database_name
+  properties:
+    db_version:
+      type: string
+      title: PostgreSQL Version
+      description: PostgreSQL version to deploy
+      default: "16"
+      enum:
+        - "12"
+        - "13"
+        - "14"
+        - "15"
+        - "16"
+    database_name:
+      type: string
+      title: Database Name
+      description: Name of the database to create
+      default: "mydb"
+      pattern: ^[a-z][a-z0-9_]*$
+
+connections:
+  required:
+    - network
+  properties:
+    network:
+      $ref: personal-58674/network
+      title: Network
+
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: personal-58674/postgres
+      title: PostgreSQL Database
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - db_version
+    - database_name
+    - "*"
+

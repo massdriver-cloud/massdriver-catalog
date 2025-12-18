@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$md": {
+    "name": "mysql",
+    "label": "Demo MySQL"
+  },
+  "type": "object",
+  "title": "Demo MySQL Database",
+  "description": "A demo MySQL database artifact for arcade demos",
+  "required": ["data", "specs"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "title": "MySQL Connection Data",
+      "required": ["authentication", "infrastructure"],
+      "properties": {
+        "authentication": {
+          "type": "object",
+          "title": "Authentication",
+          "required": ["hostname", "port", "username", "password"],
+          "properties": {
+            "hostname": {
+              "type": "string",
+              "title": "Hostname"
+            },
+            "port": {
+              "type": "integer",
+              "title": "Port"
+            },
+            "username": {
+              "type": "string",
+              "title": "Username"
+            },
+            "password": {
+              "type": "string",
+              "title": "Password"
+            },
+            "database": {
+              "type": "string",
+              "title": "Database Name"
+            }
+          }
+        },
+        "infrastructure": {
+          "type": "object",
+          "title": "Infrastructure Details",
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "Resource ID"
+            }
+          }
+        }
+      }
+    },
+    "specs": {
+      "type": "object",
+      "title": "MySQL Specifications",
+      "required": ["database"],
+      "properties": {
+        "database": {
+          "type": "object",
+          "title": "Database Info",
+          "required": ["version", "engine"],
+          "properties": {
+            "engine": {
+              "type": "string",
+              "title": "Database Engine",
+              "const": "mysql"
+            },
+            "version": {
+              "type": "string",
+              "title": "MySQL Version"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

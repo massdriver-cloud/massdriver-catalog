@@ -1,0 +1,27 @@
+# OpenTofu
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+*.tfplan
+
+# Massdriver
+.massdriver/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# temp build files by mass cli
+schema-artifacts.json
+schema-connections.json
+schema-params.json
+schema-ui.json

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$md": {
+    "name": "bucket",
+    "label": "Demo Bucket"
+  },
+  "type": "object",
+  "title": "Demo Storage Bucket",
+  "description": "A demo storage bucket artifact for arcade demos",
+  "required": ["data", "specs"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "title": "Bucket Connection Data",
+      "required": ["infrastructure"],
+      "properties": {
+        "infrastructure": {
+          "type": "object",
+          "title": "Infrastructure Details",
+          "required": ["id", "bucket_name"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "Resource ID"
+            },
+            "bucket_name": {
+              "type": "string",
+              "title": "Bucket Name"
+            }
+          }
+        },
+        "security": {
+          "type": "object",
+          "title": "Security",
+          "properties": {
+            "iam": {
+              "type": "object",
+              "title": "IAM",
+              "properties": {
+                "read": {
+                  "type": "object",
+                  "title": "Read Policy"
+                },
+                "write": {
+                  "type": "object",
+                  "title": "Write Policy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "specs": {
+      "type": "object",
+      "title": "Bucket Specifications",
+      "required": ["storage"],
+      "properties": {
+        "storage": {
+          "type": "object",
+          "title": "Storage Info",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "title": "Storage Type",
+              "enum": ["object-storage"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

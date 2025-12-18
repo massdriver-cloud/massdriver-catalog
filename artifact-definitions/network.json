@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$md": {
+    "name": "network",
+    "label": "Demo Network"
+  },
+  "type": "object",
+  "title": "Demo Network",
+  "description": "A demo network artifact for arcade demos",
+  "required": ["data", "specs"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "title": "Network Connection Data",
+      "required": ["infrastructure"],
+      "properties": {
+        "infrastructure": {
+          "type": "object",
+          "title": "Infrastructure Details",
+          "required": ["network_id", "cidr"],
+          "properties": {
+            "network_id": {
+              "type": "string",
+              "title": "Network ID",
+              "description": "The network identifier"
+            },
+            "cidr": {
+              "type": "string",
+              "title": "CIDR Block",
+              "description": "The CIDR block for the network"
+            },
+            "subnets": {
+              "type": "array",
+              "title": "Subnets",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "specs": {
+      "type": "object",
+      "title": "Network Specifications",
+      "required": ["network"],
+      "properties": {
+        "network": {
+          "type": "object",
+          "title": "Network Info",
+          "required": ["cidr"],
+          "properties": {
+            "cidr": {
+              "type": "string",
+              "title": "CIDR Block"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

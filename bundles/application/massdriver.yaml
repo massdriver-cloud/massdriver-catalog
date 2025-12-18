@@ -1,0 +1,60 @@
+schema: draft-07
+name: application
+description: Demo application bundle for arcade demos
+source_url: https://github.com/massdriver-cloud/demos
+version: 0.0.0
+
+params:
+  required:
+    - image
+    - replicas
+  properties:
+    image:
+      type: string
+      title: Container Image
+      description: Container image to deploy
+      default: "nginx:latest"
+    replicas:
+      type: integer
+      title: Replicas
+      description: Number of replicas to deploy
+      default: 2
+      minimum: 1
+      maximum: 10
+    port:
+      type: integer
+      title: Port
+      description: Port the application listens on
+      default: 8080
+      minimum: 1
+      maximum: 65535
+
+connections:
+  required:
+    - network
+  properties:
+    network:
+      $ref: personal-58674/network
+      title: Network
+    database:
+      $ref: personal-58674/postgres
+      title: Database
+    bucket:
+      $ref: personal-58674/bucket
+      title: Storage Bucket
+
+artifacts:
+  required: []
+  properties: {}
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - image
+    - replicas
+    - port
+    - "*"
+
