@@ -1,6 +1,6 @@
 schema: draft-07
 name: application
-description: Demo application bundle for arcade demos
+description: "Example application bundle (edit in ./bundles)"
 source_url: https://github.com/massdriver-cloud/demos
 version: 0.0.0
 

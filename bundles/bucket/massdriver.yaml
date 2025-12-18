@@ -1,6 +1,6 @@
 schema: draft-07
 name: bucket
-description: Demo storage bucket bundle for arcade demos
+description: "Example storage bucket bundle (edit in ./bundles)"
 source_url: https://github.com/massdriver-cloud/demos
 version: 0.0.0
 

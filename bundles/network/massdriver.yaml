@@ -1,6 +1,6 @@
 schema: draft-07
 name: network
-description: Demo network bundle for arcade demos
+description: "Example network bundle (edit in ./bundles)"
 source_url: https://github.com/massdriver-cloud/demos
 version: 0.0.0
 

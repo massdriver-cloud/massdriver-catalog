@@ -2,11 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "$md": {
     "name": "network",
-    "label": "Demo Network"
+    "label": "Example Network (edit in ./artifact-definitions)"
   },
   "type": "object",
-  "title": "Demo Network",
-  "description": "A demo network artifact for arcade demos",
+  "title": "Example Network",
+  "description": "Example network artifact - customize this schema to match your infrastructure's network outputs",
   "required": ["data", "specs"],
   "properties": {
     "data": {

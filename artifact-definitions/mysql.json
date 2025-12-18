@@ -2,11 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "$md": {
     "name": "mysql",
-    "label": "Demo MySQL"
+    "label": "Example MySQL (edit in ./artifact-definitions)"
   },
   "type": "object",
-  "title": "Demo MySQL Database",
-  "description": "A demo MySQL database artifact for arcade demos",
+  "title": "Example MySQL Database",
+  "description": "Example MySQL artifact - customize this schema to match your database outputs",
   "required": ["data", "specs"],
   "properties": {
     "data": {

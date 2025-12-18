@@ -1,6 +1,6 @@
 schema: draft-07
 name: postgres
-description: Demo PostgreSQL database bundle for arcade demos
+description: "Example PostgreSQL bundle (edit in ./bundles)"
 source_url: https://github.com/massdriver-cloud/demos
 version: 0.0.0
 
