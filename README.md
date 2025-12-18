@@ -4,6 +4,19 @@ A bootstrap catalog for self-hosted Massdriver instances containing artifact def
 
 **Start here**: Use this catalog to design your infrastructure architecture, test the developer experience, and plan your platform—then fill in your OpenTofu/Terraform implementation when you're ready.
 
+## Quick Start Workflow
+
+This catalog is yours to customize and extend. Here's the recommended workflow:
+
+1. **Clone this repository** to your organization (keep it private—it will contain your infrastructure code)
+2. **Set up GitHub Actions** to automatically publish to your private Massdriver instance (coming soon, use `make` for now)
+3. **Start experimenting** with bundles in VS Code—edit schemas, add parameters, define connections
+4. **Watch the developer experience get built** in real-time in Massdriver as you iterate on your abstractions
+
+The beauty of this approach: you can refine the entire developer experience—what parameters developers see, how bundles connect, what artifacts are produced—all before writing a single line of infrastructure code.
+
+---
+
 After setting up a self-hosted Massdriver instance, teams often face a chicken-and-egg problem:
 
 1. **Where do I start?** You need to configure supported clouds, design artifact abstractions, write Terraform/OpenTofu modules, *and then* think about developer experience.
@@ -281,6 +294,23 @@ To implement a bundle:
 
 ## What's Next?
 
+### Learn More About Massdriver
+
+Once you've modeled your architecture and started implementing bundles, dive deeper into Massdriver with our comprehensive getting started guide:
+
+- 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Step-by-step tutorials covering:
+  - Publishing and deploying bundles
+  - Connecting bundles with artifacts
+  - Creating bundles from existing OpenTofu/Terraform modules
+  - Using bundle deployment metadata for tagging and naming
+
+- 💻 **[Getting Started Repository](https://github.com/massdriver-cloud/getting-started)** - Example bundles with detailed walkthroughs that teach you:
+  - How to work with the Mass CLI
+  - Bundle development best practices
+  - Real-world patterns and techniques
+
+These resources complement this catalog by showing you how to work with bundles once you have them implemented.
+
 ### Coming Soon
 
 - 🚀 GitHub Actions workflow for automated publishing
@@ -288,9 +318,7 @@ To implement a bundle:
 - 🎨 Bundle icon generation
 - 🔗 Landing zone bundle (combines multiple artifacts)
 
-### Roadmap Ideas
-
-See `TODOS.md` for planned enhancements.
+See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues) for the full roadmap.
 
 ## Best Practices
 
@@ -313,15 +341,18 @@ See `TODOS.md` for planned enhancements.
 ## Resources
 
 - 🌐 **[Massdriver Documentation](https://docs.massdriver.cloud)** - Official documentation
-- 🎯 **[Bundle Examples](https://github.com/massdriver-cloud/artifact-definitions)** - Core artifact definitions
+- 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Tutorials and walkthroughs
+- 💻 **[Getting Started Repository](https://github.com/massdriver-cloud/getting-started)** - Example bundles
+- 🎯 **[Core Artifact Definitions](https://github.com/massdriver-cloud/artifact-definitions)** - Standard artifact types
 - 💬 **[Massdriver Slack](https://massdriver.cloud/slack)** - Community support
 
 ## Support
 
 Questions or issues? 
-- Review existing bundle schemas for patterns
+- Review existing bundle schemas for patterns in this catalog
+- Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed tutorials
+- Join our [Slack community](https://massdriver.cloud/slack) for help
 - Reach out to Massdriver support
-- 
 
 ## License
 
