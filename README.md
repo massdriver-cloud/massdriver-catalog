@@ -123,7 +123,20 @@ These bundles let you model first, implement later. Use the schemas to plan your
    cd massdriver-catalog
    ```
 
-2. **Set up pre-commit hooks (optional but recommended)**
+2. **Update GitHub URLs**
+
+   Replace `YOUR_ORG` with your actual GitHub organization name throughout the repository:
+   ```bash
+   # macOS/BSD
+   find . -type f \( -name "*.yaml" -o -name "*.md" \) -exec sed -i '' 's/YOUR_ORG/your-actual-org/g' {} +
+
+   # Linux
+   find . -type f \( -name "*.yaml" -o -name "*.md" \) -exec sed -i 's/YOUR_ORG/your-actual-org/g' {} +
+   ```
+
+   This updates `source_url` fields in bundles and links in operator runbooks to point to your repository.
+
+3. **Set up pre-commit hooks (optional but recommended)**
    ```bash
    pip install pre-commit
    pre-commit install
@@ -131,11 +144,11 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
    This will automatically format JSON/YAML, validate Terraform, and check for common issues before each commit.
 
-3. **Explore and customize**
+4. **Explore and customize**
    - Review artifact definitions in `artifact-definitions/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
 
-4. **Model your platform**
+5. **Model your platform**
    - Open the Massdriver UI
    - Create **projects** - Logical groupings of infrastructure that can reproduce environments. Examples include application domains ("ecommerce", "api", "billing") or platform infrastructure ("network", "compute platform", "data platform")
    - Create **environments** within projects - Named environments ("dev", "staging", "production"), [preview environments](https://docs.massdriver.cloud/preview_environments/overview) ("PR 123"), or regional deployments ("Production US East 1", "US West 2")
@@ -143,13 +156,16 @@ These bundles let you model first, implement later. Use the schemas to plan your
    - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
    - Configure **parameters** to test what the developer experience feels like
 
-5. **Implement infrastructure code**
-   - Customize credential definitions to match your provider blocks
+6. **Implement infrastructure code**
+   - Customize credential definitions to match your provider blocks, then publish them:
+     ```bash
+     make publish-credentials
+     ```
    - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Update schemas if your implementation needs different parameters
 
-6. **Publish to Massdriver**
+7. **Publish to Massdriver**
    ```bash
    make
    ```
@@ -161,9 +177,9 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
    This command will:
    - Clean up any previous build artifacts
-   - Publish credential definitions to your Massdriver instance
    - Publish artifact definitions to your Massdriver instance
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
+   - Validate all bundles with OpenTofu
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
 
 

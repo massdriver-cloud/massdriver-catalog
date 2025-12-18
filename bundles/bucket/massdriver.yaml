@@ -1,7 +1,7 @@
 schema: draft-07
 name: bucket
 description: "Example storage bucket bundle (edit in ./bundles)"
-source_url: https://github.com/massdriver-cloud/demos
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket
 version: 0.0.0
 
 params:

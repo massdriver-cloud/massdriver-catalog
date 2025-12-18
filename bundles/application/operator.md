@@ -57,4 +57,4 @@ kubectl logs -f deployment/<app-name>
 
 ---
 
-**Ready to customize?** Edit this file to make it your own! 🎯
+**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application/operator.md) to make it your own! 🎯

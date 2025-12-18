@@ -54,4 +54,4 @@ tofu state show module.network.aws_vpc.main
 
 ---
 
-**Ready to customize?** Edit this file to make it your own! 🎯
+**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md) to make it your own! 🎯

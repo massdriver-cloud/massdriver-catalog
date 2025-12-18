@@ -6,9 +6,9 @@ ARTDEFS = $(shell find artifact-definitions -name "*.json" -exec basename {} .js
 CREDENTIALS = $(shell find credential-artifact-definitions -name "*.json" -exec basename {} \;)
 
 all:
-	@echo "This will clean, publish credentials, publish artifact definitions, build, validate and publish all bundles."
+	@echo "This will clean, publish artifact definitions, build, validate and publish all bundles."
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ] || (echo "Aborted." && exit 1)
-	@$(MAKE) clean publish-credentials publish-artifact-definitions build-bundles validate-bundles publish-bundles
+	@$(MAKE) clean publish-artifact-definitions build-bundles validate-bundles publish-bundles
 
 publish-all: publish-credentials publish-artifact-definitions publish-bundles
 	@echo "Successfully published all credentials, artifact definitions, and bundles!"

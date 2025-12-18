@@ -58,4 +58,4 @@ psql -h <hostname> -U <username> -d <database>
 
 ---
 
-**Ready to customize?** Edit this file to make it your own! 🎯
+**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md) to make it your own! 🎯
