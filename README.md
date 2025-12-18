@@ -69,19 +69,22 @@ Each artifact definition has two parts:
 - **`data`**: Encrypted connection details (credentials, endpoints, security groups)
 - **`specs`**: Public metadata (region, tags, capabilities) visible in the UI
 
-This catalog includes starter definitions for common infrastructure:
-- `network.json` - Network/VPC abstractions (subnets, CIDR blocks, routing)
-- `postgres.json` - PostgreSQL database connection contracts
-- `mysql.json` - MySQL database connection contracts
-- `bucket.json` - Object storage bucket access contracts
+This catalog includes **example artifact definitions** for common infrastructure patterns:
+- `network.json` - Example network/VPC abstraction (subnets, CIDR blocks, routing)
+- `postgres.json` - Example PostgreSQL database connection contract
+- `mysql.json` - Example MySQL database connection contract
+- `bucket.json` - Example object storage bucket access contract
+
+**⚠️ These are examples to get you started.** Edit these schemas to match your organization's infrastructure patterns and the data your bundles need to exchange. The field names, structure, and validation rules should reflect what your actual OpenTofu/Terraform code produces and consumes.
 
 **Why they matter**: Artifact definitions enable type-safe infrastructure composition. You can't accidentally connect a PostgreSQL artifact to a bundle expecting MySQL—the system validates compatibility at design time, before any infrastructure is deployed.
 
-Use artifact definitions to:
+Use these example artifact definitions to:
 - Define the contract between your IaC modules (what data gets passed from one to another)
 - Model how services connect together in your architecture
 - Design your project and environment structure
 - Plan the developer experience before writing infrastructure code
+- **Then customize them** to match your organization's specific needs
 
 ### 📁 `bundles/`
 
