@@ -59,6 +59,9 @@ Each artifact definition has two parts:
 - **`data`**: Encrypted connection details passed between bundles during automation—IAM policies that downstream services can assume, secret store IDs for credential access, database hostnames, API endpoints, security group IDs. This is the connective tissue that's often cumbersome to automate manually but is vital for compliance and security.
 - **`specs`**: Public metadata (region, tags, capabilities) visible in the UI
 
+> [!TIP]
+> **Security best practice**: While artifact `data` is encrypted at rest and in transit (and access is logged when queried via API), we recommend passing references to your cloud secret stores rather than the secrets themselves. For example, pass an AWS Secrets Manager ARN, Azure Key Vault ID, or GCP Secret Manager resource name—then let downstream bundles retrieve secrets directly from your cloud provider. This provides an additional security layer and prevents secrets from being stored outside your cloud environment.
+
 This catalog includes **example artifact definitions** for common infrastructure patterns:
 - `network.json` - Example network/VPC abstraction (subnets, CIDR blocks, routing)
 - `postgres.json` - Example PostgreSQL database connection contract
@@ -261,7 +264,7 @@ Customize these schemas to match your desired developer experience. The schemas 
 
 When you're ready to implement the actual infrastructure provisioning, replace the placeholder OpenTofu/Terraform code in `bundles/*/src/`.
 
-**How it works**: Massdriver bundles are wrappers around your existing IaC code. The schemas define the interface (what goes in, what comes out), and your IaC code does the actual provisioning. Massdriver automatically generates input variables from your params and connections schemas, then executes your IaC code with those values.
+**How it works**: Massdriver bundles combine policy as code, IaC, and pipelines into a single deployable unit. They define the interface (inputs/outputs), dependencies (connections), and workflow steps—bringing compliance and security scanning into the bundle itself, instead of maintaining snowflake pipelines scattered across hundreds of repos. Massdriver automatically generates input variables from your params and connections schemas, then executes your IaC code with those values.
 
 To implement a bundle:
 
@@ -270,8 +273,6 @@ To implement a bundle:
 3. **Add** additional `.tf` files as needed (variables.tf, outputs.tf, etc.)
 4. **Use** Massdriver-provided variables:
    - `var.md_metadata` - Massdriver metadata (name, package ID, environment)
-   - `var.params` - User-configured parameters from your params schema
-   - `var.connections` - Artifacts from connected bundles from your connections schema
 5. **Output** artifact data that matches your artifacts schema (connection details, resource IDs, etc.)
 
 **Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.params.database_name`. If your connections schema requires a network artifact, access its VPC ID as `var.connections.network.data.infrastructure.vpc_id`.
