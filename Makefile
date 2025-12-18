@@ -5,7 +5,10 @@ BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {}
 ARTDEFS = $(shell find artifact-definitions -name "*.json" -exec basename {} .json \;)
 CREDENTIALS = $(shell find credential-artifact-definitions -name "*.json" -exec basename {} \;)
 
-all: clean publish-credentials publish-artdefs build-bundles publish-bundles
+all:
+	@echo "This will clean, publish credentials, publish artifact definitions, build and publish all bundles."
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ] || (echo "Aborted." && exit 1)
+	@$(MAKE) clean publish-credentials publish-artdefs build-bundles publish-bundles
 
 publish-all: publish-credentials publish-artdefs publish-bundles
 	@echo "Successfully published all credentials, artifact definitions, and bundles!"
