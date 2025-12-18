@@ -176,6 +176,8 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 **Key insight**: This phase is about discovering the right abstractions. Does it make sense to have separate `postgres` and `mysql` bundles? Should your network bundle produce separate "public subnet" and "private subnet" artifacts, or one combined "network" artifact? The schemas let you explore these questions quickly without committing to implementation details.
 
+**Don't aim for perfection—aim for feedback.** Get a working version in front of your developers and iterate based on their input. The abstractions that make sense on paper often need refinement once developers actually use them. You can always add more bundles, refine parameters, or adjust artifact definitions later. Real developer feedback is more valuable than theoretical perfection.
+
 ### Phase 2: Implementation (When Ready)
 
 > [!TIP]
