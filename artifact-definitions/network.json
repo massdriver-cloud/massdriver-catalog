@@ -1,7 +1,11 @@
 {
   "$md": {
     "label": "Example Network (edit in ./artifact-definitions)",
-    "name": "network"
+    "name": "network",
+    "ui": {
+      "__comment": "https://docs.massdriver.cloud/guides/custom-artifact-definition#customizing-the-artifact-types-that-can-be-defaulted-in-an-environment",
+      "environmentDefaultGroup": "networks"
+    }
   },
   "$schema": "http://json-schema.org/draft-07/schema",
   "description": "Example network artifact - customize this schema to match your infrastructure's network outputs",
