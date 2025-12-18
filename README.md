@@ -244,13 +244,16 @@ Customize artifact definitions to:
 
 Each bundle's `massdriver.yaml` defines the complete contract for that infrastructure component:
 
-- **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code via `var.params.*`.
+- **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code. They provide extra UI controls and validations not available in most IaC tools.
 
-- **connections**: Input artifacts that this bundle depends on. For example, a database bundle might require a connection to a network artifact. These become variables in your IaC code via `var.connections.*`. Massdriver validates that only compatible artifacts can be connected.
+- **connections**: Input artifacts that this bundle depends on. For example, a database bundle might require a connection to a network artifact. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible artifacts can be connected.
 
 - **artifacts**: Output artifacts that this bundle produces for other bundles to consume. For example, a database bundle produces a database artifact containing connection details. You populate these in your IaC code's outputs.
 
 - **ui**: UI schema that controls how the configuration form is rendered—field ordering, help text, conditional visibility, custom widgets, etc. This follows the React JSON Schema Form specification.
+
+> [!WARNING]
+> Params and connections share the same namespace in your IaC code. If you have a param named "database" and a connection named "database", they will conflict as the same variable (e.g., `variable "database"` in Terraform). Use distinct names to avoid collisions.
 
 Customize these schemas to match your desired developer experience. The schemas define the self-service interface your developers will use, so invest time in making them clear, well-documented, and user-friendly.
 
