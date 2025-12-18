@@ -1,6 +1,8 @@
-# Massdriver Bootstrap Repository
+# Massdriver Catalog
 
-A getting started repository for self-hosted Massdriver instances. This repo helps you quickly model your platform architecture, plan your developer experience, and bootstrap your infrastructure-as-code setup.
+A bootstrap catalog for self-hosted Massdriver instances containing artifact definitions, infrastructure bundles, and cloud credentials. This catalog helps you quickly model your platform architecture and developer experience before implementing infrastructure code.
+
+**Start here**: Use this catalog to design your infrastructure architecture, test the developer experience, and plan your platform—then fill in your OpenTofu/Terraform implementation when you're ready.
 
 ## The Problem This Solves
 
@@ -10,7 +12,7 @@ After setting up a self-hosted Massdriver instance, teams often face a chicken-a
 2. **Analysis paralysis**: It's hard to visualize project structure, environments, and service offerings before writing infrastructure code.
 3. **Missing baseline**: No starting point for credential definitions or artifact abstractions that work across cloud providers.
 
-This repository flips the script: **model first, implement later**.
+This catalog flips the script: **model first, implement later**.
 
 ## Key Concepts
 
@@ -41,7 +43,7 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 **Credential definitions** are special artifact definitions that define how Massdriver authenticates to your cloud providers. They specify the authentication contract between Massdriver and your cloud accounts.
 
-This repo includes baseline definitions for the three major cloud providers:
+This catalog includes baseline definitions for the three major cloud providers:
 - `aws-iam-role.json` - AWS IAM Role credentials
 - `azure-service-principal.json` - Azure Service Principal credentials  
 - `gcp-service-account.json` - GCP Service Account credentials
@@ -56,7 +58,7 @@ Each artifact definition has two parts:
 - **`data`**: Encrypted connection details (credentials, endpoints, security groups)
 - **`specs`**: Public metadata (region, tags, capabilities) visible in the UI
 
-This repo includes starter definitions for common infrastructure:
+This catalog includes starter definitions for common infrastructure:
 - `network.json` - Network/VPC abstractions (subnets, CIDR blocks, routing)
 - `postgres.json` - PostgreSQL database connection contracts
 - `mysql.json` - MySQL database connection contracts
@@ -76,7 +78,7 @@ Use artifact definitions to:
 
 Bundles provide a safe self-service framework where you (the platform team) encode best practices into ready-to-use modules, and developers get a simple interface to deploy what they need.
 
-This repo includes template bundles with complete schemas and placeholder infrastructure code:
+This catalog includes template bundles with complete schemas and placeholder infrastructure code:
 - `network/` - Network/VPC provisioning
 - `postgres/` - PostgreSQL database provisioning
 - `mysql/` - MySQL database provisioning
@@ -165,7 +167,7 @@ make clean
 
 ## Workflow
 
-This repository is designed for a three-phase approach: model your architecture, implement the infrastructure code, then continuously improve.
+This catalog is designed for a three-phase approach: model your architecture, implement the infrastructure code, then continuously improve.
 
 ### Phase 1: Architecture Modeling (Now)
 
@@ -329,4 +331,4 @@ Private repository - customize for your organization's needs.
 
 ---
 
-**Remember**: This repo is your platform foundation. Clone it, customize it, make it yours. The goal is to help you think through architecture and developer experience before writing infrastructure code. Start modeling today, implement tomorrow.
+**Remember**: This catalog is your platform foundation. Clone it, customize it, make it yours. The goal is to help you think through architecture and developer experience before writing infrastructure code. Start modeling today, implement tomorrow.
