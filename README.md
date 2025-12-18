@@ -2,7 +2,7 @@
 
 A bootstrap catalog for self-hosted Massdriver instances containing artifact definitions, infrastructure bundles, and cloud credentials. This catalog helps you quickly model your platform architecture and developer experience before implementing infrastructure code.
 
-**Start here**: Use this catalog to design your infrastructure architecture, test the developer experience, and plan your platform—then fill in your OpenTofu/Terraform implementation when you're ready.
+**This is your platform foundation.** While this guide walks you through the concepts, you're not just following a tutorial—you're building your actual platform. This repository will serve as your platform team's source of truth for artifact definitions and bundles. Design your infrastructure architecture, iterate on the developer experience, and refine your abstractions here—then fill in your OpenTofu/Terraform implementation when you're ready.
 
 ## Quick Start Workflow
 
