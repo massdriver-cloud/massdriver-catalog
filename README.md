@@ -118,17 +118,17 @@ These bundles let you model first, implement later. Use the schemas to plan your
 2. **Explore and customize**
    - Review artifact definitions in `artifact-definitions/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
-   - Customize credential definitions to match your provider blocks
 
 3. **Model your platform**
    - Open the Massdriver UI
-   - Create **projects** (logical groupings of infrastructure, like "ecommerce", or "api")
-   - Create **environments** within projects (like "dev", "staging", "production")
+   - Create **projects** - Logical groupings of infrastructure that can reproduce environments. Examples include application domains ("ecommerce", "api", "billing") or platform infrastructure ("network", "compute platform", "data platform")
+   - Create **environments** within projects - Named environments ("dev", "staging", "production"), preview environments ("PR 123"), or regional deployments ("Production US East 1", "US West 2")
    - Add bundles to your **canvas** (the visual diagram where you design your architecture)
    - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
    - Configure **parameters** to test what the developer experience feels like
 
 4. **Implement infrastructure code**
+   - Customize credential definitions to match your provider blocks
    - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Update schemas if your implementation needs different parameters
