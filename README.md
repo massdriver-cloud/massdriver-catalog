@@ -56,7 +56,7 @@ This catalog includes baseline definitions for the three major cloud providers:
 **Artifact definitions** are JSON Schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
 
 Each artifact definition has two parts:
-- **`data`**: Encrypted connection details (credentials, endpoints, security groups)
+- **`data`**: Encrypted connection details passed between bundles during automation—IAM policies that downstream services can assume, secret store IDs for credential access, database hostnames, API endpoints, security group IDs. This is the connective tissue that's often cumbersome to automate manually but is vital for compliance and security.
 - **`specs`**: Public metadata (region, tags, capabilities) visible in the UI
 
 This catalog includes **example artifact definitions** for common infrastructure patterns:
@@ -91,13 +91,13 @@ This catalog includes template bundles with complete schemas and placeholder inf
 
 Each bundle includes:
 - ✅ Complete `massdriver.yaml` configuration
-- ✅ **Parameter schemas** - Define what users configure (instance sizes, database names, etc.)
-- ✅ **Connection schemas** - Define what infrastructure this bundle depends on (e.g., a database needs a network)
+- ✅ **Parameter schemas** - Define your IaC variables (tfvars, Helm values) and customize the UI form for user configuration (instance sizes, database names, etc.)
+- ✅ **Connection schemas** - Define dependencies on artifacts from other bundles, enabling secure access to their encrypted data (credentials, IAM policies) and specs (metadata)
 - ✅ **Artifact schemas** - Define what infrastructure this bundle produces for others to consume
 - ✅ **UI schemas** - Control how the configuration form looks and behaves
 - 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
 
-**The key insight**: Bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
+These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
 
 ## Getting Started
 
@@ -162,7 +162,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 3. Add bundles to your canvas (creating packages)
 4. Connect them by linking artifact outputs to connection inputs
 5. Configure parameters to test what the developer experience feels like
-6. Design artifact `data` to transmit sensitive data between bundles to codify access compliance and security into the diagram
+6. Design artifact `data` to transmit sensitive data between bundles
 7. Design artifact `specs` to surface infrastructure metadata into the Massdriver UI
 8. Iterate on artifact definitions and bundle scopes until they feel right
 
@@ -222,7 +222,7 @@ The credential definitions in `credential-artifact-definitions/` define the auth
 
 ### Artifact Definitions
 
-Artifact definitions in `artifact-definitions/` define the contracts between bundles—what data gets passed from one IaC module to another.
+Artifact definitions in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another.
 
 Each artifact definition must have two top-level sections:
 - **`data`**: Encrypted-at-rest information like credentials, connection strings, IAM policies, and security group IDs. This data is securely passed to downstream bundles that need it.
