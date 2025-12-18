@@ -138,7 +138,8 @@ These bundles let you model first, implement later. Use the schemas to plan your
    make
    ```
 
-   _You'll probably wan't to replace `make` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
+   > [!IMPORTANT]
+   > You'll probably want to replace `make` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
    
    **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
    
