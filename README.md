@@ -119,32 +119,33 @@ Each bundle includes:
 1. **Clone this repository**
    ```bash
    git clone <your-private-repo-url>
-   cd massdriver-bootstrap
+   cd massdriver-catalog
    ```
 
 2. **Explore and customize**
    - Review artifact definitions in `artifact-definitions/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
    - Customize credential definitions to match your provider blocks
-   - Use the schemas to model your projects and environments
 
 3. **Model your platform**
    - Open the Massdriver UI
-   - Create **projects** (logical groupings of infrastructure, like "ecommerce-platform")
+   - Create **projects** (logical groupings of infrastructure, like "ecommerce", or "api")
    - Create **environments** within projects (like "dev", "staging", "production")
    - Add bundles to your **canvas** (the visual diagram where you design your architecture)
-   - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another
+   - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
    - Configure **parameters** to test what the developer experience feels like
 
 4. **Implement infrastructure code**
    - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
-   - Test locally with `opentofu init` and `opentofu plan`
+   - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Update schemas if your implementation needs different parameters
 
 5. **Publish to Massdriver**
    ```bash
    make
    ```
+
+   _You'll probably wan't to replace `make` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
    
    **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
    
@@ -155,26 +156,7 @@ Each bundle includes:
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
 
-### Publishing Individually
 
-You can also publish components individually:
-
-```bash
-# Publish only credential definitions
-make publish-credentials
-
-# Publish only artifact definitions
-make publish-artdefs
-
-# Build bundles (generates schema files)
-make build-bundles
-
-# Publish only bundles
-make publish-bundles
-
-# Clean generated files
-make clean
-```
 
 ## Workflow
 
@@ -187,7 +169,9 @@ This catalog is designed for a three-phase approach: model your architecture, im
 3. Add bundles to your canvas (creating packages)
 4. Connect them by linking artifact outputs to connection inputs
 5. Configure parameters to test what the developer experience feels like
-6. Iterate on artifact definitions and bundle scopes until they feel right
+6. Design artifact `data` to transmit sensitive data between bundles to codify access compliance and security into the diagram
+7. Design artifact `specs` to surface infrastructure metadata into the Massdriver UI
+8. Iterate on artifact definitions and bundle scopes until they feel right
 
 **Goal**: Understand what services you want to offer, how they connect, and what the developer experience should be. You're designing the self-service platform interface *before* writing any infrastructure code.
 
