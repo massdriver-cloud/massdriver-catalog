@@ -28,7 +28,7 @@ artifacts:
     - bucket
   properties:
     bucket:
-      $ref: personal-58674/bucket
+      $ref: bucket
       title: Storage Bucket
 
 steps:
@@ -40,4 +40,3 @@ ui:
     - bucket_name
     - versioning_enabled
     - "*"
-

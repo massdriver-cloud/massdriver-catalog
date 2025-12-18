@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.0"
+      version = "~> 1.3"
     }
   }
 }
@@ -19,25 +19,35 @@ resource "random_pet" "main" {
   }
 }
 
+locals {
+  # Example access policies
+  policies = [
+    {
+      name   = "read"
+      policy = "reader"
+    },
+    {
+      name   = "write"
+      policy = "writer"
+    },
+    {
+      name   = "admin"
+      policy = "admin"
+    }
+  ]
+}
+
 resource "massdriver_artifact" "bucket" {
-  field                = "bucket"
-  provider_resource_id = random_pet.main.id
-  name                 = "Demo Bucket ${var.md_metadata.name_prefix}"
+  field = "bucket"
+  name  = "Demo Bucket ${var.md_metadata.name_prefix}"
   artifact = jsonencode({
     data = {
       infrastructure = {
-        id          = random_pet.main.id
+        bucket_id   = random_pet.main.id
         bucket_name = "${var.bucket_name}-${random_pet.main.id}"
       }
       security = {
-        iam = {
-          read = {
-            policy_id = "${random_pet.main.id}-read"
-          }
-          write = {
-            policy_id = "${random_pet.main.id}-write"
-          }
-        }
+        policies = local.policies
       }
     }
     specs = {
@@ -47,4 +57,3 @@ resource "massdriver_artifact" "bucket" {
     }
   })
 }
-

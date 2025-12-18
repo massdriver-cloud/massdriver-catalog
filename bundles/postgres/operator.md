@@ -53,7 +53,7 @@ psql -h <hostname> -U <username> -d <database>
 
 ### Common Issues
 
-**Issue**: Connection pool exhaustion  
+**Issue**: Connection pool exhaustion
 **Solution**: Check max_connections and application connection pooling
 
 ---

@@ -51,7 +51,7 @@ aws s3 ls s3://<bucket-name>/
 
 ### Common Issues
 
-**Issue**: Access denied errors  
+**Issue**: Access denied errors
 **Solution**: Check bucket policy and IAM permissions
 
 ---

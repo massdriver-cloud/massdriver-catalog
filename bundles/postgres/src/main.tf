@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.0"
+      version = "~> 1.3"
     }
   }
 }
@@ -20,10 +20,32 @@ resource "random_pet" "main" {
   }
 }
 
+locals {
+  # Pick first subnet from network connection and generate IP
+  first_subnet_cidr = try(var.network.data.infrastructure.subnets[0].cidr, "10.0.1.0/24")
+  first_subnet_id   = try(var.network.data.infrastructure.subnets[0].subnet_id, "subnet-default")
+  private_ip        = cidrhost(local.first_subnet_cidr, 10)
+
+  # Example access policies
+  policies = [
+    {
+      name   = "read"
+      policy = "reader"
+    },
+    {
+      name   = "write"
+      policy = "writer"
+    },
+    {
+      name   = "admin"
+      policy = "admin"
+    }
+  ]
+}
+
 resource "massdriver_artifact" "database" {
-  field                = "database"
-  provider_resource_id = random_pet.main.id
-  name                 = "Demo PostgreSQL ${var.md_metadata.name_prefix}"
+  field = "database"
+  name  = "Demo PostgreSQL ${var.md_metadata.name_prefix}"
   artifact = jsonencode({
     data = {
       authentication = {
@@ -34,13 +56,22 @@ resource "massdriver_artifact" "database" {
         database = var.database_name
       }
       infrastructure = {
-        id = random_pet.main.id
+        database_id = random_pet.main.id
+        subnet_id   = local.first_subnet_id
+        private_ip  = local.private_ip
+      }
+      security = {
+        policies = local.policies
       }
     }
     specs = {
       database = {
         engine  = "postgres"
         version = var.db_version
+      }
+      network = {
+        subnet_id  = local.first_subnet_id
+        private_ip = local.private_ip
       }
     }
   })

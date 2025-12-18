@@ -8,6 +8,15 @@ params:
   required:
     - image
     - replicas
+  examples:
+    - __name: Development
+      image: "nginx:latest"
+      replicas: 1
+      port: 8080
+    - __name: Production
+      image: "nginx:stable"
+      replicas: 3
+      port: 8080
   properties:
     image:
       type: string
@@ -28,20 +37,35 @@ params:
       default: 8080
       minimum: 1
       maximum: 65535
+    database_policy:
+      type: string
+      title: Database Access Policy
+      description: Access policy to apply for database access
+      $md.enum:
+        connection: database
+        options: .data.security.policies
+        value: .name
+    bucket_policy:
+      type: string
+      title: Bucket Access Policy
+      description: Access policy to apply for bucket access
+      $md.enum:
+        connection: bucket
+        options: .data.security.policies
+        value: .name
 
 connections:
   required:
     - network
+    # - database
+    # - bucket
   properties:
     network:
-      $ref: personal-58674/network
-      title: Network
+      $ref: network
     database:
-      $ref: personal-58674/postgres
-      title: Database
+      $ref: postgres
     bucket:
-      $ref: personal-58674/bucket
-      title: Storage Bucket
+      $ref: bucket
 
 artifacts:
   required: []
@@ -56,5 +80,6 @@ ui:
     - image
     - replicas
     - port
+    - database_policy
+    - bucket_policy
     - "*"
-

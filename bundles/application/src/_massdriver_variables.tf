@@ -3,14 +3,14 @@ variable "bucket" {
   type = object({
     data = object({
       infrastructure = object({
+        bucket_id   = string
         bucket_name = string
-        id          = string
       })
       security = optional(object({
-        iam = optional(object({
-          read  = optional(object({}))
-          write = optional(object({}))
-        }))
+        policies = optional(list(object({
+          name   = string
+          policy = string
+        })))
       }))
     })
     specs = object({
@@ -19,6 +19,10 @@ variable "bucket" {
       })
     })
   })
+  default = null
+}
+variable "bucket_policy" {
+  type    = string
   default = null
 }
 variable "database" {
@@ -34,14 +38,28 @@ variable "database" {
       infrastructure = object({
         id = optional(string)
       })
+      security = optional(object({
+        policies = optional(list(object({
+          name   = string
+          policy = string
+        })))
+      }))
     })
     specs = object({
       database = object({
         engine  = string
         version = string
       })
+      network = optional(object({
+        private_ip = optional(string)
+        subnet_id  = optional(string)
+      }))
     })
   })
+  default = null
+}
+variable "database_policy" {
+  type    = string
   default = null
 }
 variable "image" {
@@ -80,7 +98,10 @@ variable "network" {
       infrastructure = object({
         cidr       = string
         network_id = string
-        subnets    = optional(list(string))
+        subnets = optional(list(object({
+          cidr      = string
+          subnet_id = string
+        })))
       })
     })
     specs = object({

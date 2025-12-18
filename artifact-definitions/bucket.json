@@ -1,75 +1,100 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema",
   "$md": {
-    "name": "bucket",
-    "label": "Example Storage Bucket (edit in ./artifact-definitions)"
+    "label": "Example Storage Bucket (edit in ./artifact-definitions)",
+    "name": "bucket"
   },
-  "type": "object",
-  "title": "Example Storage Bucket",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "description": "Example storage bucket artifact - customize this schema to match your bucket outputs",
-  "required": ["data", "specs"],
   "properties": {
     "data": {
-      "type": "object",
-      "title": "Bucket Connection Data",
-      "required": ["infrastructure"],
       "properties": {
         "infrastructure": {
-          "type": "object",
-          "title": "Infrastructure Details",
-          "required": ["id", "bucket_name"],
           "properties": {
-            "id": {
-              "type": "string",
-              "title": "Resource ID"
+            "bucket_id": {
+              "title": "Bucket ID",
+              "type": "string"
             },
             "bucket_name": {
-              "type": "string",
-              "title": "Bucket Name"
+              "title": "Bucket Name",
+              "type": "string"
             }
-          }
+          },
+          "required": [
+            "bucket_id",
+            "bucket_name"
+          ],
+          "title": "Infrastructure Details",
+          "type": "object"
         },
         "security": {
-          "type": "object",
-          "title": "Security",
           "properties": {
-            "iam": {
-              "type": "object",
-              "title": "IAM",
-              "properties": {
-                "read": {
-                  "type": "object",
-                  "title": "Read Policy"
+            "policies": {
+              "items": {
+                "properties": {
+                  "name": {
+                    "enum": [
+                      "read",
+                      "write",
+                      "admin"
+                    ],
+                    "title": "Policy Name",
+                    "type": "string"
+                  },
+                  "policy": {
+                    "title": "Policy",
+                    "type": "string"
+                  }
                 },
-                "write": {
-                  "type": "object",
-                  "title": "Write Policy"
-                }
-              }
+                "required": [
+                  "name",
+                  "policy"
+                ],
+                "type": "object"
+              },
+              "title": "Available Access Policies",
+              "type": "array"
             }
-          }
+          },
+          "title": "Security",
+          "type": "object"
         }
-      }
+      },
+      "required": [
+        "infrastructure"
+      ],
+      "title": "Bucket Connection Data",
+      "type": "object"
     },
     "specs": {
-      "type": "object",
-      "title": "Bucket Specifications",
-      "required": ["storage"],
       "properties": {
         "storage": {
-          "type": "object",
-          "title": "Storage Info",
-          "required": ["type"],
           "properties": {
             "type": {
-              "type": "string",
+              "enum": [
+                "object-storage"
+              ],
               "title": "Storage Type",
-              "enum": ["object-storage"]
+              "type": "string"
             }
-          }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "Storage Info",
+          "type": "object"
         }
-      }
+      },
+      "required": [
+        "storage"
+      ],
+      "title": "Bucket Specifications",
+      "type": "object"
     }
-  }
+  },
+  "required": [
+    "data",
+    "specs"
+  ],
+  "title": "Example Storage Bucket",
+  "type": "object"
 }
-

@@ -50,7 +50,7 @@ mysql -h <hostname> -u <username> -p <database>
 
 ### Common Issues
 
-**Issue**: Slow query performance  
+**Issue**: Slow query performance
 **Solution**: Check slow query log and optimize indexes
 
 ---

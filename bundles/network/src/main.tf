@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.0"
+      version = "~> 1.3"
     }
   }
 }
@@ -19,16 +19,22 @@ resource "random_pet" "main" {
   }
 }
 
+locals {
+  subnets = [for subnet in var.subnets : {
+    subnet_id = "${random_pet.main.id}-${subnet.name}"
+    cidr      = subnet.cidr
+  }]
+}
+
 resource "massdriver_artifact" "network" {
-  field                = "network"
-  provider_resource_id = random_pet.main.id
-  name                 = "Demo Network ${var.md_metadata.name_prefix}"
+  field = "network"
+  name  = "Demo Network ${var.md_metadata.name_prefix}"
   artifact = jsonencode({
     data = {
       infrastructure = {
         network_id = random_pet.main.id
         cidr       = var.cidr
-        subnets    = [for subnet in var.subnets : "${random_pet.main.id}-${subnet.name}"]
+        subnets    = local.subnets
       }
     }
     specs = {
@@ -38,4 +44,3 @@ resource "massdriver_artifact" "network" {
     }
   })
 }
-

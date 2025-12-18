@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
+    massdriver = {
+      source  = "massdriver-cloud/massdriver"
+      version = "~> 1.0"
+    }
   }
 }
 
@@ -37,4 +41,3 @@ output "config" {
   }
   description = "Application configuration"
 }
-

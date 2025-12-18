@@ -45,7 +45,7 @@ artifacts:
     - network
   properties:
     network:
-      $ref: personal-58674/network
+      $ref: network
       title: Network Artifact
 
 steps:
@@ -57,4 +57,3 @@ ui:
     - cidr
     - subnets
     - "*"
-

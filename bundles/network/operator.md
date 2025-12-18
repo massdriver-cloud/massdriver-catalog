@@ -49,7 +49,7 @@ tofu state show module.network.aws_vpc.main
 
 ### Common Issues
 
-**Issue**: Connection timeouts  
+**Issue**: Connection timeouts
 **Solution**: Check security group rules and NACLs
 
 ---

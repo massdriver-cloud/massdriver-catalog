@@ -48,7 +48,7 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 This catalog includes baseline definitions for the three major cloud providers:
 - `aws-iam-role.json` - AWS IAM Role credentials
-- `azure-service-principal.json` - Azure Service Principal credentials  
+- `azure-service-principal.json` - Azure Service Principal credentials
 - `gcp-service-account.json` - GCP Service Account credentials
 
 **Note**: These are starting points. Customize them to match the provider block requirements of your OpenTofu/Terraform code.
@@ -112,6 +112,9 @@ These bundles let you model first, implement later. Use the schemas to plan your
 - [Massdriver CLI (`mass`)](https://docs.massdriver.cloud/cli) installed and authenticated
 - OpenTofu or Terraform installed (for implementing bundles)
 
+> [!IMPORTANT]
+> This catalog requires Massdriver CLI version 1.13.4 or higher. Check your version with `mass version` and upgrade if needed: [Download latest release](https://github.com/massdriver-cloud/mass/releases/tag/1.13.4)
+
 ### Quick Start
 
 1. **Clone this repository**
@@ -120,11 +123,19 @@ These bundles let you model first, implement later. Use the schemas to plan your
    cd massdriver-catalog
    ```
 
-2. **Explore and customize**
+2. **Set up pre-commit hooks (optional but recommended)**
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+   This will automatically format JSON/YAML, validate Terraform, and check for common issues before each commit.
+
+3. **Explore and customize**
    - Review artifact definitions in `artifact-definitions/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
 
-3. **Model your platform**
+4. **Model your platform**
    - Open the Massdriver UI
    - Create **projects** - Logical groupings of infrastructure that can reproduce environments. Examples include application domains ("ecommerce", "api", "billing") or platform infrastructure ("network", "compute platform", "data platform")
    - Create **environments** within projects - Named environments ("dev", "staging", "production"), [preview environments](https://docs.massdriver.cloud/preview_environments/overview) ("PR 123"), or regional deployments ("Production US East 1", "US West 2")
@@ -132,22 +143,22 @@ These bundles let you model first, implement later. Use the schemas to plan your
    - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
    - Configure **parameters** to test what the developer experience feels like
 
-4. **Implement infrastructure code**
+5. **Implement infrastructure code**
    - Customize credential definitions to match your provider blocks
    - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Update schemas if your implementation needs different parameters
 
-5. **Publish to Massdriver**
+6. **Publish to Massdriver**
    ```bash
    make
    ```
 
    > [!IMPORTANT]
    > You'll probably want to replace `make` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
-   
+
    **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
-   
+
    This command will:
    - Clean up any previous build artifacts
    - Publish credential definitions to your Massdriver instance
@@ -340,7 +351,7 @@ See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues)
 
 ## Support
 
-Questions or issues? 
+Questions or issues?
 - Review existing bundle schemas for patterns in this catalog
 - Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed tutorials
 - Join our [Slack community](https://massdriver.cloud/slack) for help

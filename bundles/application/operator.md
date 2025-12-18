@@ -52,7 +52,7 @@ kubectl logs -f deployment/<app-name>
 
 ### Common Issues
 
-**Issue**: Application not starting  
+**Issue**: Application not starting
 **Solution**: Check container logs and environment variables
 
 ---

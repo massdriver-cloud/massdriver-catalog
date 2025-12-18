@@ -1,81 +1,142 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema",
   "$md": {
-    "name": "postgres",
-    "label": "Example PostgreSQL (edit in ./artifact-definitions)"
+    "label": "Example PostgreSQL (edit in ./artifact-definitions)",
+    "name": "postgres"
   },
-  "type": "object",
-  "title": "Example PostgreSQL Database",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "description": "Example PostgreSQL artifact - customize this schema to match your database outputs",
-  "required": ["data", "specs"],
   "properties": {
     "data": {
-      "type": "object",
-      "title": "PostgreSQL Connection Data",
-      "required": ["authentication", "infrastructure"],
       "properties": {
         "authentication": {
-          "type": "object",
-          "title": "Authentication",
-          "required": ["hostname", "port", "username", "password"],
           "properties": {
+            "database": {
+              "title": "Database Name",
+              "type": "string"
+            },
             "hostname": {
-              "type": "string",
-              "title": "Hostname"
-            },
-            "port": {
-              "type": "integer",
-              "title": "Port"
-            },
-            "username": {
-              "type": "string",
-              "title": "Username"
+              "title": "Hostname",
+              "type": "string"
             },
             "password": {
-              "type": "string",
-              "title": "Password"
+              "title": "Password",
+              "type": "string"
             },
-            "database": {
-              "type": "string",
-              "title": "Database Name"
+            "port": {
+              "title": "Port",
+              "type": "integer"
+            },
+            "username": {
+              "title": "Username",
+              "type": "string"
             }
-          }
+          },
+          "required": [
+            "hostname",
+            "port",
+            "username",
+            "password"
+          ],
+          "title": "Authentication",
+          "type": "object"
         },
         "infrastructure": {
-          "type": "object",
-          "title": "Infrastructure Details",
           "properties": {
             "id": {
-              "type": "string",
-              "title": "Resource ID"
+              "title": "Resource ID",
+              "type": "string"
             }
-          }
+          },
+          "title": "Infrastructure Details",
+          "type": "object"
+        },
+        "security": {
+          "properties": {
+            "policies": {
+              "items": {
+                "properties": {
+                  "name": {
+                    "enum": [
+                      "read",
+                      "write",
+                      "admin"
+                    ],
+                    "title": "Policy Name",
+                    "type": "string"
+                  },
+                  "policy": {
+                    "title": "Policy",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "policy"
+                ],
+                "type": "object"
+              },
+              "title": "Available Access Policies",
+              "type": "array"
+            }
+          },
+          "title": "Security",
+          "type": "object"
         }
-      }
+      },
+      "required": [
+        "authentication",
+        "infrastructure"
+      ],
+      "title": "PostgreSQL Connection Data",
+      "type": "object"
     },
     "specs": {
-      "type": "object",
-      "title": "PostgreSQL Specifications",
-      "required": ["database"],
       "properties": {
         "database": {
-          "type": "object",
-          "title": "Database Info",
-          "required": ["version", "engine"],
           "properties": {
             "engine": {
-              "type": "string",
+              "const": "postgres",
               "title": "Database Engine",
-              "const": "postgres"
+              "type": "string"
             },
             "version": {
-              "type": "string",
-              "title": "PostgreSQL Version"
+              "title": "PostgreSQL Version",
+              "type": "string"
             }
-          }
+          },
+          "required": [
+            "version",
+            "engine"
+          ],
+          "title": "Database Info",
+          "type": "object"
+        },
+        "network": {
+          "properties": {
+            "private_ip": {
+              "title": "Private IP",
+              "type": "string"
+            },
+            "subnet_id": {
+              "title": "Subnet ID",
+              "type": "string"
+            }
+          },
+          "title": "Network Info",
+          "type": "object"
         }
-      }
+      },
+      "required": [
+        "database"
+      ],
+      "title": "PostgreSQL Specifications",
+      "type": "object"
     }
-  }
+  },
+  "required": [
+    "data",
+    "specs"
+  ],
+  "title": "Example PostgreSQL Database",
+  "type": "object"
 }
-

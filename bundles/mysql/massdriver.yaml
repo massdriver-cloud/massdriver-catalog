@@ -14,6 +14,7 @@ params:
       title: MySQL Version
       description: MySQL version to deploy
       default: "8.0"
+      $md.immutable: true
       enum:
         - "5.7"
         - "8.0"
@@ -31,7 +32,7 @@ connections:
     - network
   properties:
     network:
-      $ref: personal-58674/network
+      $ref: network
       title: Network
 
 artifacts:
@@ -39,7 +40,7 @@ artifacts:
     - database
   properties:
     database:
-      $ref: personal-58674/mysql
+      $ref: mysql
       title: MySQL Database
 
 steps:
@@ -51,4 +52,3 @@ ui:
     - db_version
     - database_name
     - "*"
-
