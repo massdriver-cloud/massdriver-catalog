@@ -173,6 +173,9 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 ### Phase 2: Implementation (When Ready)
 
+> [!TIP]
+> Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed documentation on bundle and artifact definition development.
+
 1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
 2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
@@ -188,7 +191,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 1. Add more bundles as needed
 2. Create custom artifact definitions for your organization
 3. Refine parameter validation and UI schemas
-4. Share bundles across teams
+4. 👋 Say farewell to ticket ops
 
 ## Repository Structure
 
@@ -206,7 +209,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── network.json
 │   └── postgres.json
 └── bundles/                            # Infrastructure and application bundles
-    ├── application/                    # Application deployment template
+    ├── application/                    # Example Application
     ├── bucket/                         # Object storage
     ├── mysql/                          # MySQL database
     ├── network/                        # VPC/Network
@@ -319,9 +322,9 @@ See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues)
 ## Resources
 
 - 🌐 **[Massdriver Documentation](https://docs.massdriver.cloud)** - Official documentation
-- 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Tutorials and walkthroughs
-- 💻 **[Getting Started Repository](https://github.com/massdriver-cloud/getting-started)** - Example bundles
-- 🎯 **[Core Artifact Definitions](https://github.com/massdriver-cloud/artifact-definitions)** - Standard artifact types
+- 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Getting started with bundle development
+- 💻 **[Getting Started Repository](https://github.com/massdriver-cloud/getting-started)** - Accompanying code
+- 🎯 **[Core Artifact Definitions](https://github.com/massdriver-cloud/artifact-definitions)** - Standard artifact types in the Massdriver SaaS Platform. They're great to use as inspiration or a foundation.
 - 💬 **[Massdriver Slack](https://massdriver.cloud/slack)** - Community support
 
 ## Support
