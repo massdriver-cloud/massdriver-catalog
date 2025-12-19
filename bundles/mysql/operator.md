@@ -1,13 +1,25 @@
+---
+templating: mustache
+---
+
 # 🐬 MySQL Bundle Runbook
 
-```
-┌─────────────────────────────┐
-│  YOUR RUNBOOK GOES HERE! ✏️  │
-│                             │
-│  Edit operator.md to        │
-│  customize this page        │
-└─────────────────────────────┘
-```
+## Package Information
+
+**Slug:** `{{slug}}`
+
+### Configuration
+
+**MySQL Version:** `{{params.db_version}}`
+**Database Name:** `{{params.database_name}}`
+
+### Connected Network
+
+{{#connections.network}}
+**Network CIDR:** `{{specs.network.cidr}}`
+{{/connections.network}}
+
+---
 
 ## Welcome to Your Runbook! 👋
 
@@ -39,20 +51,63 @@ Consider adding:
 
 ---
 
-## Example: MySQL Operations
+## MySQL Operations
+
+### Database Configuration
+
+**Database Version:** MySQL `{{artifacts.database.specs.database.version}}`
+**Database Name:** `{{params.database_name}}`
+**Hostname:** `{{artifacts.database.specs.database.hostname}}`
+**Port:** `{{artifacts.database.specs.database.port}}`
+
+### Network Information
+
+**Subnet ID:** `{{artifacts.database.specs.network.subnet_id}}`
+**Private IP:** `{{artifacts.database.specs.network.private_ip}}`
+
+{{#connections.network}}
+**Network CIDR:** `{{specs.network.cidr}}`
+{{/connections.network}}
 
 ### Connecting to the Database
 
 ```bash
-# Placeholder - add your actual connection commands
-mysql -h <hostname> -u <username> -p <database>
+# Connect to MySQL
+# Username and password are stored securely and injected at runtime
+mysql -h {{artifacts.database.specs.database.hostname}} \
+      -u <username> \
+      -p \
+      -P {{artifacts.database.specs.database.port}} \
+      {{params.database_name}}
 ```
 
-### Common Issues
+### Common Operations
 
-**Issue**: Slow query performance
-**Solution**: Check slow query log and optimize indexes
+**Check database size:**
+
+```bash
+mysql -h {{artifacts.database.specs.database.hostname}} \
+      -u <username> \
+      -p \
+      -P {{artifacts.database.specs.database.port}} \
+      {{params.database_name}} \
+      -e "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
+          FROM information_schema.tables
+          WHERE table_schema = '{{params.database_name}}';"
+```
+
+**Create a backup:**
+
+```bash
+mysqldump -h {{artifacts.database.specs.database.hostname}} \
+          -u <username> \
+          -p \
+          -P {{artifacts.database.specs.database.port}} \
+          {{params.database_name}} > backup-$(date +%Y%m%d).sql
+```
+
+
 
 ---
 
-**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/mysql/operator.md) to make it your own! 🎯
+**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/mysql/operator.md) 🎯

@@ -1,12 +1,23 @@
+---
+templating: mustache
+---
+
 # 📚 Network Bundle Runbook
 
-```
-╔═══════════════════════════════════════╗
-║                                       ║
-║   CUSTOMIZE YOUR RUNBOOK HERE! 🚀     ║
-║                                       ║
-╚═══════════════════════════════════════╝
-```
+## Package Information
+
+**Slug:** `{{slug}}`
+
+### Configuration
+
+**CIDR Block:** `{{params.cidr}}`
+
+**Subnets:**
+{{#params.subnets}}
+- **{{name}}**: `{{cidr}}`
+{{/params.subnets}}
+
+---
 
 ## Welcome to Your Runbook! 👋
 
@@ -38,20 +49,26 @@ Consider adding:
 
 ---
 
-## Example: Network Operations
+## Network Operations
 
-### Checking Network Connectivity
+### Network Configuration
+
+**Network CIDR:** `{{artifacts.network.specs.network.cidr}}`
+
+### Testing Network Connectivity
+
+**Test connectivity:**
 
 ```bash
-# Placeholder - add your actual commands
-tofu state show module.network.aws_vpc.main
+ping -c 3 {{artifacts.network.specs.network.cidr}}
 ```
 
-### Common Issues
+**Check route tables (AWS example):**
 
-**Issue**: Connection timeouts
-**Solution**: Check security group rules and NACLs
+```bash
+aws ec2 describe-route-tables --filters "Name=cidr,Values={{artifacts.network.specs.network.cidr}}"
+```
 
 ---
 
-**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md) to make it your own! 🎯
+**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md) 🎯

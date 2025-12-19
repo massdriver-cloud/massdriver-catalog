@@ -26,6 +26,10 @@ locals {
   first_subnet_id   = try(var.network.data.infrastructure.subnets[0].subnet_id, "subnet-default")
   private_ip        = cidrhost(local.first_subnet_cidr, 20)
 
+  # Database connection details
+  hostname = "${random_pet.main.id}.mysql.local"
+  port     = 3306
+
   # Example access policies
   policies = [
     {
@@ -66,8 +70,10 @@ resource "massdriver_artifact" "database" {
     }
     specs = {
       database = {
-        engine  = "mysql"
-        version = var.db_version
+        engine   = "mysql"
+        version  = var.db_version
+        hostname = local.hostname
+        port     = local.port
       }
       network = {
         subnet_id  = local.first_subnet_id

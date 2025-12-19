@@ -46,7 +46,7 @@ artifacts:
   properties:
     network:
       $ref: network
-      title: Network Artifact
+
 
 steps:
   - path: src

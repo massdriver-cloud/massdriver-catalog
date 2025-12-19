@@ -1,16 +1,25 @@
+---
+templating: mustache
+---
+
 # 🐘 PostgreSQL Bundle Runbook
 
-```
-    ___________________
-   /                   \
-  |  EDIT YOUR RUNBOOK |
-  |      HERE! 📖      |
-   \___________________/
-          ||
-       \  ||  /
-         \||/
-          \/
-```
+## Package Information
+
+**Slug:** `{{slug}}`
+
+### Configuration
+
+**PostgreSQL Version:** `{{params.db_version}}`
+**Database Name:** `{{params.database_name}}`
+
+### Connected Network
+
+{{#connections.network}}
+**Network CIDR:** `{{specs.network.cidr}}`
+{{/connections.network}}
+
+---
 
 ## Welcome to Your Runbook! 👋
 
@@ -42,20 +51,57 @@ Consider adding:
 
 ---
 
-## Example: PostgreSQL Operations
+## PostgreSQL Operations
+
+### Database Configuration
+
+**Database Version:** PostgreSQL `{{artifacts.database.specs.database.version}}`
+**Database Name:** `{{params.database_name}}`
+**Hostname:** `{{artifacts.database.specs.database.hostname}}`
+**Port:** `{{artifacts.database.specs.database.port}}`
+
+### Network Information
+
+**Subnet ID:** `{{artifacts.database.specs.network.subnet_id}}`
+**Private IP:** `{{artifacts.database.specs.network.private_ip}}`
+
+{{#connections.network}}
+**Network CIDR:** `{{specs.network.cidr}}`
+{{/connections.network}}
 
 ### Connecting to the Database
 
 ```bash
-# Placeholder - add your actual connection commands
-psql -h <hostname> -U <username> -d <database>
+# Connect to PostgreSQL
+# Username and password are stored securely and injected at runtime
+psql -h {{artifacts.database.specs.database.hostname}} \
+     -U <username> \
+     -d {{params.database_name}} \
+     -p {{artifacts.database.specs.database.port}}
 ```
 
-### Common Issues
+### Common Operations
 
-**Issue**: Connection pool exhaustion
-**Solution**: Check max_connections and application connection pooling
+**Check database size:**
+
+```bash
+psql -h {{artifacts.database.specs.database.hostname}} \
+     -U <username> \
+     -d {{params.database_name}} \
+     -p {{artifacts.database.specs.database.port}} \
+     -c "SELECT pg_size_pretty(pg_database_size('{{params.database_name}}'));"
+```
+
+**Create a backup:**
+
+```bash
+pg_dump -h {{artifacts.database.specs.database.hostname}} \
+        -U <username> \
+        -d {{params.database_name}} \
+        -p {{artifacts.database.specs.database.port}} \
+        -F c -f backup-$(date +%Y%m%d).dump
+```
 
 ---
 
-**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md) to make it your own! 🎯
+**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md) 🎯

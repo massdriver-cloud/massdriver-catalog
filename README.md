@@ -125,16 +125,7 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
 2. **Update GitHub URLs**
 
-   Replace `YOUR_ORG` with your actual GitHub organization name throughout the repository:
-   ```bash
-   # macOS/BSD
-   find . -type f \( -name "*.yaml" -o -name "*.md" \) -exec sed -i '' 's/YOUR_ORG/your-actual-org/g' {} +
-
-   # Linux
-   find . -type f \( -name "*.yaml" -o -name "*.md" \) -exec sed -i 's/YOUR_ORG/your-actual-org/g' {} +
-   ```
-
-   This updates `source_url` fields in bundles and links in operator runbooks to point to your repository.
+   Replace `YOUR_ORG` with your actual GitHub organization name throughout the repository. This updates `source_url` fields in bundles and links in operator runbooks to point to your repository.
 
 3. **Set up pre-commit hooks (optional but recommended)**
    ```bash
@@ -179,19 +170,10 @@ These bundles let you model first, implement later. Use the schemas to plan your
    - Clean up any previous build artifacts
    - Publish artifact definitions to your Massdriver instance
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
-   - Validate all bundles with OpenTofu
+   - Validate all bundles with OpenTofu, Helm, etc.
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
 
-8. **Set up example projects (optional)**
-   ```bash
-   make setup-examples
-   ```
 
-   This will automatically create example projects and environments with bundles to help you get started:
-   - **ecommerce** project with dev, staging, and production environments (each with network, postgres, bucket, and application bundles)
-   - **platform** project with development and production environments (each with a network bundle)
-
-   This gives you a working starting point to explore how bundles connect together and how to model different types of infrastructure.
 
 ## Workflow
 

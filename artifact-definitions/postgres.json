@@ -99,6 +99,14 @@
               "title": "Database Engine",
               "type": "string"
             },
+            "hostname": {
+              "title": "Database Hostname",
+              "type": "string"
+            },
+            "port": {
+              "title": "Database Port",
+              "type": "integer"
+            },
             "version": {
               "title": "PostgreSQL Version",
               "type": "string"

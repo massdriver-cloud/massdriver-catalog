@@ -47,8 +47,10 @@ variable "database" {
     })
     specs = object({
       database = object({
-        engine  = string
-        version = string
+        engine   = string
+        hostname = optional(string)
+        port     = optional(number)
+        version  = string
       })
       network = optional(object({
         private_ip = optional(string)
@@ -61,6 +63,9 @@ variable "database" {
 variable "database_policy" {
   type    = string
   default = null
+}
+variable "domain_name" {
+  type = string
 }
 variable "image" {
   type = string

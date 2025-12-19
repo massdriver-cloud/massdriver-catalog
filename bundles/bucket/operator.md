@@ -1,14 +1,19 @@
+---
+templating: mustache
+---
+
 # 🪣 Storage Bucket Runbook
 
-```
-  _____________________
- /                     \
-|   RUNBOOK TEMPLATE    |
-|                       |
-|   Edit operator.md    |
-|   to customize! 🎨    |
- \_____________________/
-```
+## Package Information
+
+**Slug:** `{{slug}}`
+
+### Configuration
+
+**Bucket Name:** `{{params.bucket_name}}`
+**Versioning Enabled:** `{{params.versioning_enabled}}`
+
+---
 
 ## Welcome to Your Runbook! 👋
 
@@ -45,8 +50,11 @@ Consider adding:
 ### Listing Bucket Contents
 
 ```bash
-# Placeholder - add your actual commands
-aws s3 ls s3://<bucket-name>/
+# List bucket contents (example for cloud CLI)
+# After deployment, bucket name will be in the artifact output
+# AWS: aws s3 ls s3://<bucket-name>/
+# GCP: gsutil ls gs://<bucket-name>/
+# Azure: az storage blob list --account-name <account> --container <bucket-name>
 ```
 
 ### Common Issues
@@ -56,4 +64,4 @@ aws s3 ls s3://<bucket-name>/
 
 ---
 
-**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket/operator.md) to make it your own! 🎯
+**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket/operator.md) 🎯

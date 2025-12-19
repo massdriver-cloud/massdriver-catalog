@@ -19,11 +19,47 @@ templating: mustache
 
 This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
 
-### 📝 Application Configuration
+## Package Information
 
-**Container Image:** `{{params.image}}`  
-**Replicas:** `{{params.replicas}}`  
+**Slug:** `{{slug}}`
+
+### Application Configuration
+
+**Container Image:** `{{params.image}}`
+**Replicas:** `{{params.replicas}}`
 **Port:** `{{params.port}}`
+**Domain:** `{{params.domain_name}}`
+
+### Connected Database
+
+{{#connections.database}}
+**Database Engine:** `{{specs.database.engine}}` version `{{specs.database.version}}`
+**Network Subnet:** `{{specs.network.subnet_id}}`
+**Private IP:** `{{specs.network.private_ip}}`
+**Selected Access Policy:** `{{params.database_policy}}`
+{{/connections.database}}
+{{^connections.database}}
+_No database connected_
+{{/connections.database}}
+
+### Connected Storage Bucket
+
+{{#connections.bucket}}
+**Storage Type:** `{{specs.storage.type}}`
+**Selected Access Policy:** `{{params.bucket_policy}}`
+{{/connections.bucket}}
+{{^connections.bucket}}
+_No storage bucket connected_
+{{/connections.bucket}}
+
+### Network Information
+
+{{#connections.network}}
+**Network CIDR:** `{{specs.network.cidr}}`
+{{/connections.network}}
+{{^connections.network}}
+_No network connected_
+{{/connections.network}}
 
 ### 💡 What to Include
 
@@ -47,32 +83,43 @@ Consider adding:
 
 ---
 
-## Example: Application Operations
+## Application Operations
 
-### Viewing Application Logs
+### Testing the Application
+
+**Health check:**
 
 ```bash
-# Example - replace with your actual commands
-kubectl logs -f deployment/{{params.image}}
+curl https://{{params.domain_name}}/health
 ```
+
+**Basic connectivity test:**
+
+```bash
+curl -I https://{{params.domain_name}}
+```
+
+**Debug with verbose output:**
+
+```bash
+curl -v https://{{params.domain_name}}
+```
+
+### Database Connection
+
+{{#connections.database}}
+The application is connected to a **{{specs.database.engine}}** database (version `{{specs.database.version}}`).
+
+Connection details are available via environment variables injected at runtime.
+{{/connections.database}}
 
 ### Scaling Application
 
 Current replicas: **{{params.replicas}}**
 
-```bash
-# Scale to 5 replicas
-kubectl scale deployment/my-app --replicas=5
-```
+To scale the application, update the `replicas` parameter in Massdriver and redeploy.
 
-### Common Issues
-
-**Issue**: Application not starting  
-**Solution**: Check container logs and verify image `{{params.image}}` exists
-
-**Issue**: Port conflict  
-**Solution**: Verify port `{{params.port}}` is not already in use
 
 ---
 
-**Ready to customize?** Edit this file to make it your own! 🎯
+**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application/operator.md) 🎯

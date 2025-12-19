@@ -1,6 +1,6 @@
 schema: draft-07
 name: application
-description: "Example application bundle (edit in ./bundles)"
+description: "Example application bundle (edit in ./bundles/application)"
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application
 version: 0.0.0
 
@@ -8,15 +8,18 @@ params:
   required:
     - image
     - replicas
+    - domain_name
   examples:
-    - __name: Development
+    - __name: Development (edit in ./bundles/application)
       image: "nginx:latest"
       replicas: 1
       port: 8080
-    - __name: Production
+      domain_name: "dev.example.com"
+    - __name: Production (edit in ./bundles/application)
       image: "nginx:stable"
       replicas: 3
       port: 8080
+      domain_name: "app.example.com"
   properties:
     image:
       type: string
@@ -37,6 +40,12 @@ params:
       default: 8080
       minimum: 1
       maximum: 65535
+    domain_name:
+      type: string
+      title: Domain Name
+      description: Domain name for the application
+      default: "app.example.com"
+      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
     database_policy:
       type: string
       title: Database Access Policy
@@ -80,6 +89,7 @@ ui:
     - image
     - replicas
     - port
+    - domain_name
     - database_policy
     - bucket_policy
     - "*"
