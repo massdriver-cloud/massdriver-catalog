@@ -1,9 +1,24 @@
-.PHONY: all publish-all publish-bundles publish-artifact-definitions publish-credentials build-bundles validate-bundles clean clean-variables clean-lock
+.PHONY: all publish-all publish-bundles publish-artifact-definitions publish-credentials build-bundles validate-bundles clean clean-variables clean-lock help
 
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 ARTDEFS = $(shell find artifact-definitions -name "*.json" -exec basename {} .json \;)
 CREDENTIALS = $(shell find credential-artifact-definitions -name "*.json" -exec basename {} \;)
+
+help:
+	@echo "Massdriver Catalog - Available Commands:"
+	@echo ""
+	@echo "  make all                      - Clean, publish artifacts, build, validate and publish bundles"
+	@echo "  make publish-credentials      - Publish cloud credential artifact definitions"
+	@echo "  make publish-artifact-definitions - Publish artifact definitions"
+	@echo "  make build-bundles            - Build all bundles (generate schemas)"
+	@echo "  make validate-bundles         - Initialize and validate all bundles with OpenTofu"
+	@echo "  make publish-bundles          - Publish all bundles to Massdriver"
+	@echo "  make setup-examples           - Create example projects and environments with bundles"
+	@echo "  make clean                    - Clean up OpenTofu artifacts and lock files"
+	@echo "  make clean-variables          - Clean up _massdriver_variables.tf files"
+	@echo "  make clean-lock               - Clean up .terraform.lock.hcl files"
+	@echo ""
 
 all:
 	@echo "This will clean, publish artifact definitions, build, validate and publish all bundles."

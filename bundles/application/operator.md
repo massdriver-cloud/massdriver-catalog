@@ -1,3 +1,7 @@
+---
+templating: mustache
+---
+
 # 🚀 Application Bundle Runbook
 
 ```
@@ -15,9 +19,11 @@
 
 This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
 
-### 📝 How to Use This File
+### 📝 Application Configuration
 
-This `operator.md` file lives in the root of your bundle directory (`./bundles/application/operator.md`). When you edit it, your custom runbook will appear in the Massdriver UI, giving your team instant access to operational documentation right where they need it.
+**Container Image:** `{{params.image}}`  
+**Replicas:** `{{params.replicas}}`  
+**Port:** `{{params.port}}`
 
 ### 💡 What to Include
 
@@ -46,15 +52,27 @@ Consider adding:
 ### Viewing Application Logs
 
 ```bash
-# Placeholder - add your actual commands
-kubectl logs -f deployment/<app-name>
+# Example - replace with your actual commands
+kubectl logs -f deployment/{{params.image}}
+```
+
+### Scaling Application
+
+Current replicas: **{{params.replicas}}**
+
+```bash
+# Scale to 5 replicas
+kubectl scale deployment/my-app --replicas=5
 ```
 
 ### Common Issues
 
-**Issue**: Application not starting
-**Solution**: Check container logs and environment variables
+**Issue**: Application not starting  
+**Solution**: Check container logs and verify image `{{params.image}}` exists
+
+**Issue**: Port conflict  
+**Solution**: Verify port `{{params.port}}` is not already in use
 
 ---
 
-**Ready to customize?** [Edit this file](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application/operator.md) to make it your own! 🎯
+**Ready to customize?** Edit this file to make it your own! 🎯

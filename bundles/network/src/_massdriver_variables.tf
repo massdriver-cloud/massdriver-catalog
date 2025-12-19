@@ -34,5 +34,5 @@ variable "subnets" {
     cidr = string
     name = string
   }))
-  default = [{ "cidr" : "10.0.1.0/24", "name" : "subnet-a" }, { "cidr" : "10.0.2.0/24", "name" : "subnet-b" }]
+  default = [{"cidr":"10.0.1.0/24","name":"subnet-a"},{"cidr":"10.0.2.0/24","name":"subnet-b"}]
 }

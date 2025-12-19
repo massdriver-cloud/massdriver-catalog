@@ -182,7 +182,16 @@ These bundles let you model first, implement later. Use the schemas to plan your
    - Validate all bundles with OpenTofu
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
 
+8. **Set up example projects (optional)**
+   ```bash
+   make setup-examples
+   ```
 
+   This will automatically create example projects and environments with bundles to help you get started:
+   - **ecommerce** project with dev, staging, and production environments (each with network, postgres, bucket, and application bundles)
+   - **platform** project with development and production environments (each with a network bundle)
+
+   This gives you a working starting point to explore how bundles connect together and how to model different types of infrastructure.
 
 ## Workflow
 
