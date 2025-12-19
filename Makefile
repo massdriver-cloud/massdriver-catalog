@@ -47,7 +47,7 @@ validate-bundles: build-bundles
 	done
 	@echo "All bundles validated successfully!"
 
-clean:
+clean: clean-variables clean-lock
 	@find . -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
 	@find . -name "terraform.tfstate*" -delete 2>/dev/null || true
 	@find . -name "schema-*.json" -delete 2>/dev/null || true
