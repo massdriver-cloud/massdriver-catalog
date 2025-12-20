@@ -4,6 +4,9 @@ templating: mustache
 
 # 📚 Network Bundle Runbook
 
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+
 ## Package Information
 
 **Slug:** `{{slug}}`
@@ -13,6 +16,7 @@ templating: mustache
 **CIDR Block:** `{{params.cidr}}`
 
 **Subnets:**
+
 {{#params.subnets}}
 - **{{name}}**: `{{cidr}}`
 {{/params.subnets}}

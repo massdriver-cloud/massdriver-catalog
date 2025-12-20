@@ -51,3 +51,6 @@ variable "network" {
     })
   })
 }
+variable "username" {
+  type = string
+}

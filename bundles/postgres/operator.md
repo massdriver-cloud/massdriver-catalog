@@ -4,6 +4,9 @@ templating: mustache
 
 # 🐘 PostgreSQL Bundle Runbook
 
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+
 ## Package Information
 
 **Slug:** `{{slug}}`
@@ -11,7 +14,10 @@ templating: mustache
 ### Configuration
 
 **PostgreSQL Version:** `{{params.db_version}}`
+
 **Database Name:** `{{params.database_name}}`
+
+**Username:** `{{params.username}}`
 
 ### Connected Network
 
@@ -56,13 +62,19 @@ Consider adding:
 ### Database Configuration
 
 **Database Version:** PostgreSQL `{{artifacts.database.specs.database.version}}`
+
 **Database Name:** `{{params.database_name}}`
+
+**Username:** `{{artifacts.database.specs.database.username}}`
+
 **Hostname:** `{{artifacts.database.specs.database.hostname}}`
+
 **Port:** `{{artifacts.database.specs.database.port}}`
 
 ### Network Information
 
 **Subnet ID:** `{{artifacts.database.specs.network.subnet_id}}`
+
 **Private IP:** `{{artifacts.database.specs.network.private_ip}}`
 
 {{#connections.network}}
@@ -75,7 +87,7 @@ Consider adding:
 # Connect to PostgreSQL
 # Username and password are stored securely and injected at runtime
 psql -h {{artifacts.database.specs.database.hostname}} \
-     -U <username> \
+     -U {{artifacts.database.specs.database.username}} \
      -d {{params.database_name}} \
      -p {{artifacts.database.specs.database.port}}
 ```
@@ -86,7 +98,7 @@ psql -h {{artifacts.database.specs.database.hostname}} \
 
 ```bash
 psql -h {{artifacts.database.specs.database.hostname}} \
-     -U <username> \
+     -U {{artifacts.database.specs.database.username}} \
      -d {{params.database_name}} \
      -p {{artifacts.database.specs.database.port}} \
      -c "SELECT pg_size_pretty(pg_database_size('{{params.database_name}}'));"
@@ -96,7 +108,7 @@ psql -h {{artifacts.database.specs.database.hostname}} \
 
 ```bash
 pg_dump -h {{artifacts.database.specs.database.hostname}} \
-        -U <username> \
+        -U {{artifacts.database.specs.database.username}} \
         -d {{params.database_name}} \
         -p {{artifacts.database.specs.database.port}} \
         -F c -f backup-$(date +%Y%m%d).dump

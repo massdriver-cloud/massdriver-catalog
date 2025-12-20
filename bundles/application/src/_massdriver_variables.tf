@@ -50,6 +50,7 @@ variable "database" {
         engine   = string
         hostname = optional(string)
         port     = optional(number)
+        username = optional(string)
         version  = string
       })
       network = optional(object({

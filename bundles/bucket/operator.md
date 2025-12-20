@@ -4,6 +4,9 @@ templating: mustache
 
 # 🪣 Storage Bucket Runbook
 
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+
 ## Package Information
 
 **Slug:** `{{slug}}`
@@ -11,6 +14,7 @@ templating: mustache
 ### Configuration
 
 **Bucket Name:** `{{params.bucket_name}}`
+
 **Versioning Enabled:** `{{params.versioning_enabled}}`
 
 ---

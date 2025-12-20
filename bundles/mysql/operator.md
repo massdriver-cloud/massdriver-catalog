@@ -4,6 +4,9 @@ templating: mustache
 
 # 🐬 MySQL Bundle Runbook
 
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+
 ## Package Information
 
 **Slug:** `{{slug}}`
@@ -11,7 +14,10 @@ templating: mustache
 ### Configuration
 
 **MySQL Version:** `{{params.db_version}}`
+
 **Database Name:** `{{params.database_name}}`
+
+**Username:** `{{params.username}}`
 
 ### Connected Network
 
@@ -56,13 +62,19 @@ Consider adding:
 ### Database Configuration
 
 **Database Version:** MySQL `{{artifacts.database.specs.database.version}}`
+
 **Database Name:** `{{params.database_name}}`
+
+**Username:** `{{artifacts.database.specs.database.username}}`
+
 **Hostname:** `{{artifacts.database.specs.database.hostname}}`
+
 **Port:** `{{artifacts.database.specs.database.port}}`
 
 ### Network Information
 
 **Subnet ID:** `{{artifacts.database.specs.network.subnet_id}}`
+
 **Private IP:** `{{artifacts.database.specs.network.private_ip}}`
 
 {{#connections.network}}
@@ -75,7 +87,7 @@ Consider adding:
 # Connect to MySQL
 # Username and password are stored securely and injected at runtime
 mysql -h {{artifacts.database.specs.database.hostname}} \
-      -u <username> \
+      -u {{artifacts.database.specs.database.username}} \
       -p \
       -P {{artifacts.database.specs.database.port}} \
       {{params.database_name}}
@@ -87,7 +99,7 @@ mysql -h {{artifacts.database.specs.database.hostname}} \
 
 ```bash
 mysql -h {{artifacts.database.specs.database.hostname}} \
-      -u <username> \
+      -u {{artifacts.database.specs.database.username}} \
       -p \
       -P {{artifacts.database.specs.database.port}} \
       {{params.database_name}} \
@@ -100,7 +112,7 @@ mysql -h {{artifacts.database.specs.database.hostname}} \
 
 ```bash
 mysqldump -h {{artifacts.database.specs.database.hostname}} \
-          -u <username> \
+          -u {{artifacts.database.specs.database.username}} \
           -p \
           -P {{artifacts.database.specs.database.port}} \
           {{params.database_name}} > backup-$(date +%Y%m%d).sql

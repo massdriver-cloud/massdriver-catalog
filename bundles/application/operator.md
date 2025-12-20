@@ -4,20 +4,8 @@ templating: mustache
 
 # 🚀 Application Bundle Runbook
 
-```
-╭──────────────────────────────╮
-│                              │
-│  ✨ CUSTOMIZE THIS RUNBOOK!  │
-│                              │
-│  Your ops docs live here     │
-│  in operator.md              │
-│                              │
-╰──────────────────────────────╯
-```
-
-## Welcome to Your Runbook! 👋
-
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
 
 ## Package Information
 
@@ -26,16 +14,28 @@ This is a **default runbook template** for your bundle. You can customize this f
 ### Application Configuration
 
 **Container Image:** `{{params.image}}`
+
 **Replicas:** `{{params.replicas}}`
+
 **Port:** `{{params.port}}`
+
 **Domain:** `{{params.domain_name}}`
+
+---
+
+## Welcome to Your Runbook! 👋
+
+This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
 
 ### Connected Database
 
 {{#connections.database}}
 **Database Engine:** `{{specs.database.engine}}` version `{{specs.database.version}}`
+
 **Network Subnet:** `{{specs.network.subnet_id}}`
+
 **Private IP:** `{{specs.network.private_ip}}`
+
 **Selected Access Policy:** `{{params.database_policy}}`
 {{/connections.database}}
 {{^connections.database}}
@@ -46,6 +46,7 @@ _No database connected_
 
 {{#connections.bucket}}
 **Storage Type:** `{{specs.storage.type}}`
+
 **Selected Access Policy:** `{{params.bucket_policy}}`
 {{/connections.bucket}}
 {{^connections.bucket}}

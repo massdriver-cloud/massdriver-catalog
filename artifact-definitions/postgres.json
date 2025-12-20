@@ -107,6 +107,10 @@
               "title": "Database Port",
               "type": "integer"
             },
+            "username": {
+              "title": "Database Username",
+              "type": "string"
+            },
             "version": {
               "title": "PostgreSQL Version",
               "type": "string"

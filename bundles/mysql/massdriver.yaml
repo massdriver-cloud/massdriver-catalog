@@ -8,6 +8,7 @@ params:
   required:
     - db_version
     - database_name
+    - username
   properties:
     db_version:
       type: string
@@ -25,6 +26,12 @@ params:
       title: Database Name
       description: Name of the database to create
       default: "mydb"
+      pattern: ^[a-z][a-z0-9_]*$
+    username:
+      type: string
+      title: Database Username
+      description: Username for database access
+      default: "admin"
       pattern: ^[a-z][a-z0-9_]*$
 
 connections:
@@ -51,4 +58,5 @@ ui:
   ui:order:
     - db_version
     - database_name
+    - username
     - "*"

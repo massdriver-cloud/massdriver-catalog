@@ -16,6 +16,7 @@ resource "random_pet" "main" {
   keepers = {
     db_version    = var.db_version
     database_name = var.database_name
+    username      = var.username
     network_id    = var.network.data.infrastructure.network_id
   }
 }
@@ -55,7 +56,7 @@ resource "massdriver_artifact" "database" {
       authentication = {
         hostname = "${random_pet.main.id}.postgres.local"
         port     = 5432
-        username = "postgres"
+        username = var.username
         password = random_pet.main.id
         database = var.database_name
       }
@@ -74,6 +75,7 @@ resource "massdriver_artifact" "database" {
         version  = var.db_version
         hostname = local.hostname
         port     = local.port
+        username = var.username
       }
       network = {
         subnet_id  = local.first_subnet_id
