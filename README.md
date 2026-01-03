@@ -140,6 +140,13 @@ These bundles let you model first, implement later. Use the schemas to plan your
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
 
 5. **Model your platform**
+
+First publish the template bundles to your organization. After you get a feel for organization your resources in Massdriver, you'll update these modules with your IaC.
+
+   ```bash
+   make all
+   ```
+
    - Open the Massdriver UI
    - Create **projects** - Logical groupings of infrastructure that can reproduce environments. Examples include application domains ("ecommerce", "api", "billing") or platform infrastructure ("network", "compute platform", "data platform")
    - Create **environments** within projects - Named environments ("dev", "staging", "production"), [preview environments](https://docs.massdriver.cloud/preview_environments/overview) ("PR 123"), or regional deployments ("Production US East 1", "US West 2")
@@ -158,11 +165,11 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
 7. **Publish to Massdriver**
    ```bash
-   make
+   make all
    ```
 
    > [!IMPORTANT]
-   > You'll probably want to replace `make` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
+   > You'll probably want to replace `make all` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
 
    **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
 
