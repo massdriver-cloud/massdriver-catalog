@@ -1,6 +1,6 @@
 {
   "$md": {
-    "label": "Example PostgreSQL (edit in ./artifact-definitions)",
+    "label": "Example PostgreSQL (edit in ./artifact-definitions/postgres.json)",
     "name": "postgres"
   },
   "$schema": "http://json-schema.org/draft-07/schema",

@@ -1,6 +1,6 @@
 schema: draft-07
 name: application
-description: "Example application bundle (edit in ./bundles/application)"
+description: "Example application bundle (edit in ./bundles/application/massdriver.yaml)"
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application
 version: 0.0.0
 
@@ -10,12 +10,12 @@ params:
     - replicas
     - domain_name
   examples:
-    - __name: Development (edit in ./bundles/application)
+    - __name: Development (edit in ./bundles/application/massdriver.yaml)
       image: "nginx:latest"
       replicas: 1
       port: 8080
       domain_name: "dev.example.com"
-    - __name: Production (edit in ./bundles/application)
+    - __name: Production (edit in ./bundles/application/massdriver.yaml)
       image: "nginx:stable"
       replicas: 3
       port: 8080

@@ -1,6 +1,6 @@
 {
   "$md": {
-    "label": "Example MySQL (edit in ./artifact-definitions)",
+    "label": "Example MySQL (edit in ./artifact-definitions/mysql.json)",
     "name": "mysql"
   },
   "$schema": "http://json-schema.org/draft-07/schema",

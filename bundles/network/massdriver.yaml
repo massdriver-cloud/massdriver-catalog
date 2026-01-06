@@ -1,6 +1,6 @@
 schema: draft-07
 name: network
-description: "Example network bundle (edit in ./bundles)"
+description: "Example network bundle (edit in ./bundles/network/massdriver.yaml)"
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network
 version: 0.0.0
 

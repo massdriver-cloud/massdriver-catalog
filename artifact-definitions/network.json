@@ -1,6 +1,6 @@
 {
   "$md": {
-    "label": "Example Network (edit in ./artifact-definitions)",
+    "label": "Example Network (edit in ./artifact-definitions/network.json)",
     "name": "network",
     "ui": {
       "__comment": "https://docs.massdriver.cloud/guides/custom-artifact-definition#customizing-the-artifact-types-that-can-be-defaulted-in-an-environment",

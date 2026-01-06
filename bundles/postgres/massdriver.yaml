@@ -1,6 +1,6 @@
 schema: draft-07
 name: postgres
-description: "Example PostgreSQL bundle (edit in ./bundles)"
+description: "Example PostgreSQL bundle (edit in ./bundles/postgres/massdriver.yaml)"
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres
 version: 0.0.0
 

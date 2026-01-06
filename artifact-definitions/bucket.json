@@ -1,6 +1,6 @@
 {
   "$md": {
-    "label": "Example Storage Bucket (edit in ./artifact-definitions)",
+    "label": "Example Storage Bucket (edit in ./artifact-definitions/bucket.json)",
     "name": "bucket"
   },
   "$schema": "http://json-schema.org/draft-07/schema",
