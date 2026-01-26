@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.0"
+      version = "~> 1.3"
     }
   }
 }
@@ -22,9 +22,9 @@ resource "random_pet" "main" {
     image      = var.image
     replicas   = tostring(var.replicas)
     port       = tostring(var.port)
-    network_id = var.network.data.infrastructure.network_id
-    database   = local.has_database ? var.database.data.authentication.hostname : "none"
-    bucket     = local.has_bucket ? var.bucket.data.infrastructure.bucket_name : "none"
+    network_id = var.network.infrastructure.network_id
+    database   = local.has_database ? var.database.connection.hostname : "none"
+    bucket     = local.has_bucket ? var.bucket.infrastructure.bucket_name : "none"
   }
 }
 

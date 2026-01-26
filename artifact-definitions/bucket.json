@@ -6,95 +6,29 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "description": "Example storage bucket artifact - customize this schema to match your bucket outputs",
   "properties": {
-    "data": {
+    "infrastructure": {
       "properties": {
-        "infrastructure": {
-          "properties": {
-            "bucket_id": {
-              "title": "Bucket ID",
-              "type": "string"
-            },
-            "bucket_name": {
-              "title": "Bucket Name",
-              "type": "string"
-            }
-          },
-          "required": [
-            "bucket_id",
-            "bucket_name"
-          ],
-          "title": "Infrastructure Details",
-          "type": "object"
+        "bucket_id": {
+          "description": "Unique identifier for the bucket",
+          "title": "Bucket ID",
+          "type": "string"
         },
-        "security": {
-          "properties": {
-            "policies": {
-              "items": {
-                "properties": {
-                  "name": {
-                    "enum": [
-                      "read",
-                      "write",
-                      "admin"
-                    ],
-                    "title": "Policy Name",
-                    "type": "string"
-                  },
-                  "policy": {
-                    "title": "Policy",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "policy"
-                ],
-                "type": "object"
-              },
-              "title": "Available Access Policies",
-              "type": "array"
-            }
-          },
-          "title": "Security",
-          "type": "object"
+        "bucket_name": {
+          "title": "Bucket Name",
+          "type": "string"
+        },
+        "endpoint": {
+          "description": "Storage endpoint URL",
+          "title": "Endpoint",
+          "type": "string"
         }
       },
-      "required": [
-        "infrastructure"
-      ],
-      "title": "Bucket Connection Data",
-      "type": "object"
-    },
-    "specs": {
-      "properties": {
-        "storage": {
-          "properties": {
-            "type": {
-              "enum": [
-                "object-storage"
-              ],
-              "title": "Storage Type",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "title": "Storage Info",
-          "type": "object"
-        }
-      },
-      "required": [
-        "storage"
-      ],
-      "title": "Bucket Specifications",
+      "required": ["bucket_id", "bucket_name"],
+      "title": "Infrastructure Details",
       "type": "object"
     }
   },
-  "required": [
-    "data",
-    "specs"
-  ],
+  "required": ["infrastructure"],
   "title": "Example Storage Bucket",
   "type": "object"
 }

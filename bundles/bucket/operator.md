@@ -5,7 +5,7 @@ templating: mustache
 # 🪣 Storage Bucket Runbook
 
 > **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
 
 ## Package Information
 
@@ -51,20 +51,70 @@ Consider adding:
 
 ## Example: Bucket Operations
 
+### Bucket Information
+
+**Configured Name:** `{{params.bucket_name}}`
+
+**Deployed Bucket Name:** `{{artifacts.bucket.infrastructure.bucket_name}}` _(includes generated suffix)_
+
+**Bucket ID:** `{{artifacts.bucket.infrastructure.bucket_id}}`
+
+**Endpoint:** `{{artifacts.bucket.infrastructure.endpoint}}`
+
+**Versioning Enabled:** `{{params.versioning_enabled}}`
+
 ### Listing Bucket Contents
 
+**AWS S3:**
+
 ```bash
-# List bucket contents (example for cloud CLI)
-# After deployment, bucket name will be in the artifact output
-# AWS: aws s3 ls s3://<bucket-name>/
-# GCP: gsutil ls gs://<bucket-name>/
-# Azure: az storage blob list --account-name <account> --container <bucket-name>
+# List all objects in the bucket
+aws s3 ls s3://{{artifacts.bucket.infrastructure.bucket_name}}/
+
+# List objects with human-readable sizes
+aws s3 ls s3://{{artifacts.bucket.infrastructure.bucket_name}}/ --human-readable --summarize
+```
+
+**Azure Blob Storage:**
+
+```bash
+# List all blobs in the container
+az storage blob list \
+  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --output table
+
+# Show blob properties
+az storage blob show \
+  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --name myfile.txt
+```
+
+### Uploading Files
+
+**AWS S3:**
+
+```bash
+# Upload a single file
+aws s3 cp myfile.txt s3://{{artifacts.bucket.infrastructure.bucket_name}}/
+
+# Upload a directory recursively
+aws s3 sync ./local-folder/ s3://{{artifacts.bucket.infrastructure.bucket_name}}/remote-folder/
+```
+
+**Azure Blob Storage:**
+
+```bash
+# Upload a single file
+az storage blob upload \
+  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --file myfile.txt \
+  --name myfile.txt
 ```
 
 ### Common Issues
 
 **Issue**: Access denied errors
-**Solution**: Check bucket policy and IAM permissions
+**Solution**: Check bucket policy and access permissions for `{{artifacts.bucket.infrastructure.bucket_name}}`
 
 ---
 

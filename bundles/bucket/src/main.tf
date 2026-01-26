@@ -20,40 +20,5 @@ resource "random_pet" "main" {
 }
 
 locals {
-  # Example access policies
-  policies = [
-    {
-      name   = "read"
-      policy = "reader"
-    },
-    {
-      name   = "write"
-      policy = "writer"
-    },
-    {
-      name   = "admin"
-      policy = "admin"
-    }
-  ]
-}
-
-resource "massdriver_artifact" "bucket" {
-  field = "bucket"
-  name  = "Demo Bucket ${var.md_metadata.name_prefix}"
-  artifact = jsonencode({
-    data = {
-      infrastructure = {
-        bucket_id   = random_pet.main.id
-        bucket_name = "${var.bucket_name}-${random_pet.main.id}"
-      }
-      security = {
-        policies = local.policies
-      }
-    }
-    specs = {
-      storage = {
-        type = "object-storage"
-      }
-    }
-  })
+  bucket_name = "${var.bucket_name}-${random_pet.main.id}"
 }

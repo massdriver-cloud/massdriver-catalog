@@ -5,7 +5,7 @@ templating: mustache
 # 📚 Network Bundle Runbook
 
 > **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
 
 ## Package Information
 
@@ -18,8 +18,9 @@ templating: mustache
 **Subnets:**
 
 {{#params.subnets}}
+
 - **{{name}}**: `{{cidr}}`
-{{/params.subnets}}
+  {{/params.subnets}}
 
 ---
 
@@ -57,21 +58,20 @@ Consider adding:
 
 ### Network Configuration
 
-**Network CIDR:** `{{artifacts.network.specs.network.cidr}}`
+**Network ID:** `{{artifacts.network.infrastructure.network_id}}`
 
-### Testing Network Connectivity
+**Network CIDR:** `{{artifacts.network.infrastructure.cidr}}`
 
-**Test connectivity:**
+### Subnets
 
-```bash
-ping -c 3 {{artifacts.network.specs.network.cidr}}
-```
+{{#artifacts.network.subnets}}
 
-**Check route tables (AWS example):**
+- **Subnet ID:** `{{subnet_id}}` | **CIDR:** `{{cidr}}` | **Type:** `{{type}}`
+  {{/artifacts.network.subnets}}
 
-```bash
-aws ec2 describe-route-tables --filters "Name=cidr,Values={{artifacts.network.specs.network.cidr}}"
-```
+### Network Information
+
+Use the network ID and subnet details to connect other resources to this network.
 
 ---
 
