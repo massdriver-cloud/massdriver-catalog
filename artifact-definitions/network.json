@@ -10,84 +10,48 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "description": "Example network artifact - customize this schema to match your infrastructure's network outputs",
   "properties": {
-    "data": {
+    "infrastructure": {
       "properties": {
-        "infrastructure": {
-          "properties": {
-            "cidr": {
-              "description": "The CIDR block for the network",
-              "title": "CIDR Block",
-              "type": "string"
-            },
-            "network_id": {
-              "description": "The network identifier",
-              "title": "Network ID",
-              "type": "string"
-            },
-            "subnets": {
-              "items": {
-                "properties": {
-                  "cidr": {
-                    "description": "CIDR range for this subnet",
-                    "title": "CIDR Block",
-                    "type": "string"
-                  },
-                  "subnet_id": {
-                    "title": "Subnet ID",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "subnet_id",
-                  "cidr"
-                ],
-                "type": "object"
-              },
-              "title": "Subnets",
-              "type": "array"
-            }
-          },
-          "required": [
-            "network_id",
-            "cidr"
-          ],
-          "title": "Infrastructure Details",
-          "type": "object"
+        "cidr": {
+          "description": "The CIDR block for the network",
+          "title": "CIDR Block",
+          "type": "string"
+        },
+        "network_id": {
+          "description": "The network identifier",
+          "title": "Network ID",
+          "type": "string"
         }
       },
-      "required": [
-        "infrastructure"
-      ],
-      "title": "Network Connection Data",
+      "required": ["network_id", "cidr"],
+      "title": "Infrastructure Details",
       "type": "object"
     },
-    "specs": {
-      "properties": {
-        "network": {
-          "properties": {
-            "cidr": {
-              "title": "CIDR Block",
-              "type": "string"
-            }
+    "subnets": {
+      "items": {
+        "properties": {
+          "cidr": {
+            "title": "CIDR Block",
+            "type": "string"
           },
-          "required": [
-            "cidr"
-          ],
-          "title": "Network Info",
-          "type": "object"
-        }
+          "subnet_id": {
+            "title": "Subnet ID",
+            "type": "string"
+          },
+          "type": {
+            "enum": ["public", "private"],
+            "title": "Subnet Type",
+            "type": "string"
+          }
+        },
+        "required": ["subnet_id", "cidr"],
+        "type": "object"
       },
-      "required": [
-        "network"
-      ],
-      "title": "Network Specifications",
-      "type": "object"
+      "title": "Subnets",
+      "type": "array"
     }
   },
-  "required": [
-    "data",
-    "specs"
-  ],
+  "required": ["infrastructure", "subnets"],
   "title": "Example Network",
   "type": "object"
 }

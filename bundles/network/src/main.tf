@@ -20,27 +20,9 @@ resource "random_pet" "main" {
 }
 
 locals {
-  subnets = [for subnet in var.subnets : {
+  subnets = [for idx, subnet in var.subnets : {
     subnet_id = "${random_pet.main.id}-${subnet.name}"
     cidr      = subnet.cidr
+    type      = idx == 0 ? "public" : "private"
   }]
-}
-
-resource "massdriver_artifact" "network" {
-  field = "network"
-  name  = "Demo Network ${var.md_metadata.name_prefix}"
-  artifact = jsonencode({
-    data = {
-      infrastructure = {
-        network_id = random_pet.main.id
-        cidr       = var.cidr
-        subnets    = local.subnets
-      }
-    }
-    specs = {
-      network = {
-        cidr = var.cidr
-      }
-    }
-  })
 }

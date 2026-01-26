@@ -1,22 +1,10 @@
 // Auto-generated variable declarations from massdriver.yaml
 variable "bucket" {
   type = object({
-    data = object({
-      infrastructure = object({
-        bucket_id   = string
-        bucket_name = string
-      })
-      security = optional(object({
-        policies = optional(list(object({
-          name   = string
-          policy = string
-        })))
-      }))
-    })
-    specs = object({
-      storage = object({
-        type = string
-      })
+    infrastructure = object({
+      bucket_id   = string
+      bucket_name = string
+      endpoint    = optional(string)
     })
   })
   default = null
@@ -27,36 +15,15 @@ variable "bucket_policy" {
 }
 variable "database" {
   type = object({
-    data = object({
-      authentication = object({
-        database = optional(string)
-        hostname = string
-        password = string
-        port     = number
-        username = string
-      })
-      infrastructure = object({
-        id = optional(string)
-      })
-      security = optional(object({
-        policies = optional(list(object({
-          name   = string
-          policy = string
-        })))
-      }))
+    connection = object({
+      hostname = string
+      port     = number
+      database = string
+      username = string
+      password = string
     })
-    specs = object({
-      database = object({
-        engine   = string
-        hostname = optional(string)
-        port     = optional(number)
-        username = optional(string)
-        version  = string
-      })
-      network = optional(object({
-        private_ip = optional(string)
-        subnet_id  = optional(string)
-      }))
+    infrastructure = object({
+      database_id = string
     })
   })
   default = null
@@ -100,21 +67,15 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    data = object({
-      infrastructure = object({
-        cidr       = string
-        network_id = string
-        subnets = optional(list(object({
-          cidr      = string
-          subnet_id = string
-        })))
-      })
+    infrastructure = object({
+      cidr       = string
+      network_id = string
     })
-    specs = object({
-      network = object({
-        cidr = string
-      })
-    })
+    subnets = list(object({
+      cidr      = string
+      subnet_id = string
+      type      = optional(string)
+    }))
   })
 }
 variable "port" {

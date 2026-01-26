@@ -5,7 +5,7 @@ templating: mustache
 # 🐬 MySQL Bundle Runbook
 
 > **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
 
 ## Package Information
 
@@ -22,7 +22,9 @@ templating: mustache
 ### Connected Network
 
 {{#connections.network}}
-**Network CIDR:** `{{specs.network.cidr}}`
+**Network ID:** `{{connections.network.infrastructure.network_id}}`
+
+**Network CIDR:** `{{connections.network.infrastructure.cidr}}`
 {{/connections.network}}
 
 ---
@@ -61,64 +63,102 @@ Consider adding:
 
 ### Database Configuration
 
-**Database Version:** MySQL `{{artifacts.database.specs.database.version}}`
+**Database ID:** `{{artifacts.database.infrastructure.database_id}}`
 
-**Database Name:** `{{params.database_name}}`
+**MySQL Version:** `{{params.db_version}}`
 
-**Username:** `{{artifacts.database.specs.database.username}}`
+### Connection Details
 
-**Hostname:** `{{artifacts.database.specs.database.hostname}}`
+**Hostname:** `{{artifacts.database.connection.hostname}}`
 
-**Port:** `{{artifacts.database.specs.database.port}}`
+**Port:** `{{artifacts.database.connection.port}}`
 
-### Network Information
+**Database Name:** `{{artifacts.database.connection.database}}`
 
-**Subnet ID:** `{{artifacts.database.specs.network.subnet_id}}`
-
-**Private IP:** `{{artifacts.database.specs.network.private_ip}}`
-
-{{#connections.network}}
-**Network CIDR:** `{{specs.network.cidr}}`
-{{/connections.network}}
+**Username:** `{{artifacts.database.connection.username}}`
 
 ### Connecting to the Database
 
 ```bash
-# Connect to MySQL
-# Username and password are stored securely and injected at runtime
-mysql -h {{artifacts.database.specs.database.hostname}} \
-      -u {{artifacts.database.specs.database.username}} \
-      -p \
-      -P {{artifacts.database.specs.database.port}} \
-      {{params.database_name}}
+# Connect to MySQL interactively
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      {{artifacts.database.connection.database}}
 ```
 
 ### Common Operations
 
+**Show all databases:**
+
+```bash
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      -e "SHOW DATABASES;"
+```
+
+**Show tables in current database:**
+
+```bash
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      {{artifacts.database.connection.database}} \
+      -e "SHOW TABLES;"
+```
+
 **Check database size:**
 
 ```bash
-mysql -h {{artifacts.database.specs.database.hostname}} \
-      -u {{artifacts.database.specs.database.username}} \
-      -p \
-      -P {{artifacts.database.specs.database.port}} \
-      {{params.database_name}} \
-      -e "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      {{artifacts.database.connection.database}} \
+      -e "SELECT
+            table_schema AS 'Database',
+            ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
           FROM information_schema.tables
-          WHERE table_schema = '{{params.database_name}}';"
+          WHERE table_schema = '{{artifacts.database.connection.database}}'
+          GROUP BY table_schema;"
+```
+
+**Check connection status:**
+
+```bash
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      -e "SELECT USER(), DATABASE(), VERSION();"
 ```
 
 **Create a backup:**
 
 ```bash
-mysqldump -h {{artifacts.database.specs.database.hostname}} \
-          -u {{artifacts.database.specs.database.username}} \
-          -p \
-          -P {{artifacts.database.specs.database.port}} \
-          {{params.database_name}} > backup-$(date +%Y%m%d).sql
+mysqldump -h {{artifacts.database.connection.hostname}} \
+          -u {{artifacts.database.connection.username}} \
+          -p{{artifacts.database.connection.password}} \
+          -P {{artifacts.database.connection.port}} \
+          --single-transaction \
+          --routines \
+          --triggers \
+          {{artifacts.database.connection.database}} > backup-{{artifacts.database.connection.database}}-$(date +%Y%m%d-%H%M%S).sql
 ```
 
+**Restore from backup:**
 
+```bash
+mysql -h {{artifacts.database.connection.hostname}} \
+      -u {{artifacts.database.connection.username}} \
+      -p{{artifacts.database.connection.password}} \
+      -P {{artifacts.database.connection.port}} \
+      {{artifacts.database.connection.database}} < backup-{{artifacts.database.connection.database}}-20260123-120000.sql
+```
 
 ---
 

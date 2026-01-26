@@ -5,7 +5,7 @@ templating: mustache
 # 🚀 Application Bundle Runbook
 
 > **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>.specs`, `artifacts.<name>.specs`
+> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
 
 ## Package Information
 
@@ -30,11 +30,9 @@ This is a **default runbook template** for your bundle. You can customize this f
 ### Connected Database
 
 {{#connections.database}}
-**Database Engine:** `{{specs.database.engine}}` version `{{specs.database.version}}`
+**Database ID:** `{{connections.database.infrastructure.database_id}}`
 
-**Network Subnet:** `{{specs.network.subnet_id}}`
-
-**Private IP:** `{{specs.network.private_ip}}`
+**Connection:** `{{connections.database.connection.hostname}}:{{connections.database.connection.port}}/{{connections.database.connection.database}}`
 
 **Selected Access Policy:** `{{params.database_policy}}`
 {{/connections.database}}
@@ -45,7 +43,9 @@ _No database connected_
 ### Connected Storage Bucket
 
 {{#connections.bucket}}
-**Storage Type:** `{{specs.storage.type}}`
+**Bucket Name:** `{{connections.bucket.infrastructure.bucket_name}}`
+
+**Bucket ID:** `{{connections.bucket.infrastructure.bucket_id}}`
 
 **Selected Access Policy:** `{{params.bucket_policy}}`
 {{/connections.bucket}}
@@ -56,7 +56,9 @@ _No storage bucket connected_
 ### Network Information
 
 {{#connections.network}}
-**Network CIDR:** `{{specs.network.cidr}}`
+**Network ID:** `{{connections.network.infrastructure.network_id}}`
+
+**Network CIDR:** `{{connections.network.infrastructure.cidr}}`
 {{/connections.network}}
 {{^connections.network}}
 _No network connected_
@@ -109,7 +111,7 @@ curl -v https://{{params.domain_name}}
 ### Database Connection
 
 {{#connections.database}}
-The application is connected to a **{{specs.database.engine}}** database (version `{{specs.database.version}}`).
+The application is connected to database `{{connections.database.infrastructure.database_id}}`.
 
 Connection details are available via environment variables injected at runtime.
 {{/connections.database}}
@@ -119,7 +121,6 @@ Connection details are available via environment variables injected at runtime.
 Current replicas: **{{params.replicas}}**
 
 To scale the application, update the `replicas` parameter in Massdriver and redeploy.
-
 
 ---
 
