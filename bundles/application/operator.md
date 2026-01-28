@@ -2,6 +2,8 @@
 templating: mustache
 ---
 
+Hello from {{connections.zone.project_id}} Zone!
+
 # 🚀 Application Bundle Runbook
 
 > **Templating**: This runbook supports mustache templating.

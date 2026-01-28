@@ -13,8 +13,9 @@ terraform {
 }
 
 locals {
-  has_database = var.database != null
-  has_bucket   = var.bucket != null
+  has_database    = var.database != null
+  has_bucket      = var.bucket != null
+  zone_project_id = var.zone.project_id
 }
 
 resource "random_pet" "main" {
