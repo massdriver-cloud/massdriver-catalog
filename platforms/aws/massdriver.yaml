@@ -1,0 +1,72 @@
+name: aws-iam-role
+label: AWS IAM Role
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/aws/icon.png
+
+containerRepositories:
+  cloud: aws
+  label: ECR
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: AWS CLI
+      path: ./instructions/AWS CLI.md
+    - label: AWS Console
+      path: ./instructions/AWS Console.md
+    - label: CloudFormation One Click
+      path: ./instructions/AWS One Click.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: AWS IAM Role
+  description: ""
+  type: object
+  required:
+    - data
+    - specs
+  properties:
+    data:
+      title: Artifact Data
+      type: object
+      required:
+        - arn
+      properties:
+        arn:
+          $schema: http://json-schema.org/draft-07/schema
+          title: AWS ARN
+          description: Amazon Resource Name
+          type: string
+          pattern: ^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$
+          message:
+            pattern: "Correct format of an arn described here: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
+          examples:
+            - "arn:aws:rds::ACCOUNT_NUMBER:db/prod"
+            - "arn:aws:ec2::ACCOUNT_NUMBER:vpc/vpc-foo"
+        external_id:
+          title: External ID
+          description: >
+            An external ID is a piece of data that can be passed to the AssumeRole API of the Security Token Service (STS).
+            You can then use the external ID in the condition element in a role's trust policy, allowing the role to be
+            assumed only when a certain value is present in the external ID.
+          type: string
+    specs:
+      title: Artifact Specs
+      type: object
+      properties:
+        aws:
+          $schema: http://json-schema.org/draft-07/schema
+          title: AWS Artifact Specs
+          description: ""
+          type: object
+          required: []
+          properties:
+            region:
+              $schema: http://json-schema.org/draft-07/schema
+              title: Region
+              description: AWS Region to provision in.
+              type: string
+              examples:
+                - us-west-2

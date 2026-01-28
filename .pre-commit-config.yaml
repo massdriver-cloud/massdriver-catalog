@@ -20,7 +20,7 @@ repos:
         args:
           [
             -d,
-            "{extends: default, rules: {line-length: {max: 200}, document-start: disable}}",
+            "{extends: default, rules: {line-length: disable, document-start: disable}}",
           ]
 
   - repo: https://github.com/tofuutils/pre-commit-opentofu

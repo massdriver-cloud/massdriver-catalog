@@ -1,0 +1,18 @@
+apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority-data: {{ artifact.data.authentication.cluster.certificate-authority-data }}
+      server: {{ artifact.data.authentication.cluster.server }}
+    name: {{ artifact.id | default: "md-k8s-cluster" }}
+contexts:
+  - context:
+      cluster: {{ artifact.id | default: "md-k8s-cluster" }}
+      user: {{ artifact.id | default: "md-k8s-user" }}
+    name: {{ artifact.id | default: "md-k8s" }}
+current-context: {{ artifact.id | default: "md-k8s" }}
+kind: Config
+preferences: {}
+users:
+  - name: {{ artifact.id | default: "md-k8s-user" }}
+    user:
+      token: {{ artifact.data.authentication.user.token }}

@@ -41,17 +41,111 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 ## What's Inside
 
-### 📁 `credential-artifact-definitions/`
+### 📁 `platforms/`
 
-**Credential definitions** are special artifact definitions that define how Massdriver authenticates to your cloud providers. They specify the authentication contract between Massdriver and your cloud accounts.
+**Platform integrations** define how Massdriver connects to your cloud providers and infrastructure platforms. Each platform directory contains everything needed to authenticate and interact with that platform.
 
-This catalog includes baseline definitions for the three major cloud providers:
+Massdriver can orchestrate any platform your IaC tooling supports. Adding a new platform (Snowflake, Datadog, Confluent Cloud, etc.) is as simple as defining its credential schema.
 
-- `aws-iam-role.json` - AWS IAM Role credentials
-- `azure-service-principal.json` - Azure Service Principal credentials
-- `gcp-service-account.json` - GCP Service Account credentials
+**Structure**:
 
-**Note**: These are starting points. Customize them to match the provider block requirements of your OpenTofu/Terraform code.
+```
+platforms/aws/
+  ├── massdriver.yaml       # Platform definition (source of truth)
+  ├── icon.png              # Platform icon
+  ├── instructions/         # Setup walkthroughs (lexically sorted)
+  │   ├── AWS CLI.md
+  │   ├── AWS Console.md
+  │   └── AWS One Click.md
+  └── exports/              # Downloadable templates (optional)
+      └── [Button Text].[format].[templating-engine].tmpl
+
+_dist/                      # Built artifacts (auto-generated, do not edit)
+  ├── aws-iam-role.json
+  ├── azure-service-principal.json
+  ├── gcp-service-account.json
+  └── kubernetes-cluster.json
+```
+
+**The `massdriver.yaml` Format**:
+
+Each platform has a declarative `massdriver.yaml` that drives the build process:
+
+```yaml
+name: aws-iam-role               # Artifact definition name
+label: AWS IAM Role              # Display name in UI
+icon: https://...                # GitHub-hosted icon URL
+
+containerRepositories:           # Optional: container registry info
+  cloud: aws
+  label: ECR
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:                  # References to markdown files
+    - label: AWS CLI
+      path: ./instructions/AWS CLI.md
+
+exports:                         # Optional: downloadable templates
+  - downloadButtonText: Kube Config
+    fileFormat: yaml
+    templatePath: ./exports/Kube Config.yaml.liquid.tmpl
+    templateLang: liquid
+
+schema:                          # JSON Schema as YAML
+  $schema: http://json-schema.org/draft-07/schema
+  title: AWS IAM Role
+  type: object
+  properties:
+    data:
+      # ... credential fields matching your OpenTofu provider auth
+```
+
+The `schema` section should match your OpenTofu/Terraform provider authentication configuration. For example, AWS IAM Role credentials match the `aws` provider's `assume_role` block, Azure Service Principal matches the `azurerm` provider config, etc.
+
+**Export Templates** (optional): The `exports/` directory enables self-service artifact downloads. Export templates allow developers to download pre-configured files based on deployed artifact data—like generating a kubeconfig file from a Kubernetes cluster artifact, or downloading AWS credentials in various formats.
+
+Templates use Liquid syntax and have access to the full artifact payload via the `artifact` variable. When a developer clicks the download button in Massdriver's UI, the template is rendered with their specific artifact data and downloaded as a ready-to-use configuration file.
+
+**Filename convention**: `[Button Text].[format].[templating-engine].tmpl`
+- `Kube Config.yaml.liquid.tmpl` → "Kube Config" button, outputs `.yaml`, uses Liquid
+- `AWS Credentials.json.liquid.tmpl` → "AWS Credentials" button, outputs `.json`
+
+**Example template** (`Kube Config.yaml.liquid.tmpl`):
+```yaml
+apiVersion: v1
+clusters:
+  - cluster:
+      server: {{ artifact.data.authentication.cluster.server }}
+      certificate-authority-data: {{ artifact.data.authentication.cluster.certificate-authority-data }}
+    name: {{ artifact.id }}
+users:
+  - name: {{ artifact.id }}
+    user:
+      token: {{ artifact.data.authentication.user.token }}
+```
+
+This template references fields from the deployed artifact's `data` payload, allowing developers to instantly download correctly configured files without manual copy-paste.
+
+> **Note**: The `massdriver.yaml` format used here is a prototype for a more declarative authoring experience that may be adopted in future versions of Massdriver.
+
+**Included platforms**:
+
+- `aws/` - AWS IAM Role authentication
+- `azure/` - Azure Service Principal authentication
+- `gcp/` - GCP Service Account authentication
+- `kubernetes/` - Kubernetes cluster connection
+
+**Extending Massdriver**: Your platform team can support any cloud or SaaS platform by creating a new directory and defining its authentication schema. Tune the `authentication.json` to match your OpenTofu provider or Helm authentication configuration. Massdriver captures those credential values and securely passes them to your automation workflows.
+
+Build platform definitions with:
+
+```bash
+make build-platforms
+```
+
+This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for publishing.
 
 ### 📁 `artifact-definitions/`
 

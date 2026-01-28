@@ -1,0 +1,68 @@
+name: azure-service-principal
+label: Azure Service Principal
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/azure/icon.png
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Azure CLI
+      path: ./instructions/Azure CLI.md
+    - label: Azure Console
+      path: ./instructions/Azure Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Azure Service Principal
+  description: ""
+  type: object
+  required:
+    - data
+    - specs
+  properties:
+    data:
+      title: Artifact Data
+      type: object
+      required:
+        - client_id
+        - tenant_id
+        - client_secret
+        - subscription_id
+      properties:
+        client_id:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Client ID
+          description: A valid UUID field
+          type: string
+          format: uuid
+          examples:
+            - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+        client_secret:
+          $md.sensitive: true
+          title: Client Secret
+          type: string
+          pattern: "[-_.~a-zA-Z0-9]{1,40}"
+          message:
+            pattern: Not a valid Client Secret.
+        subscription_id:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Subscription ID
+          description: A valid UUID field
+          type: string
+          format: uuid
+          examples:
+            - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+        tenant_id:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Tenant ID
+          description: A valid UUID field
+          type: string
+          format: uuid
+          examples:
+            - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+    specs:
+      title: Artifact Specs
+      type: object
+      properties: {}

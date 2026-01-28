@@ -1,0 +1,140 @@
+name: gcp-service-account
+label: GCP Service Account
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+containerRepositories:
+  cloud: gcp
+  label: GAR
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Google Cloud CLI
+      path: ./instructions/Google Cloud CLI.md
+    - label: Google Cloud Console
+      path: ./instructions/Google Cloud Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: GCP Service Account
+  description: GCP Service Account
+  type: object
+  required:
+    - data
+    - specs
+  properties:
+    data:
+      title: Artifact Data
+      type: object
+      required:
+        - auth_provider_x509_cert_url
+        - auth_uri
+        - client_email
+        - client_id
+        - client_x509_cert_url
+        - private_key
+        - private_key_id
+        - project_id
+        - token_uri
+        - type
+      properties:
+        type:
+          title: Type
+          description: ""
+          type: string
+          default: service_account
+        project_id:
+          title: Project ID
+          description: ""
+          type: string
+        private_key_id:
+          title: Private Key ID
+          description: ""
+          type: string
+        private_key:
+          $md.sensitive: true
+          title: Private Key
+          description: ""
+          type: string
+        client_email:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Client e-mail
+          description: Service Account Email
+          type: string
+          format: email
+          examples:
+            - jimmy@massdriver.cloud
+            - service-account-y@gmail.com
+        client_id:
+          title: Client ID
+          description: ""
+          type: string
+        auth_uri:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Auth URI
+          description: Auth URI
+          type: string
+          pattern: ^https://.*$
+          default: https://accounts.google.com/o/oauth2/auth
+          examples:
+            - https://example.com/some/path
+            - https://massdriver.cloud
+        token_uri:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Token URI
+          description: Token URI
+          type: string
+          pattern: ^https://.*$
+          default: https://oauth2.googleapis.com/token
+          examples:
+            - https://example.com/some/path
+            - https://massdriver.cloud
+        auth_provider_x509_cert_url:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Auth Provider x509 Certificate URL
+          description: Auth Provider x509 Certificate URL
+          type: string
+          pattern: ^https://.*$
+          default: https://www.googleapis.com/oauth2/v1/certs
+          examples:
+            - https://example.com/some/path
+            - https://massdriver.cloud
+        client_x509_cert_url:
+          $schema: http://json-schema.org/draft-07/schema
+          title: Client x509 Certificate URL
+          description: Client x509 Certificate URL
+          type: string
+          pattern: ^https://.*$
+          examples:
+            - https://example.com/some/path
+            - https://massdriver.cloud
+    specs:
+      title: Artifact Specs
+      type: object
+      properties:
+        gcp:
+          $schema: http://json-schema.org/draft-07/schema
+          title: GCP Artifact Specs
+          description: ""
+          type: object
+          required: []
+          properties:
+            project:
+              title: GCP Project
+              type: string
+            region:
+              $schema: http://json-schema.org/draft-07/schema
+              title: Region
+              description: The GCP region to provision resources in.
+              type: string
+              examples:
+                - us-east1
+                - us-east4
+                - us-west1
+                - us-west2
+                - us-west3
+                - us-west4
+                - us-central1
