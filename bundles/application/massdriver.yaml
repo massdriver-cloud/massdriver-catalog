@@ -52,7 +52,7 @@ params:
       description: Access policy to apply for database access
       $md.enum:
         connection: database
-        options: .data.security.policies
+        options: .policies
         value: .name
     bucket_policy:
       type: string
@@ -60,13 +60,13 @@ params:
       description: Access policy to apply for bucket access
       $md.enum:
         connection: bucket
-        options: .data.security.policies
+        options: .policies
         value: .name
 
 connections:
   required:
     - network
-    # - database
+    - database
     # - bucket
   properties:
     network:

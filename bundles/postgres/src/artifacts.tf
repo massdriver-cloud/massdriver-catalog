@@ -12,5 +12,19 @@ resource "massdriver_artifact" "database" {
     infrastructure = {
       database_id = random_pet.main.id
     }
+    policies = [
+      {
+        id   = "read-only"
+        name = "Read"
+      },
+      {
+        id   = "read-write"
+        name = "Write"
+      },
+      {
+        id   = "admin"
+        name = "Admin"
+      }
+    ]
   })
 }

@@ -47,9 +47,27 @@
       "required": ["database_id"],
       "title": "Infrastructure Details",
       "type": "object"
+    },
+    "policies": {
+      "items": {
+        "properties": {
+          "id": {
+            "title": "Policy ID",
+            "type": "string"
+          },
+          "name": {
+            "title": "Policy Name",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "type": "object"
+      },
+      "title": "Access Policies",
+      "type": "array"
     }
   },
-  "required": ["connection", "infrastructure"],
+  "required": ["connection", "infrastructure", "policies"],
   "title": "Example PostgreSQL Database",
   "type": "object"
 }

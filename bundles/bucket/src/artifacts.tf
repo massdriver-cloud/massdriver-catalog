@@ -7,5 +7,19 @@ resource "massdriver_artifact" "bucket" {
       bucket_name = local.bucket_name
       endpoint    = "https://storage.example.com/${local.bucket_name}"
     }
+    policies = [
+      {
+        id   = "read-only"
+        name = "Read"
+      },
+      {
+        id   = "read-write"
+        name = "Write"
+      },
+      {
+        id   = "admin"
+        name = "Admin"
+      }
+    ]
   })
 }

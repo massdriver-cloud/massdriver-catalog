@@ -33,7 +33,7 @@ publish-credentials:
 		mass definition publish credential-artifact-definitions/$$credential; \
 	done
 
-publish-bundles: clean-lock
+publish-bundles: clean-lock build-bundles validate-bundles
 	@for bundle in $(BUNDLES); do \
 		echo "Publishing $$bundle..."; \
 		cd bundles/$$bundle && mass bundle publish && cd ../..; \

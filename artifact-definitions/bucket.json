@@ -26,9 +26,27 @@
       "required": ["bucket_id", "bucket_name"],
       "title": "Infrastructure Details",
       "type": "object"
+    },
+    "policies": {
+      "items": {
+        "properties": {
+          "id": {
+            "title": "Policy ID",
+            "type": "string"
+          },
+          "name": {
+            "title": "Policy Name",
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "type": "object"
+      },
+      "title": "Access Policies",
+      "type": "array"
     }
   },
-  "required": ["infrastructure"],
+  "required": ["infrastructure", "policies"],
   "title": "Example Storage Bucket",
   "type": "object"
 }
