@@ -53,12 +53,11 @@ Massdriver can orchestrate any platform your IaC tooling supports. Adding a new 
 platforms/aws/
   ├── massdriver.yaml       # Platform definition (source of truth)
   ├── icon.png              # Platform icon
-  ├── instructions/         # Setup walkthroughs (lexically sorted)
+  ├── instructions/         # Setup walkthroughs
   │   ├── AWS CLI.md
   │   ├── AWS Console.md
   │   └── AWS One Click.md
   └── exports/              # Downloadable templates (optional)
-      └── [Button Text].[format].[templating-engine].tmpl
 
 _dist/                      # Built artifacts (auto-generated, do not edit)
   ├── aws-iam-role.json
@@ -74,7 +73,7 @@ Each platform has a declarative `massdriver.yaml` that drives the build process:
 ```yaml
 name: aws-iam-role               # Artifact definition name
 label: AWS IAM Role              # Display name in UI
-icon: https://...                # GitHub-hosted icon URL
+icon: https://...                # Icon URL
 
 containerRepositories:           # Optional: container registry info
   cloud: aws
@@ -108,11 +107,13 @@ The `schema` section should match your OpenTofu/Terraform provider authenticatio
 
 Templates use Liquid syntax and have access to the full artifact payload via the `artifact` variable. When a developer clicks the download button in Massdriver's UI, the template is rendered with their specific artifact data and downloaded as a ready-to-use configuration file.
 
-**Filename convention**: `[Button Text].[format].[templating-engine].tmpl`
-- `Kube Config.yaml.liquid.tmpl` → "Kube Config" button, outputs `.yaml`, uses Liquid
-- `AWS Credentials.json.liquid.tmpl` → "AWS Credentials" button, outputs `.json`
+Export configuration is defined in the `massdriver.yaml`:
+- `downloadButtonText`: The label shown on the download button
+- `fileFormat`: The file extension for the downloaded file
+- `templatePath`: Path to the template file (relative to the platform directory)
+- `templateLang`: Template language (currently only `liquid` is supported)
 
-**Example template** (`Kube Config.yaml.liquid.tmpl`):
+**Example template** (`exports/kubeconfig.yaml.liquid`):
 ```yaml
 apiVersion: v1
 clusters:

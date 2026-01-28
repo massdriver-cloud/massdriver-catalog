@@ -11,7 +11,7 @@ ui:
 exports:
   - downloadButtonText: Kube Config
     fileFormat: yaml
-    templatePath: ./exports/Kube Config.yaml.liquid.tmpl
+    templatePath: ./exports/kubeconfig.yaml.liquid
     templateLang: liquid
 
 schema:
