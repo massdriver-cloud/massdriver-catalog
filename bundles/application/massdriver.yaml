@@ -67,7 +67,7 @@ connections:
   required:
     - network
     - database
-    # - bucket
+    - zone
   properties:
     network:
       $ref: network
@@ -75,6 +75,8 @@ connections:
       $ref: postgres
     bucket:
       $ref: bucket
+    zone:
+      $ref: landing-zone
 
 artifacts:
   required: []

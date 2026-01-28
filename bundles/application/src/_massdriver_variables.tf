@@ -92,3 +92,8 @@ variable "port" {
 variable "replicas" {
   type = number
 }
+// Auto-generated variable declarations from massdriver.yaml
+variable "zone" {
+  type    = any
+  default = null
+}
