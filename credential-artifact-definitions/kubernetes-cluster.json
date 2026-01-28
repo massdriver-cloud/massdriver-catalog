@@ -1,0 +1,295 @@
+{
+  "$md": {
+      "export": [
+          {
+              "downloadButtonText": "Kube Config",
+              "fileFormat": "yaml",
+              "template": "YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6CiAgLSBjbHVzdGVyOgogICAgICBjZXJ0aWZpY2F0ZS1hdXRob3JpdHktZGF0YToge3sgYXJ0aWZhY3QuZGF0YS5hdXRoZW50aWNhdGlvbi5jbHVzdGVyLmNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhIH19CiAgICAgIHNlcnZlcjoge3sgYXJ0aWZhY3QuZGF0YS5hdXRoZW50aWNhdGlvbi5jbHVzdGVyLnNlcnZlciB9fQogICAgbmFtZToge3sgYXJ0aWZhY3QuaWQgfCBkZWZhdWx0OiAibWQtazhzLWNsdXN0ZXIiIH19CmNvbnRleHRzOgogIC0gY29udGV4dDoKICAgICAgY2x1c3Rlcjoge3sgYXJ0aWZhY3QuaWQgfCBkZWZhdWx0OiAibWQtazhzLWNsdXN0ZXIiIH19CiAgICAgIHVzZXI6IHt7IGFydGlmYWN0LmlkIHwgZGVmYXVsdDogIm1kLWs4cy11c2VyIiB9fQogICAgbmFtZToge3sgYXJ0aWZhY3QuaWQgfCBkZWZhdWx0OiAibWQtazhzIiB9fQpjdXJyZW50LWNvbnRleHQ6IHt7IGFydGlmYWN0LmlkIHwgZGVmYXVsdDogIm1kLWs4cyIgfX0Ka2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKICAtIG5hbWU6IHt7IGFydGlmYWN0LmlkIHwgZGVmYXVsdDogIm1kLWs4cy11c2VyIiB9fQogICAgdXNlcjoKICAgICAgdG9rZW46IHt7IGFydGlmYWN0LmRhdGEuYXV0aGVudGljYXRpb24udXNlci50b2tlbiB9fQo=",
+              "templateLang": "liquid"
+          }
+      ],
+      "icon": "https://raw.githubusercontent.com/massdriver-cloud/artifact-definitions/refs/heads/main/definitions/artifacts/kubernetes-cluster/icon.png",
+      "label": "Kubernetes Cluster",
+      "name": "kubernetes-cluster",
+      "ui": {
+          "environmentDefaultGroup": "credentials",
+          "instructions": [
+              {
+                  "content": "IyBDb25uZWN0IFlvdXIgS3ViZXJuZXRlcyBDbHVzdGVyIHRvIE1hc3Nkcml2ZXIKClRvIGNvbm5lY3QgeW91ciBjbHVzdGVyLCBmaWxsIG91dCB0aGUgKipLdWJlIENvbmZpZyoqIGZvcm0gaW4gTWFzc2RyaXZlci4gWW914oCZbGwgbmVlZCB0aHJlZSB2YWx1ZXMgZnJvbSB5b3VyIGt1YmVjb25maWcgb3IgY2x1c3RlcjoKCi0tLQoKIyMjIPCflJAgKipBdXRoZW50aWNhdGlvbiDihpIgQ2x1c3RlciDihpIgU2VydmVyKioKClJ1bjoKCmBgYGJhc2gKa3ViZWN0bCBjb25maWcgdmlldyAtLXJhdyAtbyBqc29ucGF0aD0iey5jbHVzdGVyc1swXS5jbHVzdGVyLnNlcnZlcn0iCmBgYAoKUGFzdGUgdGhlIFVSTCAoc3RhcnRzIHdpdGggYGh0dHBzOi8vLi4uYCkgaW50byB0aGUgKipTZXJ2ZXIqKiBmaWVsZC4KCi0tLQoKIyMjIPCflJAgKipBdXRoZW50aWNhdGlvbiDihpIgQ2x1c3RlciDihpIgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IERhdGEqKgoKUnVuOgoKYGBgYmFzaAprdWJlY3RsIGNvbmZpZyB2aWV3IC0tcmF3IC1vIGpzb25wYXRoPSJ7LmNsdXN0ZXJzWzBdLmNsdXN0ZXIuY2VydGlmaWNhdGUtYXV0aG9yaXR5LWRhdGF9IgpgYGAKClBhc3RlIHRoZSBmdWxsIGJhc2U2NC1lbmNvZGVkIHN0cmluZyBpbnRvIHRoZSAqKkNlcnRpZmljYXRlIEF1dGhvcml0eSBEYXRhKiogZmllbGQuCgotLS0KCiMjIyDwn5SQICoqQXV0aGVudGljYXRpb24g4oaSIFVzZXIg4oaSIFRva2VuKioKCklmIHlvdXIga3ViZWNvbmZpZyBhbHJlYWR5IGluY2x1ZGVzIGEgdG9rZW46CgpgYGBiYXNoCmt1YmVjdGwgY29uZmlnIHZpZXcgLS1yYXcgLW8ganNvbnBhdGg9InsudXNlcnNbMF0udXNlci50b2tlbn0iCmBgYAoKSWYgaXQgZG9lc27igJl0LCBjcmVhdGUgb25lOgoKYGBgYmFzaAprdWJlY3RsIGNyZWF0ZSBzZXJ2aWNlYWNjb3VudCBtYXNzZHJpdmVyCmt1YmVjdGwgY3JlYXRlIGNsdXN0ZXJyb2xlYmluZGluZyBtYXNzZHJpdmVyLWJpbmRpbmcgLS1jbHVzdGVycm9sZT1jbHVzdGVyLWFkbWluIC0tc2VydmljZWFjY291bnQ9ZGVmYXVsdDptYXNzZHJpdmVyCmt1YmVjdGwgZ2V0IHNlY3JldCAkKGt1YmVjdGwgZ2V0IHNhIG1hc3Nkcml2ZXIgLW8ganNvbnBhdGg9Insuc2VjcmV0c1swXS5uYW1lfSIpIC1vIGpzb25wYXRoPSJ7LmRhdGEudG9rZW59IiB8IGJhc2U2NCAtZApgYGAKClBhc3RlIHRoZSB0b2tlbiBpbnRvIHRoZSAqKlRva2VuKiogZmllbGQgdW5kZXIgKipVc2VyKiouCg==",
+                  "label": "kubectl CLI"
+              }
+          ]
+      }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "description": "Kubernetes cluster authentication and cloud-specific configuration.",
+  "properties": {
+      "data": {
+          "properties": {
+              "authentication": {
+                  "description": "Authentication details required to access the Kubernetes cluster.",
+                  "properties": {
+                      "cluster": {
+                          "description": "Information about the Kubernetes cluster you wish to connect to.",
+                          "properties": {
+                              "certificate-authority-data": {
+                                  "description": "Base64-encoded certificate authority data used to verify the Kubernetes API server's certificate.",
+                                  "title": "Certificate Authority Data",
+                                  "type": "string"
+                              },
+                              "server": {
+                                  "description": "The URL or endpoint of the Kubernetes API server.",
+                                  "title": "Server",
+                                  "type": "string"
+                              }
+                          },
+                          "required": [
+                              "server",
+                              "certificate-authority-data"
+                          ],
+                          "title": "Cluster",
+                          "type": "object"
+                      },
+                      "user": {
+                          "description": "User credentials for authenticating with the Kubernetes cluster.",
+                          "properties": {
+                              "token": {
+                                  "$md.sensitive": true,
+                                  "description": "Bearer token used for authenticating the user with the Kubernetes API server.",
+                                  "title": "Token",
+                                  "type": "string"
+                              }
+                          },
+                          "required": [
+                              "token"
+                          ],
+                          "title": "User",
+                          "type": "object"
+                      }
+                  },
+                  "required": [
+                      "cluster",
+                      "user"
+                  ],
+                  "title": "Authentication",
+                  "type": "object"
+              },
+              "infrastructure": {
+                  "description": "Cloud specific Kubernetes configuration data.",
+                  "oneOf": [
+                      {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "",
+                          "properties": {
+                              "arn": {
+                                  "$schema": "http://json-schema.org/draft-07/schema",
+                                  "description": "Amazon Resource Name",
+                                  "examples": [
+                                      "arn:aws:rds::ACCOUNT_NUMBER:db/prod",
+                                      "arn:aws:ec2::ACCOUNT_NUMBER:vpc/vpc-foo"
+                                  ],
+                                  "message": {
+                                      "pattern": "Correct format of an arn described here: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
+                                  },
+                                  "pattern": "^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$",
+                                  "title": "AWS ARN",
+                                  "type": "string"
+                              },
+                              "oidc_issuer_url": {
+                                  "$schema": "http://json-schema.org/draft-07/schema",
+                                  "description": "An HTTPS endpoint URL",
+                                  "examples": [
+                                      "https://example.com/some/path",
+                                      "https://massdriver.cloud"
+                                  ],
+                                  "pattern": "^https://.*$",
+                                  "title": "HTTPS URL",
+                                  "type": "string"
+                              }
+                          },
+                          "required": [
+                              "arn",
+                              "oidc_issuer_url"
+                          ],
+                          "title": "AWS EKS infrastructure config",
+                          "type": "object"
+                      },
+                      {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "Azure AKS Infrastructure Configuration",
+                          "properties": {
+                              "ari": {
+                                  "$schema": "http://json-schema.org/draft-07/schema",
+                                  "description": "Azure Resource ID",
+                                  "examples": [
+                                      "/subscriptions/12345678-1234-1234-abcd-1234567890ab/resourceGroups/resource-group-name/providers/Microsoft.Network/virtualNetworks/network-name"
+                                  ],
+                                  "message": {
+                                      "pattern": "Must be a valid Azure Resource ID"
+                                  },
+                                  "pattern": "^/subscriptions/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/resource(g|G)roups/[a-zA-Z0-9-_.()]{0,89}[a-zA-Z0-9-_()]/providers/Microsoft\\.[a-zA-Z]+/[a-zA-Z]+(?:/[a-zA-Z0-9-_.()]+)+$",
+                                  "title": "Azure Resource ID",
+                                  "type": "string"
+                              },
+                              "oidc_issuer_url": {
+                                  "type": "string"
+                              }
+                          },
+                          "required": [
+                              "ari"
+                          ],
+                          "title": "Infrastructure Config",
+                          "type": "object"
+                      },
+                      {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "Minimal GCP Infrastructure Config",
+                          "properties": {
+                              "grn": {
+                                  "$schema": "http://json-schema.org/draft-07/schema",
+                                  "description": "GCP Resource Name (GRN)",
+                                  "examples": [
+                                      "projects/my-project/global/networks/my-global-network",
+                                      "projects/my-project/regions/us-west2/subnetworks/my-subnetwork",
+                                      "projects/my-project/topics/my-pubsub-topic",
+                                      "projects/my-project/subscriptions/my-pubsub-subscription",
+                                      "projects/my-project/locations/us-west2/instances/my-redis-instance",
+                                      "projects/my-project/locations/us-west2/clusters/my-gke-cluster"
+                                  ],
+                                  "message": {
+                                      "pattern": "The provided GRN does not follow the expected pattern. See the examples for valid GRNs."
+                                  },
+                                  "pattern": "^projects/[a-z0-9-]+/[a-z]+/[a-z0-9-]+(?:/[a-zA-Z0-9-_.]+){0,6}$",
+                                  "title": "GCP Resource Name (GRN)",
+                                  "type": "string"
+                              }
+                          },
+                          "required": [
+                              "grn"
+                          ],
+                          "title": "GCP Infrastructure GRN",
+                          "type": "object"
+                      }
+                  ],
+                  "title": "Cloud provider configuration",
+                  "type": "object"
+              }
+          },
+          "required": [
+              "authentication"
+          ],
+          "type": "object"
+      },
+      "specs": {
+          "properties": {
+              "aws": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "",
+                  "properties": {
+                      "region": {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "AWS Region to provision in.",
+                          "examples": [
+                              "us-west-2"
+                          ],
+                          "title": "Region",
+                          "type": "string"
+                      }
+                  },
+                  "required": [],
+                  "title": "AWS Artifact Specs",
+                  "type": "object"
+              },
+              "azure": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "",
+                  "properties": {
+                      "region": {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "Select the Azure region you'd like to provision your resources in.",
+                          "title": "Azure Region",
+                          "type": "string"
+                      }
+                  },
+                  "required": [
+                      "region"
+                  ],
+                  "title": "Azure Artifact Specs",
+                  "type": "object"
+              },
+              "gcp": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "",
+                  "properties": {
+                      "project": {
+                          "title": "GCP Project",
+                          "type": "string"
+                      },
+                      "region": {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "The GCP region to provision resources in.",
+                          "examples": [
+                              "us-east1",
+                              "us-east4",
+                              "us-west1",
+                              "us-west2",
+                              "us-west3",
+                              "us-west4",
+                              "us-central1"
+                          ],
+                          "title": "Region",
+                          "type": "string"
+                      }
+                  },
+                  "required": [],
+                  "title": "GCP Artifact Specs",
+                  "type": "object"
+              },
+              "kubernetes": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "Kubernetes distribution and version specifications.",
+                  "properties": {
+                      "cloud": {
+                          "enum": [
+                              "aws",
+                              "gcp",
+                              "azure"
+                          ],
+                          "type": "string"
+                      },
+                      "distribution": {
+                          "enum": [
+                              "eks",
+                              "gke",
+                              "aks"
+                          ],
+                          "type": "string"
+                      },
+                      "platform_version": {
+                          "type": "string"
+                      },
+                      "version": {
+                          "type": "string"
+                      }
+                  },
+                  "required": [
+                      "version",
+                      "cloud",
+                      "distribution"
+                  ],
+                  "title": "Kubernetes",
+                  "type": "object"
+              }
+          },
+          "required": [
+              "kubernetes"
+          ],
+          "type": "object"
+      }
+  },
+  "required": [
+      "data"
+  ],
+  "title": "Kubernetes Cluster",
+  "type": "object"
+}

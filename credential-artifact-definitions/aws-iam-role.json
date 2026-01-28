@@ -1,98 +1,91 @@
 {
   "$md": {
-    "containerRepositories": {
-      "cloud": "aws",
-      "label": "ECR"
-    },
-    "export": [],
-    "extensions": {
-      "costReporting": true
-    },
-    "icon": "https://raw.githubusercontent.com/massdriver-cloud/artifact-definitions/refs/heads/main/definitions/artifacts/aws-iam-role/icon.png",
-    "importing": {
-      "group": "authentication"
-    },
-    "label": "AWS IAM Role",
-    "name": "aws-iam-role",
-    "ui": {
-      "connectionOrientation": "environmentDefault",
-      "environmentDefaultGroup": "credentials",
-      "instructions": [
-        {
-          "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgQ3JlYXRlIGEgcm9sZSB3aXRoIGEgdHJ1c3QgcG9saWN5CgpSdW4gdGhlIGZvbGxvd2luZyBjb21tYW5kIHdpdGggdGhlIFtBV1MgQ0xJXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vY2xpL2xhdGVzdC91c2VyZ3VpZGUvZ2V0dGluZy1zdGFydGVkLWluc3RhbGwuaHRtbCkgdG8gY3JlYXRlIGEgcm9sZSB3aXRoIGEgdHJ1c3QgcG9saWN5IHRoYXQgYWxsb3dzIE1hc3Nkcml2ZXIgdG8gYXNzdW1lIHRoZSByb2xlOgoKYGBgYmFzaAphd3MgaWFtIGNyZWF0ZS1yb2xlIC0tcm9sZS1uYW1lPXt7Uk9MRV9OQU1FfX0gLS1kZXNjcmlwdGlvbj0iTWFzc2RyaXZlciBDbG91ZCBQcm92aXNpb25pbmcgUm9sZSIgLS1hc3N1bWUtcm9sZS1wb2xpY3ktZG9jdW1lbnQ9J3siVmVyc2lvbiI6IjIwMTItMTAtMTciLCJTdGF0ZW1lbnQiOlt7IlNpZCI6Ik1hc3Nkcml2ZXJDbG91ZFByb3Zpc2lvbmVyIiwiRWZmZWN0IjoiQWxsb3ciLCJQcmluY2lwYWwiOnsiQVdTIjpbIjMwODg3ODYzMDI4MCJdfSwiQWN0aW9uIjoic3RzOkFzc3VtZVJvbGUiLCJDb25kaXRpb24iOnsiU3RyaW5nRXF1YWxzIjp7ICJzdHM6RXh0ZXJuYWxJZCI6Int7RVhURVJOQUxfSUR9fSJ9fX1dfScKYGBgCgojIyBBc3NpZ24gdGhlIHJvbGUgYWRtaW5pc3RyYXRvciBwcml2aWxlZ2VzCgpSdW4gdGhpcyBjb21tYW5kIHRvIGdpdmUgTWFzc2RyaXZlciBhZG1pbmlzdHJhdG9yIHByaXZpbGVnZXM6CgpgYGBiYXNoCmF3cyBpYW0gYXR0YWNoLXJvbGUtcG9saWN5IC0tcm9sZS1uYW1lPXt7Uk9MRV9OQU1FfX0gLS1wb2xpY3ktYXJuIGFybjphd3M6aWFtOjphd3M6cG9saWN5L0FkbWluaXN0cmF0b3JBY2Nlc3MKYGBgCgojIyBJbXBvcnQgcm9sZSB0byBNYXNzZHJpdmVyCgpGaWxsIGluIHRoZSBBV1MgQVJOIGFzIGBhcm46YXdzOmlhbTo6WU9VUl9BV1NfQUNDT1VOVF9JRDpyb2xlL3t7Uk9MRV9OQU1FfX1gLiBDbGljayBgQ3JlYXRlYCBhbmQgaGVhZCB0byB0aGUgW3Byb2plY3RzIHBhZ2VdKC9wcm9qZWN0cykgdG8gc3RhcnQgYnVpbGRpbmcgeW91ciBpbmZyYXN0cnVjdHVyZS4K",
-          "label": "AWS CLI"
-        },
-        {
-          "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgU3RlcCAxCgojIyMgQ2xpY2sgdGhlIHF1aWNrIGFkZCBidXR0b24KClRoaXMgYnV0dG9uIHdpbGwgcnVuIGEgaG9zdGVkIGNsb3VkZm9ybWF0aW9uIHN0YWNrIG9uIEFXUyB3aGljaCB3aWxsIGNyZWF0ZSBhIG5ldyByb2xlIGluIHlvdXIgYWNjb3VudCB3aXRoIHRoZSBwZXJtaXNzaW9ucyByZXF1aXJlZCB0byBwcm92aXNpb24gaW5mcmFzdHJ1Y3R1cmUgaW4gTWFzc2RyaXZlci4gVGhlIGV4dGVybmFsIElEIGZvciB0aGUgcm9sZSAocmVxdWlyZWQgdG8gcHJldmVudCBjb25mdXNlZCBkZXB1dHkgYXR0YWNrcykgd2lsbCBiZSBhdXRvIHBvcHVsYXRlZCBpbiB0aGUgQ2xvdWRGb3JtYXRpb24gc3RhY2suIERvIG5vdCBjaGFuZ2UgdGhpcyB2YWx1ZSBpbiB0aGUgZm9ybSB0byB0aGUgbGVmdC4KCiMjIFN0ZXAgMgoKIyMjIFJ1biB0aGUgQ2xvdWRGb3JtYXRpb24gc3RhY2sKClRoZSBidXR0b24gd2lsbCB0YWtlIHlvdSB0byB0aGUgQVdTIGNvbnNvbGUgYW5kIGFsbG93IHlvdSB0byBhcHByb3ZlIG9mIHRoZSByZXNvdXJjZSBjcmVhdGlvbi4gQ2xpY2sgdGhlICJDcmVhdGUgc3RhY2siIGJ1dHRvbiB0byBwcm92aXNpb24gdGhlIHJvbGUuCgohW3JvbGVzXSgvcm9sZS1xdWljay1hZGQtMS5QTkcpCgojIyBTdGVwIDMKCiMjIyBDb3B5IHRoZSByb2xlIEFSTiB0byBNYXNzZHJpdmVyCgpPbmNlIHRoZSBDbG91ZEZvcm1hdGlvbiBzdGFjayBoYXMgY29tcGxldGVkIGl0cyB0YXNrIHNlbGVjdCB0aGUgb3V0cHV0cyB0YWIgYW5kIGNvcHkgdGhlIHZhbHVlIG9mIHRoZSBDdXN0b21Qcm92aXNpb25pbmdSb2xlQXJuIG91dHB1dC4gUGFzdGUgdGhpcyB2YWx1ZSBpbiB0byB0aGUgZm9ybSBvbiB0aGUgbGVmdCBpbiB0aGUgZmllbGQgbWFya2VkIEFXUyBBUk4uCgohW3JvbGVzXSgvcXVpY2stYWRkLTIuUE5HKQoKIyMgU3RlcCA0CgpTdWJtaXQgdGhlIHJvbGUgdG8gTWFzc2RyaXZlciBieSBjbGlja2luZyB0aGUgc2F2ZSBidXR0b24gYW5kIGhlYWQgdG8gdGhlIFtwcm9qZWN0cyBwYWdlXSgvcHJvamVjdHMpIHRvIGJlZ2luIHByb3Zpc2lvbmluZyBpbmZyYXN0cnV0dXJlLgo=",
-          "label": "AWS One Click"
-        },
-        {
-          "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgU3RlcCAxCgojIyMgR28gdG8gdGhlIElBTSBtYW5hZ2VtZW50IGNvbnNvbGUgYW5kIHNlbGVjdCBDcmVhdGUgUm9sZQoKIVtyb2xlc10oL3NlbGVjdC1yb2xlcy5QTkcpCgombmJzcDsKCiMjIFN0ZXAgMgoKIyMjIFNlbGVjdCBBbm90aGVyIEFXUyBhY2NvdW50IGZvciB0aGUgcm9sZSB0eXBlCgohW3JvbGVzXSgvYW5vdGhlci1hY2NvdW50LlBORykKCiZuYnNwOwoKIyMgU3RlcCAzCgpGb3IgdGhlIGFjY291bnQgSUQgZW50ZXIgYDMwODg3ODYzMDI4MGAuIFRoaXMgaXMgdGhlIE1hc3Nkcml2ZXIgYWNjb3VudCB3aGljaCBjb250YWlucyB0aGUgcm9sZSB0aGF0IHdpbGwgdXNlIHRoZSBvbmUgeW91IGFyZSBjcmVhdGluZyBub3cKCiZuYnNwOwoKIyMgU3RlcCA0CgpDaGVjayB0aGUgUmVxdWlyZSBleHRlcm5hbCBJRCBib3ggYW5kIGVudGVyIGB7e0VYVEVSTkFMX0lEfX1gLgoKJm5ic3A7CgojIyBTdGVwIDUKCiMjIyBNYWtlIHN1cmUgdGhhdCB0aGUgUmVxdWlyZSBNRkEgb3B0aW9uIGlzIHVuY2hlY2tlZAoKIVtyb2xlc10oL3NldHRpbmdzLlBORykKCiZuYnNwOwoKIyMgU3RlcCA2CgpDbGljayAiTmV4dDogUGVybWlzc2lvbnMiCgombmJzcDsKCiMjIFN0ZXAgNwoKIyMjIFNlbGVjdCB0aGUgYEFkbWluaXN0cmF0b3JBY2Nlc3NgIHBvbGljeQoKIVtyb2xlc10oL3BvbGljeS5QTkcpCgombmJzcDsKCiMjIFN0ZXAgOAoKU2VsZWN0ICJOZXh0OiBUYWdzIgoKJm5ic3A7CgojIyBTdGVwIDkKCiMjIyBBZGQgYSB0YWcgd2l0aCB0aGUga2V5IGBtYXNzZHJpdmVyYAoKIVtyb2xlc10oL3RhZ3MuUE5HKQoKJm5ic3A7CgojIyBTdGVwIDEwCgojIyMgQWRkIGEgbmFtZSBhbmQgYSBkZXNjcmlwdGlvbiB0byB0aGUgcm9sZS4gU2F2ZSB0aGUgcm9sZSBuYW1lIGZvciBlbnRyeSBpbiB0byB0aGUgZm9ybSB0byB0aGUgbGVmdAoKIVtyb2xlc10oL3Jldmlldy5QTkcpCgombmJzcDsKCiMjIFN0ZXAgMTEKCkluIE1hc3Nkcml2ZXIsIGFkZCBhIGZyaWVuZGx5IG5hbWUgZm9yIHRoZSByb2xlIGluIHRoZSBmb3JtIHRvIHRoZSBsZWZ0CgombmJzcDsKCiMjIFN0ZXAgMTIKClBhc3RlIHRoZSBBV1MgYXJuIGZvciB0aGUgcm9sZSBpbiB0aGUgYXBwcm9wcmlhdGUgZmllbGQgd2l0aCB0aGUgZm9ybWF0OgoKYGBgCmFybjphd3M6aWFtOjpZT1VSX0FXU19BQ0NPVU5UX0lEOnJvbGUvUk9MRV9OQU1FCmBgYAoKJm5ic3A7CgojIyBTdGVwIDEzCgpJZiB5b3UgaGF2ZW4ndCBhbHJlYWR5IHBhc3RlIHlvdXIgZXh0ZXJuYWwgSUQgaW4gdG8gdGhlIGFwcHJvcHJpYXRlIGZpZWxkCgombmJzcDsKCiMjIFN0ZXAgMTQKCkNsaWNrICoqQ3JlYXRlKiogYW5kIGhlYWQgdG8gdGhlIFtwcm9qZWN0cyBwYWdlXSgvcHJvamVjdHMpIHRvIHN0YXJ0IGJ1aWxkaW5nIHlvdXIgaW5mcmFzdHJ1Y3R1cmUuCg==",
-          "label": "AWS Console"
-        }
-      ]
-    }
+      "containerRepositories": {
+          "cloud": "aws",
+          "label": "ECR"
+      },
+      "export": [],
+      "icon": "https://raw.githubusercontent.com/massdriver-cloud/artifact-definitions/refs/heads/main/definitions/artifacts/aws-iam-role/icon.png",
+      "label": "AWS IAM Role",
+      "name": "aws-iam-role",
+      "ui": {
+          "connectionOrientation": "environmentDefault",
+          "environmentDefaultGroup": "credentials",
+          "instructions": [
+              {
+                  "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgQ3JlYXRlIGEgcm9sZSB3aXRoIGEgdHJ1c3QgcG9saWN5CgpSdW4gdGhlIGZvbGxvd2luZyBjb21tYW5kIHdpdGggdGhlIFtBV1MgQ0xJXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vY2xpL2xhdGVzdC91c2VyZ3VpZGUvZ2V0dGluZy1zdGFydGVkLWluc3RhbGwuaHRtbCkgdG8gY3JlYXRlIGEgcm9sZSB3aXRoIGEgdHJ1c3QgcG9saWN5IHRoYXQgYWxsb3dzIE1hc3Nkcml2ZXIgdG8gYXNzdW1lIHRoZSByb2xlOgoKYGBgYmFzaAphd3MgaWFtIGNyZWF0ZS1yb2xlIC0tcm9sZS1uYW1lPXt7Uk9MRV9OQU1FfX0gLS1kZXNjcmlwdGlvbj0iTWFzc2RyaXZlciBDbG91ZCBQcm92aXNpb25pbmcgUm9sZSIgLS1hc3N1bWUtcm9sZS1wb2xpY3ktZG9jdW1lbnQ9J3siVmVyc2lvbiI6IjIwMTItMTAtMTciLCJTdGF0ZW1lbnQiOlt7IlNpZCI6Ik1hc3Nkcml2ZXJDbG91ZFByb3Zpc2lvbmVyIiwiRWZmZWN0IjoiQWxsb3ciLCJQcmluY2lwYWwiOnsiQVdTIjpbIjMwODg3ODYzMDI4MCJdfSwiQWN0aW9uIjoic3RzOkFzc3VtZVJvbGUiLCJDb25kaXRpb24iOnsiU3RyaW5nRXF1YWxzIjp7ICJzdHM6RXh0ZXJuYWxJZCI6Int7RVhURVJOQUxfSUR9fSJ9fX1dfScKYGBgCgojIyBBc3NpZ24gdGhlIHJvbGUgYWRtaW5pc3RyYXRvciBwcml2aWxlZ2VzCgpSdW4gdGhpcyBjb21tYW5kIHRvIGdpdmUgTWFzc2RyaXZlciBhZG1pbmlzdHJhdG9yIHByaXZpbGVnZXM6CgpgYGBiYXNoCmF3cyBpYW0gYXR0YWNoLXJvbGUtcG9saWN5IC0tcm9sZS1uYW1lPXt7Uk9MRV9OQU1FfX0gLS1wb2xpY3ktYXJuIGFybjphd3M6aWFtOjphd3M6cG9saWN5L0FkbWluaXN0cmF0b3JBY2Nlc3MKYGBgCgojIyBJbXBvcnQgcm9sZSB0byBNYXNzZHJpdmVyCgpGaWxsIGluIHRoZSBBV1MgQVJOIGFzIGBhcm46YXdzOmlhbTo6WU9VUl9BV1NfQUNDT1VOVF9JRDpyb2xlL3t7Uk9MRV9OQU1FfX1gLiBDbGljayBgQ3JlYXRlYCBhbmQgaGVhZCB0byB0aGUgW3Byb2plY3RzIHBhZ2VdKC9wcm9qZWN0cykgdG8gc3RhcnQgYnVpbGRpbmcgeW91ciBpbmZyYXN0cnVjdHVyZS4K",
+                  "label": "AWS CLI"
+              },
+              {
+                  "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgU3RlcCAxCgojIyMgQ2xpY2sgdGhlIHF1aWNrIGFkZCBidXR0b24KClRoaXMgYnV0dG9uIHdpbGwgcnVuIGEgaG9zdGVkIGNsb3VkZm9ybWF0aW9uIHN0YWNrIG9uIEFXUyB3aGljaCB3aWxsIGNyZWF0ZSBhIG5ldyByb2xlIGluIHlvdXIgYWNjb3VudCB3aXRoIHRoZSBwZXJtaXNzaW9ucyByZXF1aXJlZCB0byBwcm92aXNpb24gaW5mcmFzdHJ1Y3R1cmUgaW4gTWFzc2RyaXZlci4gVGhlIGV4dGVybmFsIElEIGZvciB0aGUgcm9sZSAocmVxdWlyZWQgdG8gcHJldmVudCBjb25mdXNlZCBkZXB1dHkgYXR0YWNrcykgd2lsbCBiZSBhdXRvIHBvcHVsYXRlZCBpbiB0aGUgQ2xvdWRGb3JtYXRpb24gc3RhY2suIERvIG5vdCBjaGFuZ2UgdGhpcyB2YWx1ZSBpbiB0aGUgZm9ybSB0byB0aGUgbGVmdC4KCiMjIFN0ZXAgMgoKIyMjIFJ1biB0aGUgQ2xvdWRGb3JtYXRpb24gc3RhY2sKClRoZSBidXR0b24gd2lsbCB0YWtlIHlvdSB0byB0aGUgQVdTIGNvbnNvbGUgYW5kIGFsbG93IHlvdSB0byBhcHByb3ZlIG9mIHRoZSByZXNvdXJjZSBjcmVhdGlvbi4gQ2xpY2sgdGhlICJDcmVhdGUgc3RhY2siIGJ1dHRvbiB0byBwcm92aXNpb24gdGhlIHJvbGUuCgohW3JvbGVzXSgvcm9sZS1xdWljay1hZGQtMS5QTkcpCgojIyBTdGVwIDMKCiMjIyBDb3B5IHRoZSByb2xlIEFSTiB0byBNYXNzZHJpdmVyCgpPbmNlIHRoZSBDbG91ZEZvcm1hdGlvbiBzdGFjayBoYXMgY29tcGxldGVkIGl0cyB0YXNrIHNlbGVjdCB0aGUgb3V0cHV0cyB0YWIgYW5kIGNvcHkgdGhlIHZhbHVlIG9mIHRoZSBDdXN0b21Qcm92aXNpb25pbmdSb2xlQXJuIG91dHB1dC4gUGFzdGUgdGhpcyB2YWx1ZSBpbiB0byB0aGUgZm9ybSBvbiB0aGUgbGVmdCBpbiB0aGUgZmllbGQgbWFya2VkIEFXUyBBUk4uCgohW3JvbGVzXSgvcXVpY2stYWRkLTIuUE5HKQoKIyMgU3RlcCA0CgpTdWJtaXQgdGhlIHJvbGUgdG8gTWFzc2RyaXZlciBieSBjbGlja2luZyB0aGUgc2F2ZSBidXR0b24gYW5kIGhlYWQgdG8gdGhlIFtwcm9qZWN0cyBwYWdlXSgvcHJvamVjdHMpIHRvIGJlZ2luIHByb3Zpc2lvbmluZyBpbmZyYXN0cnV0dXJlLgo=",
+                  "label": "AWS One Click"
+              },
+              {
+                  "content": "IyBJbXBvcnRpbmcgeW91ciBBV1Mgcm9sZSBmb3IgTWFzc2RyaXZlciB0byBhc3N1bWUKCiMjIEhvdyBNYXNzZHJpdmVyIHVzZXMgeW91ciByb2xlCgpUbyBrZWVwIHlvdXIgZW52aXJvbm1lbnQgc2VjdXJlLCBNYXNzZHJpdmVyIHVzZXMgYSByb2xlIHdpdGggYSB0cnVzdCBwb2xpY3kgdG8gYWNjZXNzIHlvdXIgQVdTIGFjY291bnQgZm9yIHByb3Zpc2lvbmluZyBhbmQgbW9uaXRvcmluZyBvZiB5b3VyIGluZnJhc3RydWN0dXJlLiBUaGUgYWNjb3VudCB0aGF0IGFzc3VtZXMgdGhpcyByb2xlIGlzIHByaXZhdGUgYW5kIGhhcyBubyBhY2Nlc3MgZnJvbSB0aGUgcHVibGljIGludGVybmV0LgoKIyMgU3RlcCAxCgojIyMgR28gdG8gdGhlIElBTSBtYW5hZ2VtZW50IGNvbnNvbGUgYW5kIHNlbGVjdCBDcmVhdGUgUm9sZQoKIVtyb2xlc10oL3NlbGVjdC1yb2xlcy5QTkcpCgombmJzcDsKCiMjIFN0ZXAgMgoKIyMjIFNlbGVjdCBBbm90aGVyIEFXUyBhY2NvdW50IGZvciB0aGUgcm9sZSB0eXBlCgohW3JvbGVzXSgvYW5vdGhlci1hY2NvdW50LlBORykKCiZuYnNwOwoKIyMgU3RlcCAzCgpGb3IgdGhlIGFjY291bnQgSUQgZW50ZXIgYDMwODg3ODYzMDI4MGAuIFRoaXMgaXMgdGhlIE1hc3Nkcml2ZXIgYWNjb3VudCB3aGljaCBjb250YWlucyB0aGUgcm9sZSB0aGF0IHdpbGwgdXNlIHRoZSBvbmUgeW91IGFyZSBjcmVhdGluZyBub3cKCiZuYnNwOwoKIyMgU3RlcCA0CgpDaGVjayB0aGUgUmVxdWlyZSBleHRlcm5hbCBJRCBib3ggYW5kIGVudGVyIGB7e0VYVEVSTkFMX0lEfX1gLgoKJm5ic3A7CgojIyBTdGVwIDUKCiMjIyBNYWtlIHN1cmUgdGhhdCB0aGUgUmVxdWlyZSBNRkEgb3B0aW9uIGlzIHVuY2hlY2tlZAoKIVtyb2xlc10oL3NldHRpbmdzLlBORykKCiZuYnNwOwoKIyMgU3RlcCA2CgpDbGljayAiTmV4dDogUGVybWlzc2lvbnMiCgombmJzcDsKCiMjIFN0ZXAgNwoKIyMjIFNlbGVjdCB0aGUgYEFkbWluaXN0cmF0b3JBY2Nlc3NgIHBvbGljeQoKIVtyb2xlc10oL3BvbGljeS5QTkcpCgombmJzcDsKCiMjIFN0ZXAgOAoKU2VsZWN0ICJOZXh0OiBUYWdzIgoKJm5ic3A7CgojIyBTdGVwIDkKCiMjIyBBZGQgYSB0YWcgd2l0aCB0aGUga2V5IGBtYXNzZHJpdmVyYAoKIVtyb2xlc10oL3RhZ3MuUE5HKQoKJm5ic3A7CgojIyBTdGVwIDEwCgojIyMgQWRkIGEgbmFtZSBhbmQgYSBkZXNjcmlwdGlvbiB0byB0aGUgcm9sZS4gU2F2ZSB0aGUgcm9sZSBuYW1lIGZvciBlbnRyeSBpbiB0byB0aGUgZm9ybSB0byB0aGUgbGVmdAoKIVtyb2xlc10oL3Jldmlldy5QTkcpCgombmJzcDsKCiMjIFN0ZXAgMTEKCkluIE1hc3Nkcml2ZXIsIGFkZCBhIGZyaWVuZGx5IG5hbWUgZm9yIHRoZSByb2xlIGluIHRoZSBmb3JtIHRvIHRoZSBsZWZ0CgombmJzcDsKCiMjIFN0ZXAgMTIKClBhc3RlIHRoZSBBV1MgYXJuIGZvciB0aGUgcm9sZSBpbiB0aGUgYXBwcm9wcmlhdGUgZmllbGQgd2l0aCB0aGUgZm9ybWF0OgoKYGBgCmFybjphd3M6aWFtOjpZT1VSX0FXU19BQ0NPVU5UX0lEOnJvbGUvUk9MRV9OQU1FCmBgYAoKJm5ic3A7CgojIyBTdGVwIDEzCgpJZiB5b3UgaGF2ZW4ndCBhbHJlYWR5IHBhc3RlIHlvdXIgZXh0ZXJuYWwgSUQgaW4gdG8gdGhlIGFwcHJvcHJpYXRlIGZpZWxkCgombmJzcDsKCiMjIFN0ZXAgMTQKCkNsaWNrICoqQ3JlYXRlKiogYW5kIGhlYWQgdG8gdGhlIFtwcm9qZWN0cyBwYWdlXSgvcHJvamVjdHMpIHRvIHN0YXJ0IGJ1aWxkaW5nIHlvdXIgaW5mcmFzdHJ1Y3R1cmUuCg==",
+                  "label": "AWS Console"
+              }
+          ]
+      }
   },
   "$schema": "http://json-schema.org/draft-07/schema",
-  "additionalProperties": false,
   "description": "",
   "properties": {
-    "data": {
-      "properties": {
-        "arn": {
-          "$schema": "http://json-schema.org/draft-07/schema",
-          "description": "Amazon Resource Name",
-          "examples": [
-            "arn:aws:rds::ACCOUNT_NUMBER:db/prod",
-            "arn:aws:ec2::ACCOUNT_NUMBER:vpc/vpc-foo"
-          ],
-          "message": {
-            "pattern": "Correct format of an arn described here: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
-          },
-          "pattern": "^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$",
-          "title": "AWS ARN",
-          "type": "string"
-        },
-        "external_id": {
-          "description": "An external ID is a piece of data that can be passed to the AssumeRole API of the Security Token Service (STS). You can then use the external ID in the condition element in a role's trust policy, allowing the role to be assumed only when a certain value is present in the external ID.",
-          "title": "External ID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "arn"
-      ],
-      "title": "Artifact Data",
-      "type": "object"
-    },
-    "specs": {
-      "properties": {
-        "aws": {
-          "$schema": "http://json-schema.org/draft-07/schema",
-          "description": "",
+      "data": {
           "properties": {
-            "region": {
-              "$schema": "http://json-schema.org/draft-07/schema",
-              "description": "AWS Region to provision in.",
-              "examples": [
-                "us-west-2"
-              ],
-              "title": "Region",
-              "type": "string"
-            }
+              "arn": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "Amazon Resource Name",
+                  "examples": [
+                      "arn:aws:rds::ACCOUNT_NUMBER:db/prod",
+                      "arn:aws:ec2::ACCOUNT_NUMBER:vpc/vpc-foo"
+                  ],
+                  "message": {
+                      "pattern": "Correct format of an arn described here: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
+                  },
+                  "pattern": "^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$",
+                  "title": "AWS ARN",
+                  "type": "string"
+              },
+              "external_id": {
+                  "description": "An external ID is a piece of data that can be passed to the AssumeRole API of the Security Token Service (STS). You can then use the external ID in the condition element in a role's trust policy, allowing the role to be assumed only when a certain value is present in the external ID.",
+                  "title": "External ID",
+                  "type": "string"
+              }
           },
-          "required": [],
-          "title": "AWS Artifact Specs",
+          "required": [
+              "arn"
+          ],
+          "title": "Artifact Data",
           "type": "object"
-        }
       },
-      "title": "Artifact Specs",
-      "type": "object"
-    }
+      "specs": {
+          "properties": {
+              "aws": {
+                  "$schema": "http://json-schema.org/draft-07/schema",
+                  "description": "",
+                  "properties": {
+                      "region": {
+                          "$schema": "http://json-schema.org/draft-07/schema",
+                          "description": "AWS Region to provision in.",
+                          "examples": [
+                              "us-west-2"
+                          ],
+                          "title": "Region",
+                          "type": "string"
+                      }
+                  },
+                  "required": [],
+                  "title": "AWS Artifact Specs",
+                  "type": "object"
+              }
+          },
+          "title": "Artifact Specs",
+          "type": "object"
+      }
   },
   "required": [
-    "data",
-    "specs"
+      "data",
+      "specs"
   ],
   "title": "AWS IAM Role",
   "type": "object"
