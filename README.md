@@ -41,6 +41,56 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 ## What's Inside
 
+### 📁 `artifact-definitions/`
+
+**Artifact definitions** are JSON Schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
+
+This catalog includes **example artifact definitions** for common infrastructure patterns:
+
+- `network.json` - Example network/VPC abstraction (subnets, CIDR blocks, routing)
+- `postgres.json` - Example PostgreSQL database connection contract
+- `mysql.json` - Example MySQL database connection contract
+- `bucket.json` - Example object storage bucket access contract
+
+> **💡 Note on Sensitive Fields**: Artifact definitions support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All artifact data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
+
+**⚠️ These are examples to get you started.** Edit these schemas to match your organization's infrastructure patterns and the data your bundles need to exchange. The field names, structure, and validation rules should reflect what your actual OpenTofu/Terraform code produces and consumes.
+
+**Why they matter**: Artifact definitions enable type-safe infrastructure composition. You can't accidentally connect a PostgreSQL artifact to a bundle expecting MySQL—the system validates compatibility at design time, before any infrastructure is deployed.
+
+Use these example artifact definitions to:
+
+- Define the contract between your IaC modules (what data gets passed from one to another)
+- Model how services connect together in your architecture
+- Design your project and environment structure
+- Plan the developer experience before writing infrastructure code
+- **Then customize them** to match your organization's specific needs
+
+### 📁 `bundles/`
+
+**Bundles** are reusable, versioned definitions of cloud infrastructure or application components. A bundle encapsulates everything needed to provision and manage a piece of infrastructure: the IaC code, configuration schemas, dependencies, outputs, and policies.
+
+Bundles provide a safe self-service framework where you (the platform team) encode best practices into ready-to-use modules, and developers get a simple interface to deploy what they need.
+
+This catalog includes template bundles with complete schemas and placeholder infrastructure code:
+
+- `network/` - Network/VPC provisioning
+- `postgres/` - PostgreSQL database provisioning
+- `mysql/` - MySQL database provisioning
+- `bucket/` - Object storage bucket provisioning
+- `application/` - Application deployment template
+
+Each bundle includes:
+
+- ✅ Complete `massdriver.yaml` configuration
+- ✅ **Parameter schemas** - Define your IaC variables (tfvars, Helm values) and customize the UI form for user configuration (instance sizes, database names, etc.)
+- ✅ **Connection schemas** - Define cloud service dependencies on artifacts from other bundles, enabling secure access to their details during automation.
+- ✅ **Artifact schemas** - Define what infrastructure this bundle produces for others to consume
+- ✅ **UI schemas** - Control how the configuration form looks and behaves
+- 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
+
+These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
+
 ### 📁 `platforms/`
 
 **Platform integrations** define how Massdriver connects to your cloud providers and infrastructure platforms. Each platform directory contains everything needed to authenticate and interact with that platform.
@@ -148,56 +198,6 @@ make publish-platforms
 
 This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for publishing.
 
-### 📁 `artifact-definitions/`
-
-**Artifact definitions** are JSON Schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
-
-This catalog includes **example artifact definitions** for common infrastructure patterns:
-
-- `network.json` - Example network/VPC abstraction (subnets, CIDR blocks, routing)
-- `postgres.json` - Example PostgreSQL database connection contract
-- `mysql.json` - Example MySQL database connection contract
-- `bucket.json` - Example object storage bucket access contract
-
-> **💡 Note on Sensitive Fields**: Artifact definitions support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All artifact data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
-
-**⚠️ These are examples to get you started.** Edit these schemas to match your organization's infrastructure patterns and the data your bundles need to exchange. The field names, structure, and validation rules should reflect what your actual OpenTofu/Terraform code produces and consumes.
-
-**Why they matter**: Artifact definitions enable type-safe infrastructure composition. You can't accidentally connect a PostgreSQL artifact to a bundle expecting MySQL—the system validates compatibility at design time, before any infrastructure is deployed.
-
-Use these example artifact definitions to:
-
-- Define the contract between your IaC modules (what data gets passed from one to another)
-- Model how services connect together in your architecture
-- Design your project and environment structure
-- Plan the developer experience before writing infrastructure code
-- **Then customize them** to match your organization's specific needs
-
-### 📁 `bundles/`
-
-**Bundles** are reusable, versioned definitions of cloud infrastructure or application components. A bundle encapsulates everything needed to provision and manage a piece of infrastructure: the IaC code, configuration schemas, dependencies, outputs, and policies.
-
-Bundles provide a safe self-service framework where you (the platform team) encode best practices into ready-to-use modules, and developers get a simple interface to deploy what they need.
-
-This catalog includes template bundles with complete schemas and placeholder infrastructure code:
-
-- `network/` - Network/VPC provisioning
-- `postgres/` - PostgreSQL database provisioning
-- `mysql/` - MySQL database provisioning
-- `bucket/` - Object storage bucket provisioning
-- `application/` - Application deployment template
-
-Each bundle includes:
-
-- ✅ Complete `massdriver.yaml` configuration
-- ✅ **Parameter schemas** - Define your IaC variables (tfvars, Helm values) and customize the UI form for user configuration (instance sizes, database names, etc.)
-- ✅ **Connection schemas** - Define cloud service dependencies on artifacts from other bundles, enabling secure access to their details during automation.
-- ✅ **Artifact schemas** - Define what infrastructure this bundle produces for others to consume
-- ✅ **UI schemas** - Control how the configuration form looks and behaves
-- 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
-
-These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
-
 ## Customizing Your Catalog
 
 ### Prerequisites
@@ -271,12 +271,12 @@ make all
 - Configure **parameters** to test what the developer experience feels like
 
 7. **Implement infrastructure code**
-   - Customize credential definitions to match your provider blocks, then publish them:
-     ```bash
-     make publish-credentials
-     ```
    - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
+   - Customize platform definitions to match your provider blocks, then publish them:
+     ```bash
+     make publish-platforms
+     ```
    - Update schemas if your implementation needs different parameters
 
 8. **Publish to Massdriver**
