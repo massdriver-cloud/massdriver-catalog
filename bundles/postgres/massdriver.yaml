@@ -49,7 +49,7 @@ artifacts:
   properties:
     database:
       $ref: postgres
-      title: PostgreSQL Database
+      title: PostgreSQL
 
 steps:
   - path: src

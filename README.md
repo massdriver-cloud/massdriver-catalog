@@ -103,7 +103,7 @@ schema:                          # JSON Schema as YAML
 
 The `schema` section should match your OpenTofu/Terraform provider authentication configuration. For example, AWS IAM Role credentials match the `aws` provider's `assume_role` block, Azure Service Principal matches the `azurerm` provider config, etc.
 
-**Export Templates** (optional): The `exports/` directory enables self-service artifact downloads. Export templates allow developers to download pre-configured files based on deployed artifact data—like generating a kubeconfig file from a Kubernetes cluster artifact, or downloading AWS credentials in various formats.
+**Export Templates** (optional): The `exports/` directory enables self-service artifact downloads. Export templates allow developers to download pre-configured files based on deployed artifact data—like generating a kubeconfig file from a Kubernetes namespace, VPN configuration files with certificates, database connection strings, or environment variable files for local development.
 
 Templates use Liquid syntax and have access to the full artifact payload via the `artifact` variable. When a developer clicks the download button in Massdriver's UI, the template is rendered with their specific artifact data and downloaded as a ready-to-use configuration file.
 
@@ -138,12 +138,12 @@ This template references fields from the deployed artifact's `data` payload, all
 - `gcp/` - GCP Service Account authentication
 - `kubernetes/` - Kubernetes cluster connection
 
-**Extending Massdriver**: Your platform team can support any cloud or SaaS platform by creating a new directory and defining its authentication schema. Tune the `authentication.json` to match your OpenTofu provider or Helm authentication configuration. Massdriver captures those credential values and securely passes them to your automation workflows.
+**Extending Massdriver**: Your platform team can support any cloud or SaaS platform by creating a new platform directory and defining its `massdriver.yaml`. Design the `schema` section to match your OpenTofu provider or Helm authentication configuration. Massdriver captures those credential values and securely passes them to your automation workflows.
 
-Build platform definitions with:
+Update your supported cloud platforms and onboarding instructions with:
 
 ```bash
-make build-platforms
+make publish-platforms
 ```
 
 This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for publishing.
