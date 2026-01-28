@@ -19,6 +19,7 @@
         },
         "password": {
           "$md.sensitive": true,
+          "$md.copyable": false,
           "title": "Password",
           "type": "string"
         },

@@ -1,0 +1,101 @@
+name: gcp-service-account
+label: GCP Service Account
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+containerRepositories:
+  cloud: gcp
+  label: GAR
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Google Cloud CLI
+      path: ./instructions/Google Cloud CLI.md
+    - label: Google Cloud Console
+      path: ./instructions/Google Cloud Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: GCP Service Account
+  description: Google Cloud Platform service account credentials for authentication and authorization.
+  type: object
+  required:
+    - auth_provider_x509_cert_url
+    - auth_uri
+    - client_email
+    - client_id
+    - client_x509_cert_url
+    - private_key
+    - private_key_id
+    - project_id
+    - token_uri
+    - type
+  properties:
+    type:
+      title: Type
+      description: Service account credential type.
+      type: string
+      default: service_account
+    project_id:
+      title: Project ID
+      description: GCP project ID where the service account was created.
+      type: string
+    private_key_id:
+      title: Private Key ID
+      description: Unique identifier for the service account's private key.
+      type: string
+    private_key:
+      $md.sensitive: true
+      title: Private Key
+      description: PEM-encoded private key used to sign authentication tokens.
+      type: string
+    client_email:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Client Email
+      description: Email address associated with the service account.
+      type: string
+      format: email
+      examples:
+        - my-service-account@my-project.iam.gserviceaccount.com
+    client_id:
+      title: Client ID
+      description: Unique identifier for the service account.
+      type: string
+    auth_uri:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Authorization URI
+      description: OAuth 2.0 authorization server endpoint.
+      type: string
+      pattern: ^https://.*$
+      default: https://accounts.google.com/o/oauth2/auth
+      examples:
+        - https://accounts.google.com/o/oauth2/auth
+    token_uri:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Token URI
+      description: OAuth 2.0 token endpoint for exchanging credentials.
+      type: string
+      pattern: ^https://.*$
+      default: https://oauth2.googleapis.com/token
+      examples:
+        - https://oauth2.googleapis.com/token
+    auth_provider_x509_cert_url:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Auth Provider Certificate URL
+      description: URL of the public x509 certificate for the authorization server.
+      type: string
+      pattern: ^https://.*$
+      default: https://www.googleapis.com/oauth2/v1/certs
+      examples:
+        - https://www.googleapis.com/oauth2/v1/certs
+    client_x509_cert_url:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Client Certificate URL
+      description: URL of the public x509 certificate for this service account.
+      type: string
+      pattern: ^https://.*$
+      examples:
+        - https://www.googleapis.com/robot/v1/metadata/x509/my-service-account%40my-project.iam.gserviceaccount.com

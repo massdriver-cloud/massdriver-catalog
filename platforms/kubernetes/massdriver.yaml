@@ -1,0 +1,70 @@
+name: kubernetes-namespace
+label: Kubernetes Namespace
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/kubernetes/icon.png
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: kubectl CLI
+      path: ./instructions/kubectl CLI.md
+
+exports:
+  - downloadButtonText: Kube Config
+    fileFormat: yaml
+    templatePath: ./exports/kubeconfig.yaml.liquid
+    templateLang: liquid
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Kubernetes Namespace
+  description: Kubernetes namespace with authentication and cluster information.
+  type: object
+  required:
+    - authentication
+    - namespace
+  properties:
+    namespace:
+      title: Namespace
+      description: Kubernetes namespace for resource isolation and organization.
+      type: string
+      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+      examples:
+        - default
+        - production
+        - staging
+    authentication:
+      title: Authentication
+      description: Kubernetes cluster authentication configuration.
+      type: object
+      required:
+        - cluster
+        - user
+      properties:
+        cluster:
+          title: Cluster Configuration
+          description: Kubernetes API server connection details.
+          type: object
+          required:
+            - server
+            - certificate-authority-data
+          properties:
+            server:
+              title: API Server URL
+              description: HTTPS endpoint URL of the Kubernetes API server.
+              type: string
+            certificate-authority-data:
+              title: Certificate Authority Data
+              description: Base64-encoded CA certificate for verifying the API server's TLS certificate.
+              type: string
+        user:
+          title: User Credentials
+          description: Authentication credentials for the Kubernetes cluster.
+          type: object
+          required:
+            - token
+          properties:
+            token:
+              $md.sensitive: true
+              title: Bearer Token
+              description: Authentication token for API server requests.
+              type: string

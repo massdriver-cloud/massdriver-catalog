@@ -1,0 +1,58 @@
+name: azure-service-principal
+label: Azure Service Principal
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/azure/icon.png
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Azure CLI
+      path: ./instructions/Azure CLI.md
+    - label: Azure Console
+      path: ./instructions/Azure Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Azure Service Principal
+  description: Azure service principal credentials for authentication and authorization.
+  type: object
+  required:
+    - client_id
+    - tenant_id
+    - client_secret
+    - subscription_id
+  properties:
+    client_id:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Client ID
+      description: Application (client) ID of the service principal.
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+    client_secret:
+      $md.sensitive: true
+      title: Client Secret
+      description: Client secret value used to authenticate the service principal.
+      type: string
+      pattern: "[-_.~a-zA-Z0-9]{1,40}"
+      message:
+        pattern: Must be a valid Azure client secret (alphanumeric with -, _, ., or ~).
+    subscription_id:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Subscription ID
+      description: Azure subscription ID where resources will be managed.
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+    tenant_id:
+      $schema: http://json-schema.org/draft-07/schema
+      title: Tenant ID
+      description: Azure Active Directory tenant ID associated with the service principal.
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e

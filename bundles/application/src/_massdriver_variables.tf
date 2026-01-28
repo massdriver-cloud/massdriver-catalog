@@ -6,6 +6,10 @@ variable "bucket" {
       bucket_name = string
       endpoint    = optional(string)
     })
+    policies = list(object({
+      id   = string
+      name = string
+    }))
   })
   default = null
 }
@@ -16,17 +20,20 @@ variable "bucket_policy" {
 variable "database" {
   type = object({
     connection = object({
-      hostname = string
-      port     = number
       database = string
-      username = string
+      hostname = string
       password = string
+      port     = number
+      username = string
     })
     infrastructure = object({
       database_id = string
     })
+    policies = list(object({
+      id   = string
+      name = string
+    }))
   })
-  default = null
 }
 variable "database_policy" {
   type    = string

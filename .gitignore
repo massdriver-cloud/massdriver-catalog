@@ -25,3 +25,6 @@ schema-artifacts.json
 schema-connections.json
 schema-params.json
 schema-ui.json
+
+# Build artifacts
+_dist/

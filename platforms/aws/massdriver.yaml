@@ -1,0 +1,46 @@
+name: aws-iam-role
+label: AWS IAM Role
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/aws/icon.png
+
+containerRepositories:
+  cloud: aws
+  label: ECR
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: AWS CLI
+      path: ./instructions/AWS CLI.md
+    - label: AWS Console
+      path: ./instructions/AWS Console.md
+    - label: CloudFormation One Click
+      path: ./instructions/AWS One Click.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: AWS IAM Role
+  description: AWS IAM role credentials for authentication and authorization.
+  type: object
+  required:
+    - arn
+  properties:
+    arn:
+      $schema: http://json-schema.org/draft-07/schema
+      title: IAM Role ARN
+      description: Amazon Resource Name (ARN) of the IAM role to assume.
+      type: string
+      pattern: ^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$
+      message:
+        pattern: "Must be a valid AWS ARN. See: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
+      examples:
+        - "arn:aws:iam::123456789012:role/MyRole"
+        - "arn:aws:iam::123456789012:role/service-role/MyServiceRole"
+    external_id:
+      title: External ID
+      description: >
+        Optional external ID for additional security when assuming the role. Used in the role's trust policy
+        to ensure only authorized parties can assume the role.
+      type: string
