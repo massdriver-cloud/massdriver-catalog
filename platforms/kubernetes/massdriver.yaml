@@ -1,5 +1,5 @@
-name: kubernetes-cluster
-label: Kubernetes Cluster
+name: kubernetes-namespace
+label: Kubernetes Namespace
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/kubernetes/icon.png
 
 ui:
@@ -16,207 +16,55 @@ exports:
 
 schema:
   $schema: http://json-schema.org/draft-07/schema
-  title: Kubernetes Cluster
-  description: Kubernetes cluster authentication and cloud-specific configuration.
+  title: Kubernetes Namespace
+  description: Kubernetes namespace with authentication and cluster information.
   type: object
   required:
-    - data
+    - authentication
+    - namespace
   properties:
-    data:
+    namespace:
+      title: Namespace
+      description: Kubernetes namespace for resource isolation and organization.
+      type: string
+      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+      examples:
+        - default
+        - production
+        - staging
+    authentication:
+      title: Authentication
+      description: Kubernetes cluster authentication configuration.
       type: object
       required:
-        - authentication
+        - cluster
+        - user
       properties:
-        authentication:
-          title: Authentication
-          description: Authentication details required to access the Kubernetes cluster.
+        cluster:
+          title: Cluster Configuration
+          description: Kubernetes API server connection details.
           type: object
           required:
-            - cluster
-            - user
+            - server
+            - certificate-authority-data
           properties:
-            cluster:
-              title: Cluster
-              description: Information about the Kubernetes cluster you wish to connect to.
-              type: object
-              required:
-                - server
-                - certificate-authority-data
-              properties:
-                server:
-                  title: Server
-                  description: The URL or endpoint of the Kubernetes API server.
-                  type: string
-                certificate-authority-data:
-                  title: Certificate Authority Data
-                  description: Base64-encoded certificate authority data used to verify the Kubernetes API server's certificate.
-                  type: string
-            user:
-              title: User
-              description: User credentials for authenticating with the Kubernetes cluster.
-              type: object
-              required:
-                - token
-              properties:
-                token:
-                  $md.sensitive: true
-                  title: Token
-                  description: Bearer token used for authenticating the user with the Kubernetes API server.
-                  type: string
-        infrastructure:
-          title: Cloud provider configuration
-          description: Cloud specific Kubernetes configuration data.
-          type: object
-          oneOf:
-            - $schema: http://json-schema.org/draft-07/schema
-              title: AWS EKS infrastructure config
-              description: ""
-              type: object
-              required:
-                - arn
-                - oidc_issuer_url
-              properties:
-                arn:
-                  $schema: http://json-schema.org/draft-07/schema
-                  title: AWS ARN
-                  description: Amazon Resource Name
-                  type: string
-                  pattern: ^arn:aws:[a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:(?:[0-9]{12})?:[a-zA-Z0-9/:._-]+$
-                  message:
-                    pattern: "Correct format of an arn described here: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
-                  examples:
-                    - "arn:aws:rds::ACCOUNT_NUMBER:db/prod"
-                    - "arn:aws:ec2::ACCOUNT_NUMBER:vpc/vpc-foo"
-                oidc_issuer_url:
-                  $schema: http://json-schema.org/draft-07/schema
-                  title: HTTPS URL
-                  description: An HTTPS endpoint URL
-                  type: string
-                  pattern: ^https://.*$
-                  examples:
-                    - https://example.com/some/path
-                    - https://massdriver.cloud
-            - $schema: http://json-schema.org/draft-07/schema
-              title: Infrastructure Config
-              description: Azure AKS Infrastructure Configuration
-              type: object
-              required:
-                - ari
-              properties:
-                ari:
-                  $schema: http://json-schema.org/draft-07/schema
-                  title: Azure Resource ID
-                  description: Azure Resource ID
-                  type: string
-                  pattern: >-
-                    ^/subscriptions/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/resource(g|G)roups/[a-zA-Z0-9-_.()]{0,89}[a-zA-Z0-9-_()]/providers/Microsoft\.[a-zA-Z]+/[a-zA-Z]+(?:/[a-zA-Z0-9-_.()]+)+$
-                  message:
-                    pattern: Must be a valid Azure Resource ID
-                  examples:
-                    - /subscriptions/12345678-1234-1234-abcd-1234567890ab/resourceGroups/resource-group-name/providers/Microsoft.Network/virtualNetworks/network-name
-                oidc_issuer_url:
-                  type: string
-            - $schema: http://json-schema.org/draft-07/schema
-              title: GCP Infrastructure GRN
-              description: Minimal GCP Infrastructure Config
-              type: object
-              required:
-                - grn
-              properties:
-                grn:
-                  $schema: http://json-schema.org/draft-07/schema
-                  title: GCP Resource Name (GRN)
-                  description: GCP Resource Name (GRN)
-                  type: string
-                  pattern: ^projects/[a-z0-9-]+/[a-z]+/[a-z0-9-]+(?:/[a-zA-Z0-9-_.]+){0,6}$
-                  message:
-                    pattern: The provided GRN does not follow the expected pattern. See the examples for valid GRNs.
-                  examples:
-                    - projects/my-project/global/networks/my-global-network
-                    - projects/my-project/regions/us-west2/subnetworks/my-subnetwork
-                    - projects/my-project/topics/my-pubsub-topic
-                    - projects/my-project/subscriptions/my-pubsub-subscription
-                    - projects/my-project/locations/us-west2/instances/my-redis-instance
-                    - projects/my-project/locations/us-west2/clusters/my-gke-cluster
-    specs:
-      title: Artifact Specs
-      type: object
-      required:
-        - kubernetes
-      properties:
-        kubernetes:
-          $schema: http://json-schema.org/draft-07/schema
-          title: Kubernetes
-          description: Kubernetes distribution and version specifications.
+            server:
+              title: API Server URL
+              description: HTTPS endpoint URL of the Kubernetes API server.
+              type: string
+            certificate-authority-data:
+              title: Certificate Authority Data
+              description: Base64-encoded CA certificate for verifying the API server's TLS certificate.
+              type: string
+        user:
+          title: User Credentials
+          description: Authentication credentials for the Kubernetes cluster.
           type: object
           required:
-            - version
-            - cloud
-            - distribution
+            - token
           properties:
-            version:
+            token:
+              $md.sensitive: true
+              title: Bearer Token
+              description: Authentication token for API server requests.
               type: string
-            platform_version:
-              type: string
-            cloud:
-              type: string
-              enum:
-                - aws
-                - gcp
-                - azure
-            distribution:
-              type: string
-              enum:
-                - eks
-                - gke
-                - aks
-        aws:
-          $schema: http://json-schema.org/draft-07/schema
-          title: AWS Artifact Specs
-          description: ""
-          type: object
-          required: []
-          properties:
-            region:
-              $schema: http://json-schema.org/draft-07/schema
-              title: Region
-              description: AWS Region to provision in.
-              type: string
-              examples:
-                - us-west-2
-        azure:
-          $schema: http://json-schema.org/draft-07/schema
-          title: Azure Artifact Specs
-          description: ""
-          type: object
-          required:
-            - region
-          properties:
-            region:
-              $schema: http://json-schema.org/draft-07/schema
-              title: Azure Region
-              description: Select the Azure region you'd like to provision your resources in.
-              type: string
-        gcp:
-          $schema: http://json-schema.org/draft-07/schema
-          title: GCP Artifact Specs
-          description: ""
-          type: object
-          required: []
-          properties:
-            project:
-              title: GCP Project
-              type: string
-            region:
-              $schema: http://json-schema.org/draft-07/schema
-              title: Region
-              description: The GCP region to provision resources in.
-              type: string
-              examples:
-                - us-east1
-                - us-east4
-                - us-west1
-                - us-west2
-                - us-west3
-                - us-west4
-                - us-central1
