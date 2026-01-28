@@ -11,7 +11,7 @@ A bootstrap catalog for self-hosted Massdriver instances containing artifact def
 This catalog is yours to customize and extend. Here's the recommended workflow:
 
 1. **Clone this repository** to your organization (keep it private—it will contain your infrastructure code)
-2. **Set up GitHub Actions** to automatically publish to your private Massdriver or use included `make` task to publish
+2. **Configure GitHub Secrets** (see [Quick Start](#quick-start)) to enable automatic publishing on push to `main`
 3. **Start experimenting** with bundles in your editor—edit schemas, add parameters, define connections
 4. **Watch the developer experience get built** in real-time in Massdriver as you iterate on your abstractions
 
@@ -127,7 +127,27 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
    Replace `YOUR_ORG` with your actual GitHub organization name throughout the repository. This updates `source_url` fields in bundles and links in operator runbooks to point to your repository.
 
-3. **Set up pre-commit hooks (optional but recommended)**
+3. **Configure GitHub Secrets and Variables**
+
+   This repository includes GitHub Actions workflows that automatically publish artifact definitions and bundles to your Massdriver instance on push to `main`. To enable this, configure the following in your GitHub repository:
+
+   **Required Secrets** (Settings → Secrets and variables → Actions → Secrets):
+   - `MASSDRIVER_API_KEY` - Your Massdriver API key. Generate one in your Massdriver instance under Settings → API Keys.
+
+   **Required Variables** (Settings → Secrets and variables → Actions → Variables):
+   - `MASSDRIVER_ORG_ID` - Your Massdriver organization ID. You can find this in your Massdriver instance URL or in the organization settings.
+
+   **Optional Variables** (for self-hosted instances):
+   - `MASSDRIVER_URL` - The API URL of your self-hosted Massdriver instance (e.g., `https://api.massdriver.yourdomain.com`). If not set, defaults to `https://api.massdriver.cloud`.
+
+   Once configured, any push to the `main` branch will automatically:
+   - Publish all artifact definitions in `artifact-definitions/`
+   - Build and publish all bundles in `bundles/`
+
+   > [!TIP]
+   > The bundle publish action automatically skips publishing if no changes are detected in a bundle directory, optimizing CI/CD performance. For development workflows, you can modify the workflows to use the `development: true` flag for auto-generated version suffixes.
+
+4. **Set up pre-commit hooks (optional but recommended)**
 
    ```bash
    pip install pre-commit
@@ -136,11 +156,11 @@ These bundles let you model first, implement later. Use the schemas to plan your
 
    This will automatically format JSON/YAML, validate Terraform, and check for common issues before each commit.
 
-4. **Explore and customize**
+5. **Explore and customize**
    - Review artifact definitions in `artifact-definitions/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
 
-5. **Model your platform**
+6. **Model your platform**
 
 First publish the template bundles to your organization. After you get a feel for organization your resources in Massdriver, you'll update these modules with your IaC.
 
@@ -155,7 +175,7 @@ make all
 - **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
 - Configure **parameters** to test what the developer experience feels like
 
-6. **Implement infrastructure code**
+7. **Implement infrastructure code**
    - Customize credential definitions to match your provider blocks, then publish them:
      ```bash
      make publish-credentials
@@ -164,16 +184,19 @@ make all
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Update schemas if your implementation needs different parameters
 
-7. **Publish to Massdriver**
+8. **Publish to Massdriver**
+
+   **Automatic Publishing (Recommended)**: If you've configured GitHub Secrets and Variables (step 3), artifact definitions and bundles are automatically published on push to `main`. Simply push your changes:
+
+   ```bash
+   git push origin main
+   ```
+
+   **Manual Publishing**: Alternatively, you can publish manually using the included Makefile:
 
    ```bash
    make all
    ```
-
-   > [!IMPORTANT]
-   > You'll probably want to replace `make all` with our Artifact Definition and Bundle publishing [GitHub Actions](https://github.com/massdriver-cloud/actions).
-
-   **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
 
    This command will:
    - Clean up any previous build artifacts
@@ -181,6 +204,8 @@ make all
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
    - Validate all bundles with OpenTofu, Helm, etc.
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
+
+   **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
 
 ## Workflow
 
@@ -209,7 +234,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
 2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
-4. Publish with `make` (or git push with our [GitHub Actions](https://github.com/massdriver-cloud/actions)) to make bundles available in Massdriver
+4. Push to `main` to automatically publish bundles via GitHub Actions, or use `make all` for manual publishing
 5. Deploy packages to test environments and validate everything works
 
 **Goal**: Fill in the infrastructure code that matches your architectural model.
@@ -323,11 +348,7 @@ These resources complement this catalog by showing you how to work with bundles 
 
 ### Automation
 
-- 🚀 **[GitHub Actions](https://github.com/massdriver-cloud/actions)** - Automate artifact definition and bundle publishing with CI/CD workflows
-
-### Coming Soon
-
-See [open issues](https://github.com/massdriver-cloud/massdriver-catalog/issues) for upcoming features and the full roadmap.
+- 🚀 **[GitHub Actions](https://github.com/massdriver-cloud/actions)** - This repository includes pre-configured workflows that automatically publish artifact definitions and bundles on push to `main`. See the [Quick Start](#quick-start) section for setup instructions.
 
 ## Best Practices
 

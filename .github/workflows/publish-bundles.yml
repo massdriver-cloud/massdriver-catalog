@@ -1,0 +1,28 @@
+name: Publish Bundles
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bundles/**'
+      - '.github/workflows/publish-bundles.yml'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      MASSDRIVER_API_KEY: ${{ secrets.MASSDRIVER_API_KEY }}
+      MASSDRIVER_ORG_ID: ${{ vars.MASSDRIVER_ORG_ID }}
+      MASSDRIVER_URL: ${{ vars.MASSDRIVER_URL || 'https://api.massdriver.cloud' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Massdriver CLI
+        uses: massdriver-cloud/actions/setup@v5
+      - name: Publish All Bundles
+        run: |
+          for bundle_dir in bundles/*/; do
+            bundle_name=$(basename "$bundle_dir")
+            echo "Publishing bundle: $bundle_name..."
+            mass bundle publish --directory "$bundle_dir"
+          done
