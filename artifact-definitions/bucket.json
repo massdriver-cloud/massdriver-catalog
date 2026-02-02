@@ -4,49 +4,46 @@
     "name": "bucket"
   },
   "$schema": "http://json-schema.org/draft-07/schema",
-  "description": "Example storage bucket artifact - customize this schema to match your bucket outputs",
+  "title": "Storage Bucket",
+  "description": "Object storage bucket with access policies",
+  "type": "object",
+  "required": ["id", "name", "policies"],
   "properties": {
-    "infrastructure": {
-      "properties": {
-        "bucket_id": {
-          "description": "Unique identifier for the bucket",
-          "title": "Bucket ID",
-          "type": "string"
-        },
-        "bucket_name": {
-          "title": "Bucket Name",
-          "type": "string"
-        },
-        "endpoint": {
-          "description": "Storage endpoint URL",
-          "title": "Endpoint",
-          "type": "string"
-        }
-      },
-      "required": ["bucket_id", "bucket_name"],
-      "title": "Infrastructure Details",
-      "type": "object"
+    "id": {
+      "title": "ID",
+      "description": "Unique resource identifier",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "description": "Storage bucket name",
+      "type": "string"
+    },
+    "endpoint": {
+      "title": "Endpoint",
+      "description": "Storage API endpoint URL",
+      "type": "string"
     },
     "policies": {
+      "title": "Access Policies",
+      "description": "Available IAM policies for bucket access",
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": ["id", "name"],
         "properties": {
           "id": {
-            "title": "Policy ID",
+            "title": "ID",
+            "description": "Policy identifier",
             "type": "string"
           },
           "name": {
-            "title": "Policy Name",
+            "title": "Name",
+            "description": "Human-readable policy name",
             "type": "string"
           }
-        },
-        "required": ["id", "name"],
-        "type": "object"
-      },
-      "title": "Access Policies",
-      "type": "array"
+        }
+      }
     }
-  },
-  "required": ["infrastructure", "policies"],
-  "title": "Example Storage Bucket",
-  "type": "object"
+  }
 }

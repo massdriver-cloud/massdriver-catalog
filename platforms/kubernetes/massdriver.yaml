@@ -17,7 +17,7 @@ exports:
 schema:
   $schema: http://json-schema.org/draft-07/schema
   title: Kubernetes Namespace
-  description: Kubernetes namespace with authentication and cluster information.
+  description: Namespace with cluster authentication
   type: object
   required:
     - authentication
@@ -25,7 +25,7 @@ schema:
   properties:
     namespace:
       title: Namespace
-      description: Kubernetes namespace for resource isolation and organization.
+      description: Target namespace for workloads
       type: string
       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
       examples:
@@ -34,37 +34,37 @@ schema:
         - staging
     authentication:
       title: Authentication
-      description: Kubernetes cluster authentication configuration.
+      description: Cluster access credentials
       type: object
       required:
         - cluster
         - user
       properties:
         cluster:
-          title: Cluster Configuration
-          description: Kubernetes API server connection details.
+          title: Cluster
+          description: API server connection details
           type: object
           required:
             - server
             - certificate-authority-data
           properties:
             server:
-              title: API Server URL
-              description: HTTPS endpoint URL of the Kubernetes API server.
+              title: Server
+              description: API server endpoint URL
               type: string
             certificate-authority-data:
-              title: Certificate Authority Data
-              description: Base64-encoded CA certificate for verifying the API server's TLS certificate.
+              title: CA Data
+              description: Base64-encoded CA certificate
               type: string
         user:
-          title: User Credentials
-          description: Authentication credentials for the Kubernetes cluster.
+          title: User
+          description: Client credentials
           type: object
           required:
             - token
           properties:
             token:
               $md.sensitive: true
-              title: Bearer Token
-              description: Authentication token for API server requests.
+              title: Token
+              description: Bearer authentication token
               type: string

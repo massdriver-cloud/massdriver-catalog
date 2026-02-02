@@ -1,11 +1,9 @@
 // Auto-generated variable declarations from massdriver.yaml
 variable "bucket" {
   type = object({
-    infrastructure = object({
-      bucket_id   = string
-      bucket_name = string
-      endpoint    = optional(string)
-    })
+    id       = string
+    name     = string
+    endpoint = optional(string)
     policies = list(object({
       id   = string
       name = string
@@ -19,16 +17,14 @@ variable "bucket_policy" {
 }
 variable "database" {
   type = object({
-    connection = object({
+    auth = object({
       database = string
       hostname = string
       password = string
       port     = number
       username = string
     })
-    infrastructure = object({
-      database_id = string
-    })
+    id = string
     policies = list(object({
       id   = string
       name = string
@@ -74,14 +70,12 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    infrastructure = object({
-      cidr       = string
-      network_id = string
-    })
+    id   = string
+    cidr = string
     subnets = list(object({
-      cidr      = string
-      subnet_id = string
-      type      = optional(string)
+      id   = string
+      cidr = string
+      type = optional(string)
     }))
   })
 }

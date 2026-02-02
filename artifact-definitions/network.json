@@ -8,50 +8,47 @@
     }
   },
   "$schema": "http://json-schema.org/draft-07/schema",
-  "description": "Example network artifact - customize this schema to match your infrastructure's network outputs",
+  "title": "Network",
+  "description": "Virtual network with subnet configuration",
+  "type": "object",
+  "required": ["id", "cidr", "subnets"],
   "properties": {
-    "infrastructure": {
-      "properties": {
-        "cidr": {
-          "description": "The CIDR block for the network",
-          "title": "CIDR Block",
-          "type": "string"
-        },
-        "network_id": {
-          "description": "The network identifier",
-          "title": "Network ID",
-          "type": "string"
-        }
-      },
-      "required": ["network_id", "cidr"],
-      "title": "Infrastructure Details",
-      "type": "object"
+    "id": {
+      "title": "ID",
+      "description": "Virtual network resource identifier",
+      "type": "string"
+    },
+    "cidr": {
+      "title": "CIDR",
+      "description": "Network address range in CIDR notation",
+      "type": "string"
     },
     "subnets": {
+      "title": "Subnets",
+      "description": "Network subnet allocations",
+      "type": "array",
       "items": {
+        "type": "object",
+        "required": ["id", "cidr"],
         "properties": {
-          "cidr": {
-            "title": "CIDR Block",
+          "id": {
+            "title": "ID",
+            "description": "Subnet resource identifier",
             "type": "string"
           },
-          "subnet_id": {
-            "title": "Subnet ID",
+          "cidr": {
+            "title": "CIDR",
+            "description": "Subnet address range",
             "type": "string"
           },
           "type": {
-            "enum": ["public", "private"],
-            "title": "Subnet Type",
-            "type": "string"
+            "title": "Type",
+            "description": "Subnet visibility",
+            "type": "string",
+            "enum": ["public", "private"]
           }
-        },
-        "required": ["subnet_id", "cidr"],
-        "type": "object"
-      },
-      "title": "Subnets",
-      "type": "array"
+        }
+      }
     }
-  },
-  "required": ["infrastructure", "subnets"],
-  "title": "Example Network",
-  "type": "object"
+  }
 }

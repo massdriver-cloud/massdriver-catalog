@@ -21,8 +21,8 @@ resource "random_pet" "main" {
 
 locals {
   subnets = [for idx, subnet in var.subnets : {
-    subnet_id = "${random_pet.main.id}-${subnet.name}"
-    cidr      = subnet.cidr
-    type      = idx == 0 ? "public" : "private"
+    id   = "${random_pet.main.id}-${subnet.name}"
+    cidr = subnet.cidr
+    type = idx == 0 ? "public" : "private"
   }]
 }

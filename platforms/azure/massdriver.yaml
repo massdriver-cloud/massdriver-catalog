@@ -16,7 +16,7 @@ exports: []
 schema:
   $schema: http://json-schema.org/draft-07/schema
   title: Azure Service Principal
-  description: Azure service principal credentials for authentication and authorization.
+  description: Service principal credentials for Azure authentication
   type: object
   required:
     - client_id
@@ -25,9 +25,8 @@ schema:
     - subscription_id
   properties:
     client_id:
-      $schema: http://json-schema.org/draft-07/schema
       title: Client ID
-      description: Application (client) ID of the service principal.
+      description: Application (client) identifier
       type: string
       format: uuid
       examples:
@@ -35,23 +34,21 @@ schema:
     client_secret:
       $md.sensitive: true
       title: Client Secret
-      description: Client secret value used to authenticate the service principal.
+      description: Authentication secret value
       type: string
       pattern: "[-_.~a-zA-Z0-9]{1,40}"
       message:
-        pattern: Must be a valid Azure client secret (alphanumeric with -, _, ., or ~).
+        pattern: Must be a valid Azure client secret
     subscription_id:
-      $schema: http://json-schema.org/draft-07/schema
       title: Subscription ID
-      description: Azure subscription ID where resources will be managed.
+      description: Target subscription for resource management
       type: string
       format: uuid
       examples:
         - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
     tenant_id:
-      $schema: http://json-schema.org/draft-07/schema
       title: Tenant ID
-      description: Azure Active Directory tenant ID associated with the service principal.
+      description: Azure AD tenant identifier
       type: string
       format: uuid
       examples:

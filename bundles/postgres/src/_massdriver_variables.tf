@@ -34,14 +34,12 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    infrastructure = object({
-      cidr       = string
-      network_id = string
-    })
+    id   = string
+    cidr = string
     subnets = list(object({
-      cidr      = string
-      subnet_id = string
-      type      = optional(string)
+      id   = string
+      cidr = string
+      type = optional(string)
     }))
   })
 }

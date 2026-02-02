@@ -22,9 +22,9 @@ templating: mustache
 ### Connected Network
 
 {{#connections.network}}
-**Network ID:** `{{connections.network.infrastructure.network_id}}`
+**Network ID:** `{{connections.network.id}}`
 
-**Network CIDR:** `{{connections.network.infrastructure.cidr}}`
+**Network CIDR:** `{{connections.network.cidr}}`
 {{/connections.network}}
 
 ---
@@ -63,31 +63,31 @@ Consider adding:
 
 ### Database Configuration
 
-**Database ID:** `{{artifacts.database.infrastructure.database_id}}`
+**Database ID:** `{{artifacts.database.id}}`
 
 **PostgreSQL Version:** `{{params.db_version}}`
 
 ### Connection Details
 
-**Hostname:** `{{artifacts.database.connection.hostname}}`
+**Hostname:** `{{artifacts.database.auth.hostname}}`
 
-**Port:** `{{artifacts.database.connection.port}}`
+**Port:** `{{artifacts.database.auth.port}}`
 
-**Database Name:** `{{artifacts.database.connection.database}}`
+**Database Name:** `{{artifacts.database.auth.database}}`
 
-**Username:** `{{artifacts.database.connection.username}}`
+**Username:** `{{artifacts.database.auth.username}}`
 
 ### Connecting to the Database
 
 ```bash
 # Connect to PostgreSQL interactively
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}}
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}}
 
 # Connect with connection string format
-psql "postgresql://{{artifacts.database.connection.username}}:{{artifacts.database.connection.password}}@{{artifacts.database.connection.hostname}}:{{artifacts.database.connection.port}}/{{artifacts.database.connection.database}}"
+psql "postgresql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}"
 ```
 
 ### Common Operations
@@ -95,66 +95,66 @@ psql "postgresql://{{artifacts.database.connection.username}}:{{artifacts.databa
 **List all databases:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "\l"
 ```
 
 **List all tables:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "\dt"
 ```
 
 **Check database size:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "SELECT
            pg_database.datname AS database_name,
            pg_size_pretty(pg_database_size(pg_database.datname)) AS size
          FROM pg_database
-         WHERE datname = '{{artifacts.database.connection.database}}';"
+         WHERE datname = '{{artifacts.database.auth.database}}';"
 ```
 
 **Check connection and version:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "SELECT version(), current_user, current_database();"
 ```
 
 **Show active connections:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "SELECT pid, usename, application_name, client_addr, state, query_start
          FROM pg_stat_activity
-         WHERE datname = '{{artifacts.database.connection.database}}';"
+         WHERE datname = '{{artifacts.database.auth.database}}';"
 ```
 
 **Check table sizes:**
 
 ```bash
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
      -c "SELECT
            schemaname,
            tablename,
@@ -169,39 +169,39 @@ PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.databa
 
 ```bash
 # Custom format (recommended, supports parallel restore)
-PGPASSWORD={{artifacts.database.connection.password}} pg_dump -h {{artifacts.database.connection.hostname}} \
-        -U {{artifacts.database.connection.username}} \
-        -d {{artifacts.database.connection.database}} \
-        -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} pg_dump -h {{artifacts.database.auth.hostname}} \
+        -U {{artifacts.database.auth.username}} \
+        -d {{artifacts.database.auth.database}} \
+        -p {{artifacts.database.auth.port}} \
         -F c \
-        -f backup-{{artifacts.database.connection.database}}-$(date +%Y%m%d-%H%M%S).dump
+        -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).dump
 
 # Plain SQL format
-PGPASSWORD={{artifacts.database.connection.password}} pg_dump -h {{artifacts.database.connection.hostname}} \
-        -U {{artifacts.database.connection.username}} \
-        -d {{artifacts.database.connection.database}} \
-        -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} pg_dump -h {{artifacts.database.auth.hostname}} \
+        -U {{artifacts.database.auth.username}} \
+        -d {{artifacts.database.auth.database}} \
+        -p {{artifacts.database.auth.port}} \
         -F p \
-        -f backup-{{artifacts.database.connection.database}}-$(date +%Y%m%d-%H%M%S).sql
+        -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
 ```
 
 **Restore from backup:**
 
 ```bash
 # Restore from custom format
-PGPASSWORD={{artifacts.database.connection.password}} pg_restore -h {{artifacts.database.connection.hostname}} \
-           -U {{artifacts.database.connection.username}} \
-           -d {{artifacts.database.connection.database}} \
-           -p {{artifacts.database.connection.port}} \
+PGPASSWORD={{artifacts.database.auth.password}} pg_restore -h {{artifacts.database.auth.hostname}} \
+           -U {{artifacts.database.auth.username}} \
+           -d {{artifacts.database.auth.database}} \
+           -p {{artifacts.database.auth.port}} \
            -c \
-           backup-{{artifacts.database.connection.database}}-20260123-120000.dump
+           backup-{{artifacts.database.auth.database}}-20260123-120000.dump
 
 # Restore from SQL format
-PGPASSWORD={{artifacts.database.connection.password}} psql -h {{artifacts.database.connection.hostname}} \
-     -U {{artifacts.database.connection.username}} \
-     -d {{artifacts.database.connection.database}} \
-     -p {{artifacts.database.connection.port}} \
-     -f backup-{{artifacts.database.connection.database}}-20260123-120000.sql
+PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} \
+     -p {{artifacts.database.auth.port}} \
+     -f backup-{{artifacts.database.auth.database}}-20260123-120000.sql
 ```
 
 ---

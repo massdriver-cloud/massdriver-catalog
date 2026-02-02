@@ -77,8 +77,11 @@ connections:
       $ref: bucket
 
 artifacts:
-  required: []
-  properties: {}
+  required:
+    - application
+  properties:
+    application:
+      $ref: application
 
 steps:
   - path: src

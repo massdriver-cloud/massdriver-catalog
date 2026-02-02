@@ -17,7 +17,7 @@ resource "random_pet" "main" {
     db_version    = var.db_version
     database_name = var.database_name
     username      = var.username
-    network_id    = var.network.infrastructure.network_id
+    network_id    = var.network.id
   }
 }
 

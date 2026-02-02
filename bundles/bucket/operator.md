@@ -55,11 +55,11 @@ Consider adding:
 
 **Configured Name:** `{{params.bucket_name}}`
 
-**Deployed Bucket Name:** `{{artifacts.bucket.infrastructure.bucket_name}}` _(includes generated suffix)_
+**Deployed Bucket Name:** `{{artifacts.bucket.name}}` _(includes generated suffix)_
 
-**Bucket ID:** `{{artifacts.bucket.infrastructure.bucket_id}}`
+**Bucket ID:** `{{artifacts.bucket.id}}`
 
-**Endpoint:** `{{artifacts.bucket.infrastructure.endpoint}}`
+**Endpoint:** `{{artifacts.bucket.endpoint}}`
 
 **Versioning Enabled:** `{{params.versioning_enabled}}`
 
@@ -69,10 +69,10 @@ Consider adding:
 
 ```bash
 # List all objects in the bucket
-aws s3 ls s3://{{artifacts.bucket.infrastructure.bucket_name}}/
+aws s3 ls s3://{{artifacts.bucket.name}}/
 
 # List objects with human-readable sizes
-aws s3 ls s3://{{artifacts.bucket.infrastructure.bucket_name}}/ --human-readable --summarize
+aws s3 ls s3://{{artifacts.bucket.name}}/ --human-readable --summarize
 ```
 
 **Azure Blob Storage:**
@@ -80,12 +80,12 @@ aws s3 ls s3://{{artifacts.bucket.infrastructure.bucket_name}}/ --human-readable
 ```bash
 # List all blobs in the container
 az storage blob list \
-  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --container-name {{artifacts.bucket.name}} \
   --output table
 
 # Show blob properties
 az storage blob show \
-  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --container-name {{artifacts.bucket.name}} \
   --name myfile.txt
 ```
 
@@ -95,10 +95,10 @@ az storage blob show \
 
 ```bash
 # Upload a single file
-aws s3 cp myfile.txt s3://{{artifacts.bucket.infrastructure.bucket_name}}/
+aws s3 cp myfile.txt s3://{{artifacts.bucket.name}}/
 
 # Upload a directory recursively
-aws s3 sync ./local-folder/ s3://{{artifacts.bucket.infrastructure.bucket_name}}/remote-folder/
+aws s3 sync ./local-folder/ s3://{{artifacts.bucket.name}}/remote-folder/
 ```
 
 **Azure Blob Storage:**
@@ -106,7 +106,7 @@ aws s3 sync ./local-folder/ s3://{{artifacts.bucket.infrastructure.bucket_name}}
 ```bash
 # Upload a single file
 az storage blob upload \
-  --container-name {{artifacts.bucket.infrastructure.bucket_name}} \
+  --container-name {{artifacts.bucket.name}} \
   --file myfile.txt \
   --name myfile.txt
 ```
@@ -114,7 +114,7 @@ az storage blob upload \
 ### Common Issues
 
 **Issue**: Access denied errors
-**Solution**: Check bucket policy and access permissions for `{{artifacts.bucket.infrastructure.bucket_name}}`
+**Solution**: Check bucket policy and access permissions for `{{artifacts.bucket.name}}`
 
 ---
 
