@@ -139,7 +139,7 @@ ui:
 exports:                         # Optional: downloadable templates
   - downloadButtonText: Kube Config
     fileFormat: yaml
-    templatePath: ./exports/Kube Config.yaml.liquid.tmpl
+    templatePath: ./exports/kubeconfig.yaml.liquid
     templateLang: liquid
 
 schema:                          # JSON Schema as YAML
