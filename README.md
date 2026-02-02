@@ -139,7 +139,7 @@ ui:
 exports:                         # Optional: downloadable templates
   - downloadButtonText: Kube Config
     fileFormat: yaml
-    templatePath: ./exports/Kube Config.yaml.liquid.tmpl
+    templatePath: ./exports/kubeconfig.yaml.liquid
     templateLang: liquid
 
 schema:                          # JSON Schema as YAML
@@ -349,18 +349,23 @@ This catalog is designed for a three-phase approach: model your architecture, im
 .
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
-├── platforms/                              # Cloud provider credentials (*/massdriver.yaml)
 ├── artifact-definitions/               # Infrastructure artifact contracts
 │   ├── bucket.json
 │   ├── mysql.json
 │   ├── network.json
 │   └── postgres.json
-└── bundles/                            # Infrastructure and application bundles
-    ├── application/                    # Example Application
-    ├── bucket/                         # Object storage
-    ├── mysql/                          # MySQL database
-    ├── network/                        # VPC/Network
-    └── postgres/                       # PostgreSQL database
+├── bundles/                            # Infrastructure-as-Code modules
+│   ├── application/                    # Example Application
+│   ├── bucket/                         # Object storage
+│   ├── mysql/                          # MySQL database
+│   ├── network/                        # VPC/Network
+│   └── postgres/                       # PostgreSQL database
+└── platforms/                          # Supported cloud platforms & default auth methods
+    ├── aws/                            # IAM Role
+    ├── azure/                          # Service Principal
+    ├── gcp/                            # Service Account
+    ├── kubernetes/                     # Namespace + kubeconfig
+    └── .../                            # + add any cloud your IaC supports
 ```
 
 ## Customization Guide

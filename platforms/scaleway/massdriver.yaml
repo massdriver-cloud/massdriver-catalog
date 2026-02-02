@@ -1,0 +1,66 @@
+name: scaleway-credentials
+label: Scaleway Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/scaleway/icon.svg
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Scaleway Console
+      path: ./instructions/Scaleway Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Scaleway Credentials
+  description: API credentials for Scaleway authentication
+  type: object
+  required:
+    - access_key
+    - secret_key
+    - project_id
+  properties:
+    access_key:
+      title: Access Key
+      description: Scaleway access key (starts with SCW)
+      type: string
+      pattern: ^SCW[A-Z0-9]+$
+      examples:
+        - "SCWXXXXXXXXXXXXXXXXX"
+    secret_key:
+      $md.sensitive: true
+      title: Secret Key
+      description: Scaleway secret key (UUID format)
+      type: string
+      format: uuid
+      examples:
+        - "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    project_id:
+      title: Project ID
+      description: Scaleway project ID (UUID format)
+      type: string
+      format: uuid
+      examples:
+        - "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    organization_id:
+      title: Organization ID
+      description: Optional Scaleway organization ID
+      type: string
+      format: uuid
+    region:
+      title: Default Region
+      description: Default region for resources
+      type: string
+      enum:
+        - fr-par
+        - nl-ams
+        - pl-waw
+      default: fr-par
+    zone:
+      title: Default Zone
+      description: Default availability zone for resources
+      type: string
+      examples:
+        - "fr-par-1"
+        - "nl-ams-1"
+        - "pl-waw-1"
