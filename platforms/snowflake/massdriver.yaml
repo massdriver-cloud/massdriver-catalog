@@ -1,0 +1,51 @@
+name: snowflake-credentials
+label: Snowflake Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/snowflake/icon.svg
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Snowflake Console
+      path: ./instructions/Snowflake Console.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Snowflake Credentials
+  description: Credentials for Snowflake authentication
+  type: object
+  required:
+    - account
+    - username
+    - password
+  properties:
+    account:
+      title: Account
+      description: Snowflake account identifier (e.g., xy12345.us-east-1)
+      type: string
+      examples:
+        - "xy12345.us-east-1"
+        - "myorg-myaccount"
+    username:
+      title: Username
+      description: Snowflake user login name
+      type: string
+    password:
+      $md.sensitive: true
+      title: Password
+      description: Snowflake user password
+      type: string
+    role:
+      title: Role
+      description: Default role to use for Snowflake operations
+      type: string
+      examples:
+        - "ACCOUNTADMIN"
+        - "SYSADMIN"
+    warehouse:
+      title: Warehouse
+      description: Default warehouse to use for queries
+      type: string
+      examples:
+        - "COMPUTE_WH"

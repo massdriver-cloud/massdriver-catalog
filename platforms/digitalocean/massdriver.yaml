@@ -1,0 +1,40 @@
+name: digitalocean-api-token
+label: DigitalOcean API Token
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/digitalocean/icon.svg
+
+containerRepositories:
+  cloud: digitalocean
+  label: DOCR
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: DigitalOcean Control Panel
+      path: ./instructions/DigitalOcean Control Panel.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: DigitalOcean API Token
+  description: Personal access token for DigitalOcean authentication
+  type: object
+  required:
+    - token
+  properties:
+    token:
+      $md.sensitive: true
+      title: API Token
+      description: DigitalOcean personal access token with read/write permissions
+      type: string
+      examples:
+        - "dop_v1_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    spaces_access_id:
+      title: Spaces Access Key ID
+      description: Optional access key for DigitalOcean Spaces object storage
+      type: string
+    spaces_secret_key:
+      $md.sensitive: true
+      title: Spaces Secret Key
+      description: Optional secret key for DigitalOcean Spaces object storage
+      type: string

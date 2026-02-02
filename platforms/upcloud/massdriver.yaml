@@ -1,0 +1,30 @@
+name: upcloud-credentials
+label: UpCloud Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/upcloud/icon.svg
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: UpCloud Control Panel
+      path: ./instructions/UpCloud Control Panel.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: UpCloud Credentials
+  description: API credentials for UpCloud authentication
+  type: object
+  required:
+    - username
+    - password
+  properties:
+    username:
+      title: Username
+      description: UpCloud API username (usually your account username or a subaccount)
+      type: string
+    password:
+      $md.sensitive: true
+      title: Password
+      description: UpCloud API password
+      type: string

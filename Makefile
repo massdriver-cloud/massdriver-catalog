@@ -1,9 +1,13 @@
 .PHONY: all publish-all publish-bundles publish-artifact-definitions publish-platforms build-platforms build-bundles validate-bundles clean clean-variables clean-lock clean-dist clean-terraform clean-state clean-schemas help
 
+# Enabled platforms - edit this list to enable additional platforms
+# Available: aws, gcp, azure, kubernetes, vercel, snowflake, ovh, upcloud, scaleway, digitalocean
+ENABLED_PLATFORMS ?= aws gcp azure kubernetes
+
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 ARTDEFS = $(shell find artifact-definitions -name "*.json" -exec basename {} .json \;)
-PLATFORMS = $(shell find platforms -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+PLATFORMS = $(ENABLED_PLATFORMS)
 
 help:
 	@echo "Massdriver Catalog - Available Commands:"
@@ -23,6 +27,15 @@ help:
 	@echo "  make clean-state              - Clean up terraform.tfstate files"
 	@echo "  make clean-schemas            - Clean up schema-*.json files"
 	@echo ""
+	@echo "Configuration:"
+	@echo "  ENABLED_PLATFORMS             - Space-separated list of platforms to build/publish"
+	@echo "                                  Default: aws gcp azure kubernetes"
+	@echo "                                  Available: aws gcp azure kubernetes vercel snowflake ovh upcloud scaleway digitalocean"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make build-platforms                                    # Build default platforms"
+	@echo "  make build-platforms ENABLED_PLATFORMS='aws gcp vercel' # Build specific platforms"
+	@echo ""
 
 all:
 	@echo "This will clean, publish artifact definitions, build, validate and publish all bundles."
@@ -34,7 +47,7 @@ publish-all: build-platforms publish-platforms publish-artifact-definitions publ
 
 build-platforms: clean-dist
 	@echo "Building platform definitions..."
-	@ruby _scripts/build_platforms.rb
+	@ruby _scripts/build_platforms.rb $(PLATFORMS)
 	@echo "All platform definitions built successfully!"
 
 publish-platforms: build-platforms

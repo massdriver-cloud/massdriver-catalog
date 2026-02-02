@@ -1,0 +1,52 @@
+name: ovh-api-credentials
+label: OVH API Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/ovh/icon.svg
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: OVH Control Panel
+      path: ./instructions/OVH Control Panel.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: OVH API Credentials
+  description: API credentials for OVH Cloud authentication
+  type: object
+  required:
+    - endpoint
+    - application_key
+    - application_secret
+    - consumer_key
+  properties:
+    endpoint:
+      title: Endpoint
+      description: OVH API endpoint based on your region
+      type: string
+      enum:
+        - ovh-eu
+        - ovh-us
+        - ovh-ca
+        - kimsufi-eu
+        - kimsufi-ca
+        - soyoustart-eu
+        - soyoustart-ca
+      default: ovh-eu
+    application_key:
+      title: Application Key
+      description: OVH API application key (AK)
+      type: string
+      examples:
+        - "xxxxxxxxxxxxxxxxxxxx"
+    application_secret:
+      $md.sensitive: true
+      title: Application Secret
+      description: OVH API application secret (AS)
+      type: string
+    consumer_key:
+      $md.sensitive: true
+      title: Consumer Key
+      description: OVH API consumer key (CK)
+      type: string

@@ -115,9 +115,24 @@ end
 
 puts "🏗️  Massdriver Platform Builder\n\n"
 
-# Process all platform directories
-Dir.glob(File.join(platforms_dir, '*')).select { |f| File.directory?(f) }.each do |platform_dir|
-  process_platform(platform_dir)
+# Get enabled platforms from command line args, or default to all
+enabled_platforms = ARGV.empty? ? nil : ARGV
+
+if enabled_platforms
+  puts "📋 Enabled platforms: #{enabled_platforms.join(', ')}\n\n"
+  enabled_platforms.each do |platform|
+    platform_dir = File.join(platforms_dir, platform)
+    if File.directory?(platform_dir)
+      process_platform(platform_dir)
+    else
+      puts "⚠️  Platform directory not found: #{platform}\n\n"
+    end
+  end
+else
+  puts "📋 Building all platforms\n\n"
+  Dir.glob(File.join(platforms_dir, '*')).select { |f| File.directory?(f) }.each do |platform_dir|
+    process_platform(platform_dir)
+  end
 end
 
 puts "✨ All platforms built successfully!"

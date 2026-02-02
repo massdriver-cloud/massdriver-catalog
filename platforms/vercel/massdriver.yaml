@@ -1,0 +1,33 @@
+name: vercel-api-token
+label: Vercel API Token
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/vercel/icon.svg
+
+ui:
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Vercel Dashboard
+      path: ./instructions/Vercel Dashboard.md
+
+exports: []
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  title: Vercel API Token
+  description: API token for Vercel authentication
+  type: object
+  required:
+    - api_token
+  properties:
+    api_token:
+      $md.sensitive: true
+      title: API Token
+      description: Vercel API token for authentication. Create one at https://vercel.com/account/tokens
+      type: string
+      examples:
+        - "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    team:
+      title: Team ID
+      description: Optional Vercel team ID. Required if deploying to a team scope.
+      type: string
+      examples:
+        - "team_xxxxxxxxxxxxxxxxxxxxxxxx"
