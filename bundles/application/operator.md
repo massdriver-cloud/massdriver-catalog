@@ -30,9 +30,9 @@ This is a **default runbook template** for your bundle. You can customize this f
 ### Connected Database
 
 {{#connections.database}}
-**Database ID:** `{{connections.database.infrastructure.database_id}}`
+**Database ID:** `{{connections.database.id}}`
 
-**Connection:** `{{connections.database.connection.hostname}}:{{connections.database.connection.port}}/{{connections.database.connection.database}}`
+**Connection:** `{{connections.database.auth.hostname}}:{{connections.database.auth.port}}/{{connections.database.auth.database}}`
 
 **Selected Access Policy:** `{{params.database_policy}}`
 {{/connections.database}}
@@ -43,9 +43,9 @@ _No database connected_
 ### Connected Storage Bucket
 
 {{#connections.bucket}}
-**Bucket Name:** `{{connections.bucket.infrastructure.bucket_name}}`
+**Bucket Name:** `{{connections.bucket.name}}`
 
-**Bucket ID:** `{{connections.bucket.infrastructure.bucket_id}}`
+**Bucket ID:** `{{connections.bucket.id}}`
 
 **Selected Access Policy:** `{{params.bucket_policy}}`
 {{/connections.bucket}}
@@ -56,9 +56,9 @@ _No storage bucket connected_
 ### Network Information
 
 {{#connections.network}}
-**Network ID:** `{{connections.network.infrastructure.network_id}}`
+**Network ID:** `{{connections.network.id}}`
 
-**Network CIDR:** `{{connections.network.infrastructure.cidr}}`
+**Network CIDR:** `{{connections.network.cidr}}`
 {{/connections.network}}
 {{^connections.network}}
 _No network connected_
@@ -111,7 +111,7 @@ curl -v https://{{params.domain_name}}
 ### Database Connection
 
 {{#connections.database}}
-The application is connected to database `{{connections.database.infrastructure.database_id}}`.
+The application is connected to database `{{connections.database.id}}`.
 
 Connection details are available via environment variables injected at runtime.
 {{/connections.database}}

@@ -58,16 +58,17 @@ Consider adding:
 
 ### Network Configuration
 
-**Network ID:** `{{artifacts.network.infrastructure.network_id}}`
+**Network ID:** `{{artifacts.network.id}}`
 
-**Network CIDR:** `{{artifacts.network.infrastructure.cidr}}`
+**Network CIDR:** `{{artifacts.network.cidr}}`
 
 ### Subnets
 
+| Subnet ID | CIDR | Type |
+|-----------|------|------|
 {{#artifacts.network.subnets}}
-
-- **Subnet ID:** `{{subnet_id}}` | **CIDR:** `{{cidr}}` | **Type:** `{{type}}`
-  {{/artifacts.network.subnets}}
+| {{id}} | {{cidr}} | {{type}} |
+{{/artifacts.network.subnets}}
 
 ### Network Information
 
