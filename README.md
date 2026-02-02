@@ -147,8 +147,7 @@ schema:                          # JSON Schema as YAML
   title: AWS IAM Role
   type: object
   properties:
-    data:
-      # ... credential fields matching your OpenTofu provider auth
+    # ... credential fields matching your OpenTofu provider auth
 ```
 
 The `schema` section should match your OpenTofu/Terraform provider authentication configuration. For example, AWS IAM Role credentials match the `aws` provider's `assume_role` block, Azure Service Principal matches the `azurerm` provider config, etc.
@@ -350,10 +349,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 .
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
-├── credential-artifact-definitions/    # Cloud provider credentials
-│   ├── aws-iam-role.json
-│   ├── azure-service-principal.json
-│   └── gcp-service-account.json
+├── platforms/                              # Cloud provider credentials (*/massdriver.yaml)
 ├── artifact-definitions/               # Infrastructure artifact contracts
 │   ├── bucket.json
 │   ├── mysql.json
@@ -368,12 +364,6 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ```
 
 ## Customization Guide
-
-### Credential Definitions
-
-The credential definitions in `credential-artifact-definitions/` define the authentication contracts for cloud providers. Customize these to match your organization's provider block requirements.
-
-**Example**: If your AWS provider block requires additional fields like `external_id` or `session_name`, add them to the `aws-iam-role.json` schema.
 
 ### Artifact Definitions
 
