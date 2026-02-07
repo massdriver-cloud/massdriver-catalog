@@ -125,10 +125,6 @@ name: aws-iam-role               # Artifact definition name
 label: AWS IAM Role              # Display name in UI
 icon: https://...                # Icon URL
 
-containerRepositories:           # Optional: container registry info
-  cloud: aws
-  label: ECR
-
 ui:
   connectionOrientation: environmentDefault
   environmentDefaultGroup: credentials

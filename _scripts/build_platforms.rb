@@ -41,11 +41,6 @@ def process_platform(platform_dir)
     'icon' => config['icon']
   }
 
-  # Add containerRepositories if present
-  if config['containerRepositories']
-    md_block['containerRepositories'] = config['containerRepositories']
-  end
-
   # Process UI configuration
   md_block['ui'] = {}
   if config['ui']

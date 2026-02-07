@@ -2,10 +2,6 @@ name: aws-iam-role
 label: AWS IAM Role
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/aws/icon.png
 
-containerRepositories:
-  cloud: aws
-  label: ECR
-
 ui:
   connectionOrientation: environmentDefault
   environmentDefaultGroup: credentials
