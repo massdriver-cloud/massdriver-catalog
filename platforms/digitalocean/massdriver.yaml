@@ -2,10 +2,6 @@ name: digitalocean-api-token
 label: DigitalOcean API Token
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/digitalocean/icon.svg
 
-containerRepositories:
-  cloud: digitalocean
-  label: DOCR
-
 ui:
   environmentDefaultGroup: credentials
   instructions:
