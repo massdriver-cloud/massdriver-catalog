@@ -1,0 +1,35 @@
+name: Publish Platforms
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'platforms/**'
+      - '.github/workflows/publish-platforms.yml'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      MASSDRIVER_API_KEY: ${{ secrets.MASSDRIVER_API_KEY }}
+      MASSDRIVER_ORG_ID: ${{ vars.MASSDRIVER_ORG_ID }}
+      MASSDRIVER_URL: ${{ vars.MASSDRIVER_URL || 'https://api.massdriver.cloud' }}
+      # Optional: space-separated list of platforms to publish
+      # Default: aws gcp azure kubernetes
+      ENABLED_PLATFORMS: ${{ vars.ENABLED_PLATFORMS || 'aws gcp azure kubernetes' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Massdriver CLI
+        uses: massdriver-cloud/actions/setup@v5
+      - name: Publish Enabled Platforms
+        run: |
+          for platform in $ENABLED_PLATFORMS; do
+            platform_file="platforms/${platform}/massdriver.yaml"
+            if [ -f "$platform_file" ]; then
+              echo "Publishing platform: $platform..."
+              mass definition publish "$platform_file"
+            else
+              echo "Warning: Platform $platform not found at $platform_file"
+            fi
+          done
