@@ -202,7 +202,7 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
 - OpenTofu or Terraform installed (for implementing bundles)
 
 > [!IMPORTANT]
-> This catalog requires Massdriver CLI version 1.13.4 or higher. Check your version with `mass version` and upgrade if needed: [Download latest release](https://github.com/massdriver-cloud/mass/releases/tag/1.13.4)
+> This catalog requires Massdriver CLI version 1.13.7 or higher. Check your version with `mass version` and upgrade if needed: [Download latest release](https://github.com/massdriver-cloud/mass/releases/tag/1.13.7)
 
 ### Quick Start
 
