@@ -364,6 +364,8 @@ ui:
 
 ## Artifact Definition Patterns
 
+Artifact definitions support the same capabilities as platforms: `schema`, `ui` (with `environmentDefaultGroup`), `instructions/`, and `exports/`. The examples below show common patterns.
+
 ### Database Artifact (Credentials + Policies)
 
 **artifact-definitions/postgres/massdriver.yaml**:
@@ -496,9 +498,46 @@ schema:
         type: string
 ```
 
+### Artifact with Instructions and Exports
+
+Artifact definitions can include instructions and exports just like platforms:
+
+**artifact-definitions/external-api/massdriver.yaml**:
+```yaml
+name: external-api
+label: External API
+
+ui:
+  environmentDefaultGroup: integrations
+  instructions:
+    - label: Getting Your API Key
+      path: ./instructions/API Key.md
+
+exports:
+  - label: OpenAPI Spec
+    path: ./exports/openapi.json
+
+schema:
+  title: External API Configuration
+  type: object
+  required:
+    - base_url
+    - api_key
+  properties:
+    base_url:
+      title: Base URL
+      type: string
+    api_key:
+      $md.sensitive: true
+      title: API Key
+      type: string
+```
+
 ---
 
 ## Platform Definition Pattern
+
+Platforms are artifact definitions for cloud authentication. They're technically identical to artifact definitions in `artifact-definitions/` - the separate `platforms/` directory is purely organizational to distinguish infrastructure artifacts from authentication/onboarding artifacts.
 
 **platforms/aws/massdriver.yaml**:
 ```yaml
@@ -507,29 +546,68 @@ label: AWS IAM Role
 icon: https://example.com/aws-icon.svg
 
 ui:
-  environmentDefaultGroup: credentials
+  environmentDefaultGroup: credentials  # Can be set as environment default
   instructions:
     - label: AWS CLI
       path: ./instructions/AWS CLI.md
     - label: AWS Console
       path: ./instructions/AWS Console.md
 
-exports: []
+exports: []  # Optional: downloadable files
 
 schema:
   title: AWS IAM Role
+  description: IAM role for Massdriver to assume when deploying resources
   type: object
   required: [arn, external_id]
   properties:
     arn:
       title: Role ARN
+      description: ARN of the IAM role to assume
       type: string
       pattern: ^arn:aws:iam::[0-9]{12}:role/.+$
     external_id:
       $md.sensitive: true
       title: External ID
+      description: External ID for secure role assumption
       type: string
 ```
+
+**How bundles consume platform credentials:**
+
+```yaml
+# Bundle's massdriver.yaml - declares it needs AWS credentials
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+```
+
+```hcl
+# Bundle's src/main.tf - uses credential to configure provider
+provider "aws" {
+  region = "us-east-1"
+  assume_role {
+    role_arn    = var.aws_authentication.arn
+    external_id = var.aws_authentication.external_id
+  }
+}
+```
+
+**Environment Defaults Flow:**
+1. Admin creates AWS credential artifact via platform UI form
+2. Admin sets credential as default for "production" environment
+3. User adds RDS bundle to "production" environment
+4. Bundle automatically receives the credential (no manual connection needed)
+5. Terraform provider authenticates using the role ARN
+
+**Cross-Project Sharing:**
+- Project A (Platform Team): Manages VPC, sets network as shareable
+- Project B (App Team): Deploys into the VPC but cannot modify it
+- Connection presentation controls visibility: linkable handle vs env-default-only
 
 ---
 

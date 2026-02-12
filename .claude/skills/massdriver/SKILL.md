@@ -18,11 +18,85 @@ This skill should be loaded when:
 
 **Bundle**: Reusable IaC module with declarative configuration (`massdriver.yaml` + `src/` code)
 
-**Artifact Definition**: Schema contract defining how bundles connect (`artifact-definitions/*/massdriver.yaml`)
+**Artifact Definition**: Schema contract defining data structures passed between bundles. Supports:
+- **Schema** → Generates UI form for manual artifact creation
+- **Instructions** (`instructions/`) → Markdown walkthroughs (e.g., how to get credentials from AWS Console)
+- **Exports** (`exports/`) → Downloadable files (e.g., kubeconfig)
+- **Environment Defaults** (`ui.environmentDefaultGroup`) → Set as default for an environment; packages auto-receive it
+- **Connection Presentation** → Linkable handles vs environment-default-only (enables cross-project sharing)
 
-**Platform**: Cloud credential schema for authentication (`platforms/*/massdriver.yaml`)
+**Artifact**: Instance of an artifact definition containing actual data (credentials, connection strings, resource IDs). Created by:
+- Bundles (via `massdriver_artifact` resource in artifacts.tf)
+- Users (entering data via UI form generated from artifact definition schema)
+
+**Platform**: An artifact definition for cloud authentication (`platforms/*/massdriver.yaml`). Technically identical to artifact definitions - the separate directory is purely organizational to distinguish infrastructure artifacts from authentication/onboarding artifacts. Platforms are pre-configured credential schemas (AWS IAM role, GCP service account, etc.) that jumpstart cloud onboarding.
+
+**Connection**: How bundles receive artifacts. When a bundle declares a connection (e.g., `$ref: aws-iam-role`), users assign an artifact of that type to it. At deploy time, the artifact data flows into the bundle as a Terraform variable.
 
 **Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish`
+
+## How Artifacts Enable IaC
+
+Artifacts bridge configuration to bundle deployments:
+
+```
+1. Artifact definition schema → UI form (user enters data)
+2. Saved form → Artifact stored in Massdriver
+3. User assigns artifact to package connection in project environment
+4. Bundle deploys → Artifact data flows via connection variable
+5. Terraform uses the data (provider auth, resource config, etc.)
+```
+
+**Example: AWS RDS Bundle with credential + network artifacts**
+```yaml
+# Bundle's massdriver.yaml
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role  # Credential artifact for provider auth
+    network:
+      $ref: network       # Infrastructure artifact from another bundle
+```
+
+```hcl
+# Bundle's src/main.tf
+provider "aws" {
+  assume_role {
+    role_arn = var.aws_authentication.arn
+  }
+}
+
+resource "aws_db_instance" "main" {
+  vpc_security_group_ids = [for s in var.network.subnets : s.id]
+}
+```
+
+## Artifact Definition Capabilities
+
+All artifact definitions (including platforms) support these features:
+
+**Schema** → Generates UI form; structure must match what consuming bundles expect
+
+**Instructions** (`instructions/`) → Markdown walkthroughs showing users how to obtain values (e.g., getting IAM role ARN from AWS Console)
+
+**Exports** (`exports/`) → Downloadable files (e.g., kubeconfig for Kubernetes credentials)
+
+**Environment Defaults** (`ui.environmentDefaultGroup`) → Artifact can be set as default for an environment. Packages in that environment automatically receive it without explicit connection.
+
+**Connection Presentation** → Controls whether connections appear as:
+- Linkable handles (user draws connections in UI)
+- Environment defaults only (automatic, no visible connection)
+
+This enables cross-project resource sharing: Project A manages a network, Project B deploys into it but doesn't manage it.
+
+## Schema Validation
+
+Massdriver validates `massdriver.yaml` files against JSON schemas:
+- Bundles: https://api.massdriver.cloud/json-schemas/bundle.json
+- Artifact Definitions: https://api.massdriver.cloud/json-schemas/artifact-definition.json
 
 ## Critical Rules
 
@@ -185,6 +259,70 @@ terraform {
    ```bash
    mass definition publish artifact-definitions/my-artifact/massdriver.yaml
    ```
+
+### Creating a Platform
+
+1. Create platform directory:
+   ```bash
+   mkdir -p platforms/my-cloud/instructions
+   ```
+
+2. Create `platforms/my-cloud/massdriver.yaml`:
+   ```yaml
+   name: my-cloud-credentials
+   label: My Cloud Credentials
+   icon: https://example.com/my-cloud-icon.svg
+
+   ui:
+     environmentDefaultGroup: credentials  # Groups with other credentials
+     instructions:
+       - label: Console Setup
+         path: ./instructions/Console Setup.md
+
+   exports: []  # Optional: downloadable files like kubeconfig
+
+   schema:
+     title: My Cloud Credentials
+     description: Authentication for My Cloud provider
+     type: object
+     required:
+       - api_key
+     properties:
+       api_key:
+         $md.sensitive: true
+         title: API Key
+         description: Your My Cloud API key
+         type: string
+       region:
+         title: Region
+         description: Default region for operations
+         type: string
+         examples:
+           - "us-east-1"
+   ```
+
+3. Create onboarding instructions (`platforms/my-cloud/instructions/Console Setup.md`):
+   ```markdown
+   # Getting Your API Key
+
+   1. Log into My Cloud Console
+   2. Navigate to Settings → API Keys
+   3. Click "Create New Key"
+   4. Copy the key and paste it below
+   ```
+
+4. Publish:
+   ```bash
+   mass definition publish platforms/my-cloud/massdriver.yaml
+   ```
+
+**Platform Schema Design Rules:**
+- Schema must match what Terraform/OpenTofu provider needs for authentication
+- Mark sensitive fields with `$md.sensitive: true`
+- Provide `examples` to help users understand expected formats
+
+**Instruction Templating:**
+Instructions support dynamic variables like `{{EXTERNAL_ID}}` that are populated when displayed to users. This allows pre-filling values that Massdriver generates (like external IDs for AWS role trust policies).
 
 ## Common Patterns
 
