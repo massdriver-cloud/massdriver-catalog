@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/coryodaniel/Workspace/massdriver/massdriver-catalog log --oneline -20)",
+      "Bash(asdf:*)",
+      "Bash(mass --version:*)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(tofu init:*)",
+      "Bash(tofu validate:*)"
+    ]
+  }
+}

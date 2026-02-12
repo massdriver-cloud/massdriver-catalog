@@ -1,0 +1,60 @@
+# Massdriver Bundle Template
+# Copy and customize for your bundle
+
+schema: draft-07
+name: my-bundle                    # Bundle identifier (lowercase, hyphens)
+description: "Description here"    # What this bundle does
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/my-bundle
+version: 0.0.1                     # Semantic version
+
+params:
+  required:
+    - example_param                # List required param names
+  # examples:                      # Optional preset configurations
+  #   - __name: Development
+  #     example_param: "dev-value"
+  #   - __name: Production
+  #     example_param: "prod-value"
+  properties:
+    example_param:
+      type: string                 # string, integer, boolean, array, object
+      title: Example Parameter     # Display name in UI
+      description: Help text here  # Tooltip in UI
+      default: "default-value"     # Default value
+      # Validation options:
+      # pattern: ^[a-z0-9-]+$      # Regex validation
+      # enum: ["option1", "option2"]  # Dropdown options
+      # minimum: 1                  # For integers
+      # maximum: 100                # For integers
+      # Massdriver annotations:
+      # $md.immutable: true        # Cannot change after creation
+      # $md.sensitive: true        # Hide in UI (for secrets)
+
+connections:
+  required:
+    # - network                    # Uncomment if required
+  properties:
+    network:
+      $ref: network                # Must match artifact-definitions/network.json
+      title: Network               # Display name
+    # Add more connections as needed:
+    # database:
+    #   $ref: postgres
+    #   title: Database
+
+artifacts:
+  required:
+    - my_artifact                  # List required artifact names
+  properties:
+    my_artifact:
+      $ref: my-artifact-type       # Must match artifact-definitions/<name>.json
+      title: My Artifact           # Display name
+
+steps:
+  - path: src                      # Directory containing IaC code
+    provisioner: opentofu:1.10     # or terraform:1.x
+
+ui:
+  ui:order:
+    - example_param                # Field ordering in UI
+    - "*"                          # Remaining fields
