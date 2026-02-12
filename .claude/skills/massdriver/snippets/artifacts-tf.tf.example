@@ -1,0 +1,57 @@
+# Artifact Publishing Template
+# Create one massdriver_artifact resource for each artifact in massdriver.yaml
+
+resource "massdriver_artifact" "my_artifact" {
+  # field: Must exactly match the property name in massdriver.yaml artifacts section
+  # If massdriver.yaml has artifacts.properties.database, use field = "database"
+  field = "my_artifact"
+
+  # name: Display name shown in Massdriver UI
+  name = "My Artifact ${var.md_metadata.name_prefix}"
+
+  # artifact: JSON structure must match the artifact definition schema
+  # If $ref: postgres, structure must match artifact-definitions/postgres.json
+  artifact = jsonencode({
+    # Required fields from artifact definition
+    id = "unique-identifier" # Usually from a resource attribute
+
+    # Example: Database artifact structure
+    # auth = {
+    #   hostname = aws_db_instance.main.endpoint
+    #   port     = 5432
+    #   database = var.database_name
+    #   username = var.username
+    #   password = random_password.main.result
+    # }
+
+    # Example: Network artifact structure
+    # cidr = var.cidr
+    # subnets = [
+    #   for s in aws_subnet.main : {
+    #     id   = s.id
+    #     cidr = s.cidr_block
+    #     type = s.tags["type"]
+    #   }
+    # ]
+
+    # Example: Policies array (common for IAM integration)
+    # policies = [
+    #   { id = "read-only", name = "Read Only" },
+    #   { id = "read-write", name = "Read/Write" },
+    #   { id = "admin", name = "Admin" }
+    # ]
+  })
+}
+
+# Multiple artifacts example:
+# resource "massdriver_artifact" "database" {
+#   field    = "database"
+#   name     = "PostgreSQL ${var.md_metadata.name_prefix}"
+#   artifact = jsonencode({ ... })
+# }
+#
+# resource "massdriver_artifact" "cache" {
+#   field    = "cache"
+#   name     = "Redis ${var.md_metadata.name_prefix}"
+#   artifact = jsonencode({ ... })
+# }
