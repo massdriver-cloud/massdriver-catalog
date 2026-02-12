@@ -35,6 +35,168 @@ This skill should be loaded when:
 
 **Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish`
 
+## Bundle Scoping and Resource Lifecycle
+
+**This is critical for designing composable, maintainable bundles.** A bundle should contain resources that share the same operational lifecycle - they're created, updated, and destroyed together as a unit.
+
+### The Lifecycle Principle
+
+Ask these questions when deciding what belongs in a bundle:
+
+1. **"If I delete this bundle, what should disappear?"** - All those resources belong together
+2. **"If I change this setting, what else must change?"** - Those resources share configuration lifecycle
+3. **"Who owns this operationally?"** - Resources with different owners should be separate bundles
+4. **"How often does this change?"** - Resources with vastly different change frequencies should be separate
+
+### Lifecycle Tiers (from long-lived to ephemeral)
+
+**Foundational Infrastructure** (rarely changes, shared by many things):
+- Networks/VPCs, subnets, NAT gateways, route tables
+- Container registries, DNS zones
+- *Owned by: Platform team*
+
+**Stateful Services** (medium lifecycle, careful changes):
+- Databases, caches, message queues, storage buckets
+- Search clusters, data warehouses
+- *Owned by: Platform team or application team*
+
+**Compute & Applications** (frequent changes):
+- Kubernetes deployments, serverless functions
+- Application containers, API gateways
+- *Owned by: Application team*
+
+### What Stays IN the Bundle (Supporting Resources)
+
+Resources that are **specific to and managed with** the primary resource:
+
+```
+aws-rds-postgres bundle contains:
+├── aws_db_instance (primary resource)
+├── aws_db_subnet_group (RDS-specific, uses VPC subnets)
+├── aws_security_group (RDS-specific ingress rules)
+├── aws_kms_key (encryption for this DB only)
+├── aws_db_parameter_group (DB configuration)
+├── aws_iam_role (enhanced monitoring for this DB)
+└── CloudWatch alarms (monitoring this DB)
+```
+
+These all share the same lifecycle - when you delete the database, you delete its subnet group, its security group, its encryption key, etc.
+
+### What Becomes a CONNECTION (Dependencies)
+
+Resources that **exist independently** and are **shared** by multiple things:
+
+```
+aws-rds-postgres connections:
+├── aws_authentication → massdriver/aws-iam-role (credential to deploy)
+└── network → massdriver/aws-vpc (VPC created by another bundle)
+```
+
+The VPC has its own lifecycle - it was created before the database and will outlive it. Multiple databases, applications, and services share it.
+
+### Anti-Pattern: Coupled Lifecycles
+
+**BAD** - Creating a VPC inside a database bundle:
+```hcl
+# Don't do this in a postgres bundle!
+resource "aws_vpc" "main" { ... }
+resource "aws_subnet" "private" { ... }
+resource "aws_db_instance" "main" { ... }
+```
+
+Problems:
+- Deleting the database deletes the network (catastrophic if shared)
+- Can't deploy multiple databases to the same network
+- Can't reuse the network for other services
+- Violates single-responsibility principle
+
+**GOOD** - Taking network as a connection:
+```yaml
+# massdriver.yaml
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: massdriver/aws-iam-role
+    network:
+      $ref: massdriver/aws-vpc
+```
+
+```hcl
+# main.tf - uses the network, doesn't create it
+resource "aws_db_subnet_group" "main" {
+  subnet_ids = [for s in var.network.data.infrastructure.private_subnets : s.arn]
+}
+
+resource "aws_db_instance" "main" {
+  db_subnet_group_name = aws_db_subnet_group.main.name
+  # ...
+}
+```
+
+### Discovering Existing Bundles and Artifacts
+
+Before creating a bundle, check what already exists:
+
+```bash
+# List available bundles (potential patterns to follow)
+mass bundle list
+
+# List artifact definitions (potential connections)
+mass def list
+
+# Get details on an artifact definition schema
+mass def get massdriver/aws-vpc
+mass def get massdriver/postgresql-authentication
+```
+
+If a network bundle exists, use it as a connection. If a database artifact definition exists, produce that artifact type.
+
+### Scoping Decision Tree
+
+```
+Is this resource...
+│
+├─ Shared by multiple things? ──────────────────────> Separate bundle (connection)
+│   (VPC, K8s cluster, DNS zone)
+│
+├─ Created before and lives after primary? ─────────> Separate bundle (connection)
+│   (Network for a database, cluster for an app)
+│
+├─ Owned by a different team? ──────────────────────> Separate bundle (connection)
+│   (Platform team's network vs app team's database)
+│
+├─ Changes on a very different schedule? ───────────> Separate bundle (connection)
+│   (VPC changes yearly, app deploys daily)
+│
+└─ Specific to and dies with the primary resource? ─> Same bundle
+    (DB security group, DB parameter group, DB KMS key)
+```
+
+### Real-World Scoping Examples
+
+**AWS VPC Bundle** (foundational):
+- VPC, subnets, internet gateway, NAT gateways, route tables, flow logs
+- All network foundation that rarely changes
+- Produces: `massdriver/aws-vpc` artifact
+
+**AWS RDS PostgreSQL Bundle** (stateful service):
+- RDS instance, DB subnet group, security group, KMS key, parameter group, monitoring
+- Takes: `massdriver/aws-vpc` (network), `massdriver/aws-iam-role` (auth)
+- Produces: `massdriver/postgresql-authentication` artifact
+
+**K8s Application Bundle** (compute):
+- Deployment, service, ingress, HPA, configmaps
+- Takes: `massdriver/kubernetes-cluster`, `massdriver/postgresql-authentication`
+- Produces: `massdriver/api` artifact (optional)
+
+**GCP Network Layering** (fine-grained for multi-region):
+- `gcp-global-network`: Just the VPC (global)
+- `gcp-subnetwork`: Regional subnet, takes global-network as connection
+- Enables: one global network, multiple regional subnets with separate lifecycles
+
 ## How Artifacts Enable IaC
 
 Artifacts bridge configuration to bundle deployments:
@@ -179,14 +341,39 @@ terraform {
 
 ### Creating a New Bundle
 
+**Step 0: Scope the bundle correctly (CRITICAL)**
+
+Before writing any code, determine what belongs in this bundle:
+
+```bash
+# Check what bundles and artifacts already exist
+mass bundle list
+mass def list
+
+# Inspect artifact schemas for potential connections
+mass def get massdriver/aws-vpc
+mass def get massdriver/postgresql-authentication
+```
+
+Ask yourself:
+- What foundational resources does this need? → Those become **connections**
+- What resources are specific to this and share its lifecycle? → Those go **in the bundle**
+- What artifact type should this produce? → Check if a definition exists
+
+**Example thought process for an RDS PostgreSQL bundle:**
+- Needs a VPC → `massdriver/aws-vpc` exists, use as connection
+- Needs AWS credentials → `massdriver/aws-iam-role` exists, use as connection
+- DB instance, subnet group, security group, KMS key → all RDS-specific, go IN bundle
+- Should produce database credentials → `massdriver/postgresql-authentication` exists, produce that
+
 1. Create bundle directory:
    ```bash
    mkdir -p bundles/my-bundle/src
    ```
 
-2. Create `massdriver.yaml` (see `snippets/massdriver-yaml.yaml` for template)
+2. Create `massdriver.yaml` with connections for dependencies (see `snippets/massdriver-yaml.yaml` for template)
 
-3. Create `src/main.tf` with your infrastructure code
+3. Create `src/main.tf` with your infrastructure code (only resources specific to this bundle)
 
 4. Create `src/artifacts.tf` with `massdriver_artifact` resources for each artifact
 
@@ -401,8 +588,9 @@ params:
       title: Database Access Policy
       $md.enum:
         connection: database       # Source connection name
-        options: .policies         # JSONPath to array
-        value: .name              # Field to use as value
+        options: .policies         # JQ expression to options array
+        value: .name              # JQ expression to extract option value
+        label: .name              # JQ expression to extract option label (optional)
 ```
 
 ### UI Ordering
@@ -483,12 +671,14 @@ mass env create example-test --name "Test Environment"
 
 # 3. Create and configure package from the bundle
 mass pkg create example-test-mydb --bundle my-database-bundle
-mass pkg cfg example-test-mydb --set database_name=testdb --set db_version=16
+
+# Configure with JSON params (--params flag, not --set)
+echo '{"database_name": "testdb", "db_version": "16"}' | mass pkg cfg example-test-mydb --params=-
 
 # 4. Deploy and monitor
-mass pkg deploy example-test-mydb
-mass logs                        # View logs (snapshot, not streaming)
-mass pkg get example-test-mydb   # Check deployment status
+mass pkg deploy example-test-mydb  # Note: outputs deployment ID on failure
+mass logs <deployment-id>          # View logs using deployment ID from deploy output
+mass pkg get example-test-mydb     # Check deployment status
 
 # 5. Verify artifacts are created correctly
 mass artifact get example-test-mydb
@@ -509,10 +699,11 @@ mass artifact get example-test-mydb
 
 | Mistake | Fix |
 |---------|-----|
+| **Coupled lifecycles** (VPC in database bundle) | Foundational resources become connections, not inline resources. Check `mass bundle list` and `mass def list` for existing artifacts to use. |
 | "variable not declared" | Run `mass bundle build` to generate `_massdriver_variables.tf` |
 | Param and connection have same name | Rename one - they share Terraform namespace |
 | artifacts.tf field doesn't match | Ensure `field = "X"` matches `artifacts.properties.X` in massdriver.yaml |
-| $ref not found | Verify artifact definition directory exists with massdriver.yaml |
+| $ref not found | Verify artifact definition exists with `mass def get <name>` |
 | Edited generated file, changes lost | Never edit `schema-*.json` or `_massdriver_variables.tf` |
 | Missing massdriver provider | Add to `required_providers` block |
 
