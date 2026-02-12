@@ -468,6 +468,43 @@ Before publishing a bundle:
 - [ ] Artifact JSON structure matches artifact definition schema
 - [ ] Required providers include `massdriver-cloud/massdriver`
 
+## End-to-End Testing
+
+Static validation (`tofu validate`) only checks syntax. To verify a bundle actually works, deploy it through Massdriver's orchestrator:
+
+```bash
+# 1. Build and publish as development (not stable release)
+mass bundle build
+mass bundle publish --development
+
+# 2. Create test project/environment (user may provide these)
+mass project create example --name "Test Project"
+mass env create example-test --name "Test Environment"
+
+# 3. Create and configure package from the bundle
+mass pkg create example-test-mydb --bundle my-database-bundle
+mass pkg cfg example-test-mydb --set database_name=testdb --set db_version=16
+
+# 4. Deploy and monitor
+mass pkg deploy example-test-mydb
+mass logs                        # View logs (snapshot, not streaming)
+mass pkg get example-test-mydb   # Check deployment status
+
+# 5. Verify artifacts are created correctly
+mass artifact get example-test-mydb
+```
+
+**Important:**
+- Always use `--development` flag when testing to avoid creating stable releases
+- User may need to provide a project/environment to work in
+- Credential assignment to packages may require manual setup in the UI (no CLI command yet)
+- Ask user to set up credentials in the environment before deploying
+
+**Testing Workflow:**
+1. User sets up: project, environment, assigns credentials
+2. Claude creates packages, configures them, deploys
+3. Claude checks logs and artifact output to verify correctness
+
 ## Common Mistakes & Fixes
 
 | Mistake | Fix |
