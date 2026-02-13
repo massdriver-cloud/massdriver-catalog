@@ -15,7 +15,6 @@ exports:
     templateLang: liquid
 
 schema:
-  $schema: http://json-schema.org/draft-07/schema
   title: Kubernetes Namespace
   description: Namespace with cluster authentication
   type: object

@@ -21,7 +21,8 @@ jobs:
         uses: massdriver-cloud/actions/setup@v5
       - name: Publish All Artifact Definitions
         run: |
-          for file in artifact-definitions/*.json; do
-            echo "Publishing $(basename "$file")..."
-            mass definition publish "$file"
+          for dir in artifact-definitions/*/; do
+            name=$(basename "$dir")
+            echo "Publishing artifact definition $name..."
+            mass definition publish "$dir/massdriver.yaml"
           done

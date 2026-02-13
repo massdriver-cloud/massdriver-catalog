@@ -11,7 +11,6 @@ ui:
 exports: []
 
 schema:
-  $schema: http://json-schema.org/draft-07/schema
   title: Vercel API Token
   description: API token for Vercel authentication
   type: object

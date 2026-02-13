@@ -73,6 +73,11 @@ connections:
       $ref: network
     database:
       $ref: postgres
+      # We expect a postgres artifact, but this application specifically needs postgres
+      # 16, so we validate that before deploy.
+      properties:
+        version:
+          const: "16"
     bucket:
       $ref: bucket
 

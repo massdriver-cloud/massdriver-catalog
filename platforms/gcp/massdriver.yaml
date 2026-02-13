@@ -14,7 +14,6 @@ ui:
 exports: []
 
 schema:
-  $schema: http://json-schema.org/draft-07/schema
   title: GCP Service Account
   description: Service account key for GCP authentication
   type: object

@@ -1,0 +1,42 @@
+name: bucket
+label: Storage Bucket
+
+schema:
+  title: Storage Bucket
+  description: Object storage bucket with access policies
+  type: object
+  required:
+    - id
+    - name
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Unique resource identifier
+      type: string
+    name:
+      title: Name
+      description: Storage bucket name
+      type: string
+    endpoint:
+      title: Endpoint
+      description: Storage API endpoint URL
+      type: string
+    policies:
+      title: Access Policies
+      description: Available IAM policies for bucket access
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string

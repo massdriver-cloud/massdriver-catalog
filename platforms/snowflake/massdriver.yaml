@@ -11,7 +11,6 @@ ui:
 exports: []
 
 schema:
-  $schema: http://json-schema.org/draft-07/schema
   title: Snowflake Credentials
   description: Credentials for Snowflake authentication
   type: object

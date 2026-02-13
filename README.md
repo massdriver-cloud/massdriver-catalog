@@ -43,14 +43,23 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 ### 📁 `artifact-definitions/`
 
-**Artifact definitions** are JSON Schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
+**Artifact definitions** are schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
 
-This catalog includes **example artifact definitions** for common infrastructure patterns:
+Each artifact definition is a directory containing a `massdriver.yaml` file:
 
-- `network.json` - Example network/VPC abstraction (subnets, CIDR blocks, routing)
-- `postgres.json` - Example PostgreSQL database connection contract
-- `mysql.json` - Example MySQL database connection contract
-- `bucket.json` - Example object storage bucket access contract
+```
+artifact-definitions/
+├── network/
+│   └── massdriver.yaml    # Network/VPC contract
+├── postgres/
+│   └── massdriver.yaml    # PostgreSQL connection contract
+├── mysql/
+│   └── massdriver.yaml    # MySQL connection contract
+├── bucket/
+│   └── massdriver.yaml    # Object storage contract
+└── application/
+    └── massdriver.yaml    # Application metadata contract
+```
 
 > **💡 Note on Sensitive Fields**: Artifact definitions support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All artifact data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
 
@@ -139,7 +148,6 @@ exports:                         # Optional: downloadable templates
     templateLang: liquid
 
 schema:                          # JSON Schema as YAML
-  $schema: http://json-schema.org/draft-07/schema
   title: AWS IAM Role
   type: object
   properties:
@@ -346,10 +354,16 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
 ├── artifact-definitions/               # Infrastructure artifact contracts
-│   ├── bucket.json
-│   ├── mysql.json
-│   ├── network.json
-│   └── postgres.json
+│   ├── application/
+│   │   └── massdriver.yaml
+│   ├── bucket/
+│   │   └── massdriver.yaml
+│   ├── mysql/
+│   │   └── massdriver.yaml
+│   ├── network/
+│   │   └── massdriver.yaml
+│   └── postgres/
+│       └── massdriver.yaml
 ├── bundles/                            # Infrastructure-as-Code modules
 │   ├── application/                    # Example Application
 │   ├── bucket/                         # Object storage

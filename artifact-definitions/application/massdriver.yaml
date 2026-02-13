@@ -1,0 +1,25 @@
+name: application
+label: Application
+
+schema:
+  title: Application
+  description: Generic application template for customization or extension
+  type: object
+  required:
+    - deployment_id
+    - name
+  properties:
+    deployment_id:
+      title: Deployment ID
+      description: Unique deployment identifier
+      type: string
+    name:
+      title: Name
+      description: Application name
+      type: string
+    tags:
+      title: Tags
+      description: Resource tags
+      type: object
+      additionalProperties:
+        type: string
