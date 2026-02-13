@@ -28,9 +28,9 @@ Security improvements identified by Checkov during deployment.
   - Add `copy_tags_to_snapshot = true`
   - Ensures backup traceability and cost allocation
 
-- [ ] **LOW** - Add CloudWatch alarms for RDS metrics
-  - CPU utilization, connection count, storage space
-  - Use `var.md_metadata.observability.alarm_webhook_url` for notifications
+- [x] **LOW** - Add CloudWatch alarms for RDS metrics
+  - ✅ CPU utilization alarm added (see `src/alarms.tf`)
+  - TODO: Add connection count, storage space alarms
 
 - [x] **IGNORE** - **CKV_AWS_161** - Enable IAM database authentication
   - Many applications don't support IAM auth (requires SDK integration)
