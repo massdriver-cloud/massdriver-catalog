@@ -803,6 +803,55 @@ mass pkg deploy example-test-mydb  # Automatically uses new version
 2. Claude creates packages, configures them, sets to development channel
 3. Claude deploys, checks logs and artifact output to verify correctness
 
+### Post-Deployment: Checkov Security Review
+
+After a successful deployment, review Checkov findings from the deployment logs and create a `TODO.md` file **in each bundle's directory** (e.g., `bundles/aws-vpc/TODO.md`) documenting security improvements.
+
+**Extract Checkov findings:**
+```bash
+mass logs <deployment-id> 2>&1 | grep -E "Check:|FAILED"
+```
+
+**TODO.md format:**
+```markdown
+# Bundle Improvements
+
+Security improvements identified by Checkov.
+
+## bundle-name
+
+- [ ] **HIGH** - **CKV_XXX_123** - Description of the issue
+  - How to fix it
+  - Why it matters
+
+- [ ] **MEDIUM** - **CKV_XXX_456** - Description
+  - Implementation notes
+
+- [x] **IGNORE** - **CKV_XXX_789** - Description
+  - Reason for ignoring (e.g., intentional design decision)
+```
+
+**Priority ratings:**
+
+| Priority | Criteria | Examples |
+|----------|----------|----------|
+| **HIGH** | Security vulnerability, data exposure risk, or compliance requirement | Encryption disabled, public exposure, missing auth |
+| **MEDIUM** | Best practice, observability, or operational improvement | Logging disabled, no monitoring, missing tags |
+| **LOW** | Optimization or nice-to-have enhancement | VPC endpoints, cost optimization |
+| **IGNORE** | Intentional design decision or not applicable | Public IPs on public subnets, Multi-AZ disabled for dev |
+
+**Common Checkov findings by category:**
+
+| Category | Typical Findings |
+|----------|------------------|
+| **Encryption** | KMS keys, encryption at rest, TLS |
+| **Logging** | CloudWatch logs, flow logs, audit trails |
+| **Access Control** | IAM auth, security groups, public access |
+| **Backup/DR** | Deletion protection, snapshots, Multi-AZ |
+| **Monitoring** | Enhanced monitoring, Performance Insights |
+
+Always document the rationale for IGNORE decisions - future maintainers need to understand why a security recommendation was intentionally skipped.
+
 ## Common Mistakes & Fixes
 
 | Mistake | Fix |
