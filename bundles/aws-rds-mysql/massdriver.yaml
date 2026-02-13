@@ -1,0 +1,150 @@
+schema: draft-07
+name: aws-rds-mysql
+description: "AWS RDS MySQL with version selection and backup configuration"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-rds-mysql
+version: 0.0.2
+
+params:
+  required:
+    - db_version
+    - instance_class
+    - database_name
+    - username
+    - backup_window
+    - subnet_ids
+  properties:
+    db_version:
+      type: string
+      title: MySQL Version
+      description: MySQL major version (latest minor version will be used)
+      default: "8.0"
+      $md.immutable: true
+      enum:
+        - "5.7"
+        - "8.0"
+    instance_class:
+      type: string
+      title: Instance Class
+      description: RDS instance type
+      default: "db.t3.micro"
+      enum:
+        - "db.t3.micro"
+        - "db.t3.small"
+        - "db.t3.medium"
+        - "db.t3.large"
+        - "db.m5.large"
+        - "db.m5.xlarge"
+        - "db.r5.large"
+        - "db.r5.xlarge"
+    allocated_storage:
+      type: integer
+      title: Allocated Storage (GB)
+      description: Storage size in gigabytes
+      default: 20
+      minimum: 20
+      maximum: 16384
+    database_name:
+      type: string
+      title: Database Name
+      description: Name of the default database to create
+      default: "mydb"
+      pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+    username:
+      type: string
+      title: Master Username
+      description: Master username for database access
+      default: "admin"
+      pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+    backup_window:
+      type: string
+      title: Backup Window
+      description: Daily time range for automated backups (UTC, format hh24:mi-hh24:mi)
+      default: "03:00-04:00"
+      enum:
+        - "00:00-01:00"
+        - "01:00-02:00"
+        - "02:00-03:00"
+        - "03:00-04:00"
+        - "04:00-05:00"
+        - "05:00-06:00"
+        - "06:00-07:00"
+        - "07:00-08:00"
+    backup_retention_period:
+      type: integer
+      title: Backup Retention (Days)
+      description: Number of days to retain automated backups
+      default: 7
+      minimum: 1
+      maximum: 35
+    deletion_protection:
+      type: boolean
+      title: Deletion Protection
+      description: Prevent accidental database deletion (recommended for production)
+      default: true
+    multi_az:
+      type: boolean
+      title: Multi-AZ Deployment
+      description: Enable Multi-AZ for high availability (doubles cost)
+      default: false
+    subnet_ids:
+      type: array
+      title: Subnets
+      description: Select subnets for the RDS instance (use private subnets)
+      minItems: 2
+      items:
+        type: string
+        title: Subnet
+        $md.enum:
+          connection: vpc
+          options: .subnets
+          value: .id
+          label: .name
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: AWS VPC
+
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: catalog-demo/mysql
+      title: RDS MySQL
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+        skip:
+          - CKV_AWS_382  # Security group egress - RDS requires outbound
+          - CKV2_AWS_5   # Security group attachment - attached to RDS
+          - CKV_AWS_26   # SNS encryption - alarm metadata not sensitive
+          - CKV_AWS_161  # IAM auth - most apps don't support it
+          - CKV_AWS_293  # Deletion protection - user param
+          - CKV_AWS_157  # Multi-AZ - user param
+
+ui:
+  ui:order:
+    - db_version
+    - instance_class
+    - allocated_storage
+    - database_name
+    - username
+    - backup_window
+    - backup_retention_period
+    - deletion_protection
+    - multi_az
+    - subnet_ids
+    - "*"

@@ -1,0 +1,28 @@
+name: aws-sagemaker-endpoint
+label: AWS SageMaker Endpoint
+
+schema:
+  title: AWS SageMaker Endpoint
+  description: SageMaker real-time inference endpoint
+  type: object
+  required:
+    - endpoint_name
+    - endpoint_arn
+    - region
+  properties:
+    endpoint_name:
+      title: Endpoint Name
+      description: The name of the SageMaker endpoint
+      type: string
+    endpoint_arn:
+      title: Endpoint ARN
+      description: The ARN of the SageMaker endpoint
+      type: string
+    model_name:
+      title: Model Name
+      description: The name of the deployed model
+      type: string
+    region:
+      title: AWS Region
+      description: AWS region where the endpoint is deployed
+      type: string

@@ -1,0 +1,55 @@
+name: aws-sagemaker-domain
+label: AWS SageMaker Domain
+
+schema:
+  title: AWS SageMaker Domain
+  description: SageMaker Studio domain for ML experimentation and model development
+  type: object
+  required:
+    - domain_id
+    - domain_arn
+    - execution_role_arn
+    - region
+  properties:
+    domain_id:
+      title: Domain ID
+      description: The SageMaker Domain ID
+      type: string
+    domain_arn:
+      title: Domain ARN
+      description: The ARN of the SageMaker Domain
+      type: string
+    execution_role_arn:
+      title: Execution Role ARN
+      description: IAM role ARN used by SageMaker for training, processing, and inference
+      type: string
+    default_bucket:
+      title: Default S3 Bucket
+      description: S3 bucket for SageMaker artifacts (models, data, outputs)
+      type: string
+    studio_url:
+      title: Studio URL
+      description: URL to access SageMaker Studio
+      type: string
+    region:
+      title: AWS Region
+      description: AWS region where the domain is deployed
+      type: string
+    vpc_id:
+      title: VPC ID
+      description: VPC ID where SageMaker is deployed
+      type: string
+    subnet_ids:
+      title: Subnet IDs
+      description: Subnet IDs for SageMaker workloads
+      type: array
+      items:
+        type: string
+    security_group_id:
+      title: Security Group ID
+      description: Security group for SageMaker resources
+      type: string
+    s3_vpc_endpoint_id:
+      title: S3 VPC Endpoint ID
+      description: Gateway VPC endpoint for S3 access from private subnets
+      type: string

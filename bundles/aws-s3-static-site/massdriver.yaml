@@ -1,0 +1,92 @@
+schema: draft-07
+name: aws-s3-static-site
+description: "AWS S3 Static Website - Host simple HTML pages with a public URL"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-s3-static-site
+version: 0.0.2
+
+params:
+  required:
+    - site_name
+    - html_content
+  properties:
+    site_name:
+      type: string
+      title: Site Name
+      description: Unique name for this static site (used in bucket name)
+      pattern: ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$
+      message:
+        pattern: Must be lowercase letters, numbers, and hyphens only (3-63 characters)
+    html_content:
+      type: string
+      title: HTML Content
+      description: Paste your HTML content here
+      default: |
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>My Page</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                h1 { color: #333; }
+            </style>
+        </head>
+        <body>
+            <h1>Hello from Massdriver!</h1>
+            <p>Edit this content in the bundle configuration.</p>
+        </body>
+        </html>
+    error_page:
+      type: string
+      title: Error Page HTML (Optional)
+      description: Custom 404 error page content
+      default: |
+        <!DOCTYPE html>
+        <html>
+        <head><title>Page Not Found</title></head>
+        <body><h1>404 - Page Not Found</h1></body>
+        </html>
+    enable_versioning:
+      type: boolean
+      title: Enable Versioning
+      description: Keep previous versions of your content for recovery
+      default: false
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - application
+  properties:
+    application:
+      $ref: application
+      title: Static Site
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - site_name
+    - html_content
+    - error_page
+    - enable_versioning
+    - "*"
+  html_content:
+    ui:widget: textarea
+    ui:options:
+      rows: 20
+  error_page:
+    ui:widget: textarea
+    ui:options:
+      rows: 10

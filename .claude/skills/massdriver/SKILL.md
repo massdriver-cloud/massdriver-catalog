@@ -33,13 +33,35 @@ This skill should be loaded when:
 
 **Connection**: How bundles receive artifacts. When a bundle declares a connection (e.g., `$ref: aws-iam-role`), users assign an artifact of that type to it. At deploy time, the artifact data flows into the bundle as a Terraform variable.
 
-**Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish`
+**Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish --development`
+
+## What Can Be a Bundle?
+
+**Massdriver orchestrates IaC tools, not just "persistent infrastructure."** If a provisioner can deploy it, it's a valid bundle:
+
+| Provisioner | What it can deploy |
+|-------------|-------------------|
+| OpenTofu/Terraform | AWS/GCP/Azure resources, Helm releases, K8s manifests |
+| Helm | K8s Deployments, Jobs, CronJobs, StatefulSets, etc. |
+| CloudFormation | Anything AWS supports including Step Functions, SageMaker Pipelines |
+| Kubernetes | Raw manifests - Jobs, CronJobs, Spark operators, Argo workflows |
+| Pulumi, CDK, etc. | Whatever they support |
+
+**Valid bundle content includes:**
+- Kubernetes CronJobs and Jobs (scheduled/triggered workloads)
+- Lambda functions and Step Functions (serverless orchestration)
+- SageMaker Pipelines (ML workflow definitions)
+- Spark/Flink operators (data processing)
+- Argo Workflows (CI/CD pipelines)
+- VMware resources, on-prem infrastructure
+
+**The key insight:** A CronJob that runs nightly is still infrastructure that needs to be deployed, versioned, and managed - even though each execution is ephemeral.
 
 ## Bundle Scoping and Resource Lifecycle
 
-**This is critical for designing composable, maintainable bundles.** A bundle should contain resources that share the same operational lifecycle - they're created, updated, and destroyed together as a unit.
+**This is critical for designing composable, maintainable bundles.** The lifecycle principle helps you decide what goes TOGETHER in a bundle - not what CAN be a bundle. Resources that share the same operational lifecycle should be bundled together.
 
-### The Lifecycle Principle
+### The Lifecycle Principle (for Scoping)
 
 Ask these questions when deciding what belongs in a bundle:
 
@@ -335,12 +357,87 @@ terraform {
 | File | Purpose | Editable? |
 |------|---------|-----------|
 | `massdriver.yaml` | Source of truth - params, connections, artifacts, UI | Yes |
+| `README.md` | Bundle documentation (displayed in UI like GitHub README) | Yes |
 | `src/main.tf` | Your IaC code (resources, data sources) | Yes |
 | `src/artifacts.tf` | massdriver_artifact resources | Yes |
+| `src/.checkov.yml` | Checkov skip rules (inline comments don't work) | Yes |
 | `operator.md` | Runbook with mustache templating | Yes |
 | `icon.svg` | Bundle icon | Yes |
 | `schema-*.json` | Generated schemas | **Never** |
 | `_massdriver_variables.tf` | Generated variables | **Never** |
+
+## README.md and Changelog
+
+Every bundle should have a `README.md` in the bundle root directory. This file is displayed in the Massdriver UI similar to how GitHub displays READMEs.
+
+### README Structure
+
+```markdown
+# Bundle Name
+
+Brief description of what this bundle deploys.
+
+## Features
+
+- Feature 1
+- Feature 2
+
+## Architecture
+
+```
+Diagram showing component relationships
+```
+
+## Connections
+
+| Name | Type | Description |
+|------|------|-------------|
+| `connection_name` | `artifact-type` | What it's used for |
+
+## Parameters
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `param_name` | type | `default` | What it configures |
+
+## Outputs
+
+- `output_name` - Description
+
+## Changelog
+
+### x.y.z
+
+- Change description
+- Another change
+```
+
+### Changelog Convention
+
+The changelog is maintained at the bottom of README.md under `## Changelog`. Each version gets its own `### x.y.z` section.
+
+**For development releases:** Group changes under the target version number (e.g., `### 0.0.2`), not under the dev timestamp. Development releases like `0.0.2-dev.20260213T120000Z` are iterations toward `0.0.2`.
+
+**When publishing:** Add release notes to the changelog section before publishing:
+
+```markdown
+## Changelog
+
+### 0.0.3
+
+- Add support for custom domains
+- Fix memory leak in connection pooling
+
+### 0.0.2
+
+- Switch to Node.js runtime
+- Add VPC integration
+- Use .checkov.yml for security configuration
+
+### 0.0.1
+
+- Initial release
+```
 
 ## Quick Start Workflows
 
@@ -619,6 +716,163 @@ resource "massdriver_artifact" "database" {
 }
 ```
 
+### Adding Alarms to Bundles
+
+Massdriver integrates cloud-native alarms for visibility in the UI. See [Monitoring and Alarms Guide](https://docs.massdriver.cloud/guides/monitoring-and-alarms) for full documentation.
+
+**Use the Massdriver Terraform modules for simplified alarm setup:**
+- [aws/alarm-channel](https://github.com/massdriver-cloud/terraform-modules/tree/main/aws/alarm-channel) - Creates SNS topic for alarm notifications
+- [aws/cloudwatch-alarm](https://github.com/massdriver-cloud/terraform-modules/tree/main/aws/cloudwatch-alarm) - Creates CloudWatch alarm + registers with Massdriver
+
+**AWS CloudWatch Example (Recommended - using modules):**
+```hcl
+# src/alarms.tf
+
+# 1. Create alarm channel (SNS topic) - one per bundle
+module "alarm_channel" {
+  source      = "github.com/massdriver-cloud/terraform-modules//aws/alarm-channel?ref=main"
+  md_metadata = var.md_metadata
+}
+
+# 2. Create alarms using the channel
+module "alarm_high_cpu" {
+  source      = "github.com/massdriver-cloud/terraform-modules//aws/cloudwatch-alarm?ref=main"
+  md_metadata = var.md_metadata
+
+  alarm_name   = "${var.md_metadata.name_prefix}-high-cpu"
+  display_name = "High CPU Utilization"
+  message      = "RDS CPU utilization is above 80%"
+
+  namespace   = "AWS/RDS"
+  metric_name = "CPUUtilization"
+  statistic   = "Average"
+  period      = "300"
+
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  threshold           = "80"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.main.identifier
+  }
+
+  sns_topic_arn = module.alarm_channel.arn
+}
+```
+
+**Module benefits:**
+- Handles SNS topic creation and Massdriver webhook subscription
+- Automatically registers `massdriver_package_alarm` for UI visibility
+- Consistent alarm naming and tagging
+
+**GCP Cloud Monitoring Example:**
+```hcl
+resource "google_monitoring_alert_policy" "high_cpu" {
+  display_name = "${var.md_metadata.name_prefix}-high-cpu"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "CPU Utilization > 80%"
+    condition_threshold {
+      filter          = "resource.type=\"cloudsql_database\" AND metric.type=\"cloudsql.googleapis.com/database/cpu/utilization\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.8
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.massdriver.id]
+}
+
+resource "google_monitoring_notification_channel" "massdriver" {
+  display_name = "Massdriver Webhook"
+  type         = "webhook_tokenauth"
+  labels = {
+    url = var.md_metadata.observability.alarm_webhook_url
+  }
+}
+
+resource "massdriver_package_alarm" "high_cpu" {
+  display_name      = "High CPU Utilization"
+  cloud_resource_id = google_monitoring_alert_policy.high_cpu.name
+
+  metric {
+    name      = "cloudsql.googleapis.com/database/cpu/utilization"
+    statistic = "Average"
+  }
+
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  period_minutes      = 5
+}
+```
+
+**Azure Monitor Example:**
+```hcl
+resource "azurerm_monitor_metric_alert" "high_cpu" {
+  name                = "${var.md_metadata.name_prefix}-high-cpu"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "CPU utilization is above 80%"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "cpu_percent"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 80
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.massdriver.id
+  }
+}
+
+resource "azurerm_monitor_action_group" "massdriver" {
+  name                = "${var.md_metadata.name_prefix}-massdriver"
+  resource_group_name = azurerm_resource_group.main.name
+  short_name          = "massdriver"
+
+  webhook_receiver {
+    name        = "massdriver"
+    service_uri = var.md_metadata.observability.alarm_webhook_url
+  }
+}
+
+resource "massdriver_package_alarm" "high_cpu" {
+  display_name      = "High CPU Utilization"
+  cloud_resource_id = azurerm_monitor_metric_alert.high_cpu.id
+
+  metric {
+    namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    name      = "cpu_percent"
+    statistic = "Average"
+  }
+
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  period_minutes      = 5
+}
+```
+
+**cloudwatch-alarm module arguments:**
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `md_metadata` | Yes | Massdriver metadata variable |
+| `alarm_name` | Yes | CloudWatch alarm name |
+| `display_name` | Yes | Label shown in Massdriver UI |
+| `message` | Yes | Alarm description |
+| `sns_topic_arn` | Yes | SNS topic from alarm_channel module |
+| `namespace` | Yes | AWS metric namespace (AWS/RDS, AWS/EC2, etc.) |
+| `metric_name` | Yes | Metric name |
+| `statistic` | Yes | Average, Sum, Maximum, etc. |
+| `period` | Yes | Evaluation period in seconds |
+| `comparison_operator` | Yes | GreaterThanThreshold, LessThanThreshold, etc. |
+| `evaluation_periods` | Yes | Number of periods to evaluate |
+| `threshold` | Yes | Alert trigger value |
+| `dimensions` | Yes | Metric dimensions (map) |
+
 ### Sensitive Fields in Artifact Definitions
 
 ```yaml
@@ -710,6 +964,44 @@ resource "example" "main" {
 }
 ```
 
+## Checkov Security Configuration
+
+Checkov runs during deployment to check for security issues. Configure skip rules using `src/.checkov.yml` (inline comments don't work in Massdriver's Checkov version).
+
+### .checkov.yml Format
+
+```yaml
+# src/.checkov.yml
+skip-check:
+  # S3 Bucket
+  - CKV_AWS_144  # Cross-region replication not needed
+  - CKV_AWS_145  # KMS encryption not required for this use case
+
+  # Lambda Function
+  - CKV_AWS_116  # DLQ not required for simple API
+  - CKV_AWS_173  # Environment variables contain credentials by design
+```
+
+### Checkov in massdriver.yaml
+
+Configure Checkov behavior in the steps section:
+
+```yaml
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        # Fail deployment only in production
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+```
+
+**halt_on_failure options:**
+- `true` - Always fail on Checkov violations
+- `false` - Never fail (just warn)
+- JQ expression - Conditional based on params/connections (e.g., production only)
+
 ## Validation Checklist
 
 Before publishing a bundle:
@@ -726,7 +1018,7 @@ Before publishing a bundle:
 Static validation (`tofu validate`) only checks syntax. To verify a bundle actually works, deploy it through Massdriver's orchestrator:
 
 ```bash
-# 1. Build and publish as development (not stable release)
+# 1. Build and publish as development (NEVER publish stable unless a human requests it)
 mass bundle build
 mass bundle publish --development
 
@@ -737,21 +1029,25 @@ mass env create example-test --name "Test Environment"
 # 3. Create and configure package from the bundle
 mass pkg create example-test-mydb --bundle my-database-bundle
 
-# 4. Set package version and release channel
-# Use 'development' channel to automatically receive --development releases
+# 4. Set package to development release channel (one-time setup)
 mass pkg version example-test-mydb@latest --release-channel development
 
-# Configure with JSON params (--params flag, not --set)
-echo '{"database_name": "testdb", "db_version": "16"}' | mass pkg cfg example-test-mydb --params=-
+# 5. Configure with JSON params (use file for complex values)
+cat > /tmp/params.json << 'EOF'
+{"database_name": "testdb", "db_version": "16"}
+EOF
+mass pkg cfg example-test-mydb --params=/tmp/params.json
 
-# 5. Deploy and monitor
-mass pkg deploy example-test-mydb  # Note: outputs deployment ID on failure
-mass logs <deployment-id>          # View logs using deployment ID from deploy output
-mass pkg get example-test-mydb     # Check deployment status
+# 6. Initial deploy (only needed once - subsequent publishes auto-deploy)
+mass pkg deploy example-test-mydb -m "Initial deployment"
 
-# 6. Verify artifacts are created correctly
+# 7. Verify artifacts are created correctly
 # Artifact name format: {package-slug}-{field-name}
 mass artifact get example-test-mydb-database
+
+# 8. Iterate: make changes, publish, package auto-upgrades and deploys
+mass bundle publish --development
+# No manual deploy needed - check logs/artifacts to verify
 ```
 
 ### Package Versions and Release Channels
@@ -777,23 +1073,35 @@ mass pkg version example-test-mydb@latest --release-channel development
 - `development`: Receives both stable AND development releases (`mass bundle publish --development`)
 
 **Best Practice for Testing:**
-Set the package to `development` channel once, then every `mass bundle publish --development` automatically makes the new version available without reconfiguring:
+Set the package to `development` channel once, then every `mass bundle publish --development` automatically upgrades and deploys the package - no manual deploy needed:
 
 ```bash
 # One-time setup
 mass pkg version example-test-mydb@latest --release-channel development
+mass pkg deploy example-test-mydb -m "Initial deployment"
 
-# Now iterate freely - package auto-updates to each new dev release
-mass bundle publish --development  # v0.0.1-dev.timestamp1
-mass pkg deploy example-test-mydb
+# Now iterate freely - just publish, package auto-upgrades and deploys
+mass bundle publish --development  # v0.0.1-dev.20260213T120000Z
+# Package automatically upgrades and deploys - no manual deploy needed!
 
-# Make changes, republish
-mass bundle publish --development  # v0.0.2-dev.timestamp2
-mass pkg deploy example-test-mydb  # Automatically uses new version
+# Make changes, republish - same version, new timestamp
+mass bundle publish --development  # v0.0.1-dev.20260213T120500Z
+# Package automatically upgrades and deploys again
 ```
 
+**CRITICAL - Don't Burn Semver During Development:**
+- Keep the same version number throughout development (e.g., `0.0.1`)
+- The `--development` flag adds a timestamp suffix (e.g., `0.0.1-dev.20260213T120000Z`)
+- Each `--development` publish creates a new dev release without changing the base version
+- Only bump version when ready for a stable release
+- NEVER publish stable (`mass bundle publish` without `--development`) until the bundle is production-ready
+
+**Auto-Upgrade Behavior:**
+- Packages on `development` channel automatically upgrade when new dev releases are published
+- Packages on `stable` channel only upgrade when new stable releases are published
+- Auto-upgrade triggers an automatic deployment - no need to run `mass pkg deploy` after publishing
+
 **Important:**
-- Always use `--development` flag when testing to avoid creating stable releases
 - User may need to provide a project/environment to work in
 - Credential assignment to packages may require manual setup in the UI (no CLI command yet)
 - Ask user to set up credentials in the environment before deploying
@@ -802,6 +1110,110 @@ mass pkg deploy example-test-mydb  # Automatically uses new version
 1. User sets up: project, environment, assigns credentials
 2. Claude creates packages, configures them, sets to development channel
 3. Claude deploys, checks logs and artifact output to verify correctness
+
+**Deploy Comments for Iteration:**
+When iterating through bundle changes (e.g., fixing Checkov findings), always include a deploy message with `-m` to help operators track what changed:
+
+```bash
+# Good practice - describe what this deploy tests/changes
+mass pkg deploy example-test-mydb -m "Fix CKV2_AWS_69: Enable rds.force_ssl for encryption in transit"
+mass pkg deploy example-test-mydb -m "Add deletion_protection param, enable enhanced monitoring"
+
+# Avoid - no context for what changed
+mass pkg deploy example-test-mydb
+```
+
+This creates an audit trail in Massdriver showing what each deployment intended to accomplish.
+
+### Post-Deployment: Compliance Review and Remediation
+
+After a successful deployment, review Checkov findings from the deployment logs and work through them systematically.
+
+**1. Extract Checkov findings:**
+```bash
+mass logs <deployment-id> 2>&1 | grep -E "Check:|FAILED"
+```
+
+**2. Create TODO list** in the bundle's directory (e.g., `bundles/aws-rds-mysql/TODO.md`):
+
+```markdown
+# Bundle Improvements
+
+Security improvements identified by Checkov.
+
+## aws-rds-mysql
+
+- [ ] **HIGH** - **CKV_XXX_123** - Description of the issue
+  - How to fix it
+  - Why it matters
+
+- [ ] **MEDIUM** - **CKV_XXX_456** - Description
+  - Implementation notes
+
+- [x] **IGNORE** - **CKV_XXX_789** - Description
+  - Reason for ignoring (e.g., intentional design decision)
+```
+
+**3. Work through the issues:**
+
+| Priority | Action |
+|----------|--------|
+| **HIGH** | Attempt to fix by hardcoding secure defaults or exposing as params |
+| **MEDIUM** | Attempt to fix if straightforward; otherwise document why deferred |
+| **LOW** | Add to `.checkov.yml` skip list with comment explaining why |
+| **IGNORE** | Add to `.checkov.yml` skip list - intentional design decisions |
+
+**4. For issues to skip**, create/update `src/.checkov.yml`:
+```yaml
+skip-check:
+  # LOW: Security group egress - RDS requires outbound for AWS API calls
+  - CKV_AWS_382
+  # LOW: SNS encryption - alarm metadata not sensitive
+  - CKV_AWS_26
+```
+
+**5. For issues to fix**, update the Terraform code:
+```hcl
+# HIGH: CKV2_AWS_69 - Require SSL connections
+resource "aws_db_parameter_group" "main" {
+  parameter {
+    name  = "require_secure_transport"  # MySQL
+    value = "1"
+  }
+  # or
+  parameter {
+    name  = "rds.force_ssl"  # PostgreSQL
+    value = "1"
+  }
+}
+```
+
+**6. Republish and redeploy** to verify fixes:
+```bash
+mass bundle publish --development
+mass pkg deploy <package> -m "Fix CKV2_AWS_69: Enable SSL enforcement"
+```
+
+**Priority ratings:**
+
+| Priority | Criteria | Examples |
+|----------|----------|----------|
+| **HIGH** | Security vulnerability, data exposure risk, or compliance requirement | Encryption disabled, public exposure, missing auth |
+| **MEDIUM** | Best practice, observability, or operational improvement | Logging disabled, no monitoring, missing tags |
+| **LOW** | Optimization or nice-to-have enhancement | VPC endpoints, cost optimization |
+| **IGNORE** | Intentional design decision or not applicable | Public IPs on public subnets, Multi-AZ disabled for dev |
+
+**Common Checkov findings by category:**
+
+| Category | Typical Findings | Typical Fix |
+|----------|------------------|-------------|
+| **Encryption** | KMS keys, encryption at rest, TLS | Enable encryption, add parameter for SSL |
+| **Logging** | CloudWatch logs, flow logs, audit trails | Enable log exports, add log group |
+| **Access Control** | IAM auth, security groups, public access | Restrict ingress, disable public access |
+| **Backup/DR** | Deletion protection, snapshots, Multi-AZ | Add params for user control |
+| **Monitoring** | Enhanced monitoring, Performance Insights | Enable with instance class checks |
+
+Always document the rationale for IGNORE decisions - future maintainers need to understand why a security recommendation was intentionally skipped.
 
 ## Common Mistakes & Fixes
 
@@ -815,6 +1227,10 @@ mass pkg deploy example-test-mydb  # Automatically uses new version
 | $ref not found | Verify artifact definition exists with `mass def get <name>` |
 | Edited generated file, changes lost | Never edit `schema-*.json` or `_massdriver_variables.tf` |
 | Missing massdriver provider | Add to `required_providers` block |
+| **Publishing stable during development** | NEVER run `mass bundle publish` without `--development` during testing. Stable releases burn semver and can't be unpublished. Use `--development` throughout, only publish stable when production-ready. |
+| **Manual deploy after each publish** | Packages on development channel auto-upgrade and auto-deploy. After initial deploy, just publish - no need to run `mass pkg deploy` again. |
+| **local-exec with Python/dependencies** | Massdriver's provisioner has limited runtime - no sklearn, numpy, pip packages. Pre-build artifacts and include them in the bundle, then use `aws_s3_object` or similar to upload. |
+| **Inline checkov:skip comments** | Inline `#checkov:skip=` comments don't work in Massdriver's Checkov version. Use `src/.checkov.yml` file instead. |
 
 ## Commands Reference
 

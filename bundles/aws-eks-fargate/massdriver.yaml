@@ -1,0 +1,81 @@
+schema: draft-07
+name: aws-eks-fargate
+description: "AWS EKS with Fargate - Serverless Kubernetes cluster"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-eks-fargate
+version: 0.0.2
+
+params:
+  required:
+    - cluster_name
+    - kubernetes_version
+  properties:
+    cluster_name:
+      type: string
+      title: Cluster Name
+      description: Name for your EKS cluster
+      default: "eks-fargate"
+      pattern: ^[a-z][a-z0-9-]{1,38}[a-z0-9]$
+    kubernetes_version:
+      type: string
+      title: Kubernetes Version
+      description: EKS Kubernetes version
+      default: "1.29"
+      enum:
+        - "1.29"
+        - "1.28"
+        - "1.27"
+    fargate_namespaces:
+      type: array
+      title: Fargate Namespaces
+      description: Namespaces to run on Fargate (default and kube-system always included)
+      default: []
+      items:
+        type: string
+        pattern: ^[a-z][a-z0-9-]{0,62}$
+    endpoint_public_access:
+      type: boolean
+      title: Public API Endpoint
+      description: Enable public access to Kubernetes API
+      default: true
+    endpoint_private_access:
+      type: boolean
+      title: Private API Endpoint
+      description: Enable private access to Kubernetes API from within VPC
+      default: true
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: VPC Network
+
+artifacts:
+  required:
+    - kubernetes_cluster
+  properties:
+    kubernetes_cluster:
+      $ref: massdriver/kubernetes-cluster
+      title: Kubernetes Cluster
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - cluster_name
+    - kubernetes_version
+    - fargate_namespaces
+    - endpoint_public_access
+    - endpoint_private_access
+    - "*"
