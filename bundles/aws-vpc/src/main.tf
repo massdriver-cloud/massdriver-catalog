@@ -33,6 +33,73 @@ resource "aws_vpc" "main" {
   }
 }
 
+# CKV2_AWS_12: Restrict default security group to prevent accidental use
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.main.id
+
+  # No ingress or egress rules - forces explicit security group usage
+  tags = {
+    Name = "${var.md_metadata.name_prefix}-default-restricted"
+  }
+}
+
+# CKV2_AWS_11: Enable VPC flow logging for security auditing
+resource "aws_cloudwatch_log_group" "flow_logs" {
+  name              = "/aws/vpc/${var.md_metadata.name_prefix}/flow-logs"
+  retention_in_days = 14
+
+  tags = var.md_metadata.default_tags
+}
+
+resource "aws_iam_role" "flow_logs" {
+  name = "${var.md_metadata.name_prefix}-flow-logs"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "vpc-flow-logs.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = var.md_metadata.default_tags
+}
+
+resource "aws_iam_role_policy" "flow_logs" {
+  name = "${var.md_metadata.name_prefix}-flow-logs"
+  role = aws_iam_role.flow_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ]
+      Effect   = "Allow"
+      Resource = "*"
+    }]
+  })
+}
+
+resource "aws_flow_log" "main" {
+  vpc_id                   = aws_vpc.main.id
+  traffic_type             = "ALL"
+  iam_role_arn             = aws_iam_role.flow_logs.arn
+  log_destination          = aws_cloudwatch_log_group.flow_logs.arn
+  max_aggregation_interval = 60
+
+  tags = {
+    Name = "${var.md_metadata.name_prefix}-flow-log"
+  }
+}
+
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 

@@ -74,3 +74,8 @@ variable "vpc" {
     }))
   })
 }
+// Auto-generated variable declarations from massdriver.yaml
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}

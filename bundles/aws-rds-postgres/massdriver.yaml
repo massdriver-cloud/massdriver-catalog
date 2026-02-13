@@ -79,6 +79,11 @@ params:
       default: 7
       minimum: 1
       maximum: 35
+    deletion_protection:
+      type: boolean
+      title: Deletion Protection
+      description: Prevent accidental database deletion (recommended for production)
+      default: true
     subnet_ids:
       type: array
       title: Subnets
@@ -126,5 +131,6 @@ ui:
     - username
     - backup_window
     - backup_retention_period
+    - deletion_protection
     - subnet_ids
     - "*"

@@ -901,8 +901,8 @@ mass pkg version example-test-mydb@latest --release-channel development
 # Configure with JSON params (--params flag, not --set)
 echo '{"database_name": "testdb", "db_version": "16"}' | mass pkg cfg example-test-mydb --params=-
 
-# 5. Deploy and monitor
-mass pkg deploy example-test-mydb  # Note: outputs deployment ID on failure
+# 5. Deploy and monitor (use -m for deploy comments when iterating)
+mass pkg deploy example-test-mydb -m "Initial deployment"
 mass logs <deployment-id>          # View logs using deployment ID from deploy output
 mass pkg get example-test-mydb     # Check deployment status
 
@@ -959,6 +959,20 @@ mass pkg deploy example-test-mydb  # Automatically uses new version
 1. User sets up: project, environment, assigns credentials
 2. Claude creates packages, configures them, sets to development channel
 3. Claude deploys, checks logs and artifact output to verify correctness
+
+**Deploy Comments for Iteration:**
+When iterating through bundle changes (e.g., fixing Checkov findings), always include a deploy message with `-m` to help operators track what changed:
+
+```bash
+# Good practice - describe what this deploy tests/changes
+mass pkg deploy example-test-mydb -m "Fix CKV2_AWS_69: Enable rds.force_ssl for encryption in transit"
+mass pkg deploy example-test-mydb -m "Add deletion_protection param, enable enhanced monitoring"
+
+# Avoid - no context for what changed
+mass pkg deploy example-test-mydb
+```
+
+This creates an audit trail in Massdriver showing what each deployment intended to accomplish.
 
 ### Post-Deployment: Checkov Security Review
 
