@@ -1,0 +1,13 @@
+skip-check:
+  # LOW: Security group egress rules - RDS requires outbound for AWS API calls, enhanced monitoring, and log shipping
+  - CKV_AWS_382
+  # LOW: Security group attachment validation - security group is attached to RDS instance
+  - CKV2_AWS_5
+  # LOW: SNS topic encryption - using Massdriver alarm-channel module, encryption not critical for alarm metadata
+  - CKV_AWS_26
+  # IGNORE: IAM database auth - most applications don't support IAM auth, use password auth instead
+  - CKV_AWS_161
+  # IGNORE: Deletion protection - exposed as user-configurable param, defaults to true
+  - CKV_AWS_293
+  # IGNORE: Multi-AZ - exposed as user-configurable param for cost control
+  - CKV_AWS_157

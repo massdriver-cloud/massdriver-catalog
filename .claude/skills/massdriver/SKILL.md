@@ -33,7 +33,7 @@ This skill should be loaded when:
 
 **Connection**: How bundles receive artifacts. When a bundle declares a connection (e.g., `$ref: aws-iam-role`), users assign an artifact of that type to it. At deploy time, the artifact data flows into the bundle as a Terraform variable.
 
-**Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish`
+**Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish --development`
 
 ## What Can Be a Bundle?
 
@@ -357,12 +357,87 @@ terraform {
 | File | Purpose | Editable? |
 |------|---------|-----------|
 | `massdriver.yaml` | Source of truth - params, connections, artifacts, UI | Yes |
+| `README.md` | Bundle documentation (displayed in UI like GitHub README) | Yes |
 | `src/main.tf` | Your IaC code (resources, data sources) | Yes |
 | `src/artifacts.tf` | massdriver_artifact resources | Yes |
+| `src/.checkov.yml` | Checkov skip rules (inline comments don't work) | Yes |
 | `operator.md` | Runbook with mustache templating | Yes |
 | `icon.svg` | Bundle icon | Yes |
 | `schema-*.json` | Generated schemas | **Never** |
 | `_massdriver_variables.tf` | Generated variables | **Never** |
+
+## README.md and Changelog
+
+Every bundle should have a `README.md` in the bundle root directory. This file is displayed in the Massdriver UI similar to how GitHub displays READMEs.
+
+### README Structure
+
+```markdown
+# Bundle Name
+
+Brief description of what this bundle deploys.
+
+## Features
+
+- Feature 1
+- Feature 2
+
+## Architecture
+
+```
+Diagram showing component relationships
+```
+
+## Connections
+
+| Name | Type | Description |
+|------|------|-------------|
+| `connection_name` | `artifact-type` | What it's used for |
+
+## Parameters
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `param_name` | type | `default` | What it configures |
+
+## Outputs
+
+- `output_name` - Description
+
+## Changelog
+
+### x.y.z
+
+- Change description
+- Another change
+```
+
+### Changelog Convention
+
+The changelog is maintained at the bottom of README.md under `## Changelog`. Each version gets its own `### x.y.z` section.
+
+**For development releases:** Group changes under the target version number (e.g., `### 0.0.2`), not under the dev timestamp. Development releases like `0.0.2-dev.20260213T120000Z` are iterations toward `0.0.2`.
+
+**When publishing:** Add release notes to the changelog section before publishing:
+
+```markdown
+## Changelog
+
+### 0.0.3
+
+- Add support for custom domains
+- Fix memory leak in connection pooling
+
+### 0.0.2
+
+- Switch to Node.js runtime
+- Add VPC integration
+- Use .checkov.yml for security configuration
+
+### 0.0.1
+
+- Initial release
+```
 
 ## Quick Start Workflows
 
@@ -889,6 +964,44 @@ resource "example" "main" {
 }
 ```
 
+## Checkov Security Configuration
+
+Checkov runs during deployment to check for security issues. Configure skip rules using `src/.checkov.yml` (inline comments don't work in Massdriver's Checkov version).
+
+### .checkov.yml Format
+
+```yaml
+# src/.checkov.yml
+skip-check:
+  # S3 Bucket
+  - CKV_AWS_144  # Cross-region replication not needed
+  - CKV_AWS_145  # KMS encryption not required for this use case
+
+  # Lambda Function
+  - CKV_AWS_116  # DLQ not required for simple API
+  - CKV_AWS_173  # Environment variables contain credentials by design
+```
+
+### Checkov in massdriver.yaml
+
+Configure Checkov behavior in the steps section:
+
+```yaml
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        # Fail deployment only in production
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+```
+
+**halt_on_failure options:**
+- `true` - Always fail on Checkov violations
+- `false` - Never fail (just warn)
+- JQ expression - Conditional based on params/connections (e.g., production only)
+
 ## Validation Checklist
 
 Before publishing a bundle:
@@ -905,7 +1018,7 @@ Before publishing a bundle:
 Static validation (`tofu validate`) only checks syntax. To verify a bundle actually works, deploy it through Massdriver's orchestrator:
 
 ```bash
-# 1. Build and publish as development (NEVER publish stable during testing)
+# 1. Build and publish as development (NEVER publish stable unless a human requests it)
 mass bundle build
 mass bundle publish --development
 
@@ -1012,22 +1125,23 @@ mass pkg deploy example-test-mydb
 
 This creates an audit trail in Massdriver showing what each deployment intended to accomplish.
 
-### Post-Deployment: Checkov Security Review
+### Post-Deployment: Compliance Review and Remediation
 
-After a successful deployment, review Checkov findings from the deployment logs and create a `TODO.md` file **in each bundle's directory** (e.g., `bundles/aws-vpc/TODO.md`) documenting security improvements.
+After a successful deployment, review Checkov findings from the deployment logs and work through them systematically.
 
-**Extract Checkov findings:**
+**1. Extract Checkov findings:**
 ```bash
 mass logs <deployment-id> 2>&1 | grep -E "Check:|FAILED"
 ```
 
-**TODO.md format:**
+**2. Create TODO list** in the bundle's directory (e.g., `bundles/aws-rds-mysql/TODO.md`):
+
 ```markdown
 # Bundle Improvements
 
 Security improvements identified by Checkov.
 
-## bundle-name
+## aws-rds-mysql
 
 - [ ] **HIGH** - **CKV_XXX_123** - Description of the issue
   - How to fix it
@@ -1038,6 +1152,46 @@ Security improvements identified by Checkov.
 
 - [x] **IGNORE** - **CKV_XXX_789** - Description
   - Reason for ignoring (e.g., intentional design decision)
+```
+
+**3. Work through the issues:**
+
+| Priority | Action |
+|----------|--------|
+| **HIGH** | Attempt to fix by hardcoding secure defaults or exposing as params |
+| **MEDIUM** | Attempt to fix if straightforward; otherwise document why deferred |
+| **LOW** | Add to `.checkov.yml` skip list with comment explaining why |
+| **IGNORE** | Add to `.checkov.yml` skip list - intentional design decisions |
+
+**4. For issues to skip**, create/update `src/.checkov.yml`:
+```yaml
+skip-check:
+  # LOW: Security group egress - RDS requires outbound for AWS API calls
+  - CKV_AWS_382
+  # LOW: SNS encryption - alarm metadata not sensitive
+  - CKV_AWS_26
+```
+
+**5. For issues to fix**, update the Terraform code:
+```hcl
+# HIGH: CKV2_AWS_69 - Require SSL connections
+resource "aws_db_parameter_group" "main" {
+  parameter {
+    name  = "require_secure_transport"  # MySQL
+    value = "1"
+  }
+  # or
+  parameter {
+    name  = "rds.force_ssl"  # PostgreSQL
+    value = "1"
+  }
+}
+```
+
+**6. Republish and redeploy** to verify fixes:
+```bash
+mass bundle publish --development
+mass pkg deploy <package> -m "Fix CKV2_AWS_69: Enable SSL enforcement"
 ```
 
 **Priority ratings:**
@@ -1051,13 +1205,13 @@ Security improvements identified by Checkov.
 
 **Common Checkov findings by category:**
 
-| Category | Typical Findings |
-|----------|------------------|
-| **Encryption** | KMS keys, encryption at rest, TLS |
-| **Logging** | CloudWatch logs, flow logs, audit trails |
-| **Access Control** | IAM auth, security groups, public access |
-| **Backup/DR** | Deletion protection, snapshots, Multi-AZ |
-| **Monitoring** | Enhanced monitoring, Performance Insights |
+| Category | Typical Findings | Typical Fix |
+|----------|------------------|-------------|
+| **Encryption** | KMS keys, encryption at rest, TLS | Enable encryption, add parameter for SSL |
+| **Logging** | CloudWatch logs, flow logs, audit trails | Enable log exports, add log group |
+| **Access Control** | IAM auth, security groups, public access | Restrict ingress, disable public access |
+| **Backup/DR** | Deletion protection, snapshots, Multi-AZ | Add params for user control |
+| **Monitoring** | Enhanced monitoring, Performance Insights | Enable with instance class checks |
 
 Always document the rationale for IGNORE decisions - future maintainers need to understand why a security recommendation was intentionally skipped.
 
@@ -1076,6 +1230,7 @@ Always document the rationale for IGNORE decisions - future maintainers need to 
 | **Publishing stable during development** | NEVER run `mass bundle publish` without `--development` during testing. Stable releases burn semver and can't be unpublished. Use `--development` throughout, only publish stable when production-ready. |
 | **Manual deploy after each publish** | Packages on development channel auto-upgrade and auto-deploy. After initial deploy, just publish - no need to run `mass pkg deploy` again. |
 | **local-exec with Python/dependencies** | Massdriver's provisioner has limited runtime - no sklearn, numpy, pip packages. Pre-build artifacts and include them in the bundle, then use `aws_s3_object` or similar to upload. |
+| **Inline checkov:skip comments** | Inline `#checkov:skip=` comments don't work in Massdriver's Checkov version. Use `src/.checkov.yml` file instead. |
 
 ## Commands Reference
 

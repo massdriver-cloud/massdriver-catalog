@@ -28,12 +28,6 @@ provider "aws" {
 }
 
 # S3 bucket for static website
-#checkov:skip=CKV2_AWS_62:Event notifications not needed for simple static sites
-#checkov:skip=CKV2_AWS_6:Public access is intentional for static website hosting
-#checkov:skip=CKV2_AWS_61:Lifecycle configuration optional for static marketing pages
-#checkov:skip=CKV_AWS_18:Access logging is optional for public marketing content
-#checkov:skip=CKV_AWS_144:Cross-region replication is overkill for marketing pages
-#checkov:skip=CKV_AWS_145:SSE-S3 default encryption is sufficient for public content
 resource "aws_s3_bucket" "website" {
   bucket = local.bucket_name
 
@@ -56,7 +50,6 @@ resource "aws_s3_bucket_website_configuration" "website" {
 }
 
 # Versioning - enables recovery of previous content
-#checkov:skip=CKV_AWS_21:Versioning is user-configurable via enable_versioning param
 resource "aws_s3_bucket_versioning" "website" {
   bucket = aws_s3_bucket.website.id
 
@@ -66,10 +59,6 @@ resource "aws_s3_bucket_versioning" "website" {
 }
 
 # Allow public access (required for static website hosting)
-#checkov:skip=CKV_AWS_53:Public ACLs required for static website hosting
-#checkov:skip=CKV_AWS_54:Public policy required for static website hosting
-#checkov:skip=CKV_AWS_55:Ignore public ACLs disabled - required for static website hosting
-#checkov:skip=CKV_AWS_56:Restrict public buckets disabled - required for static website hosting
 resource "aws_s3_bucket_public_access_block" "website" {
   bucket = aws_s3_bucket.website.id
 

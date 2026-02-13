@@ -1,0 +1,69 @@
+schema: draft-07
+name: aws-lambda-api
+description: "AWS Lambda REST API - Serverless function with API Gateway"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-lambda-api
+version: 0.0.2
+
+params:
+  required:
+    - api_name
+  properties:
+    api_name:
+      type: string
+      title: API Name
+      description: Name for your API
+      default: "todo-api"
+      pattern: ^[a-z][a-z0-9-]{1,62}[a-z0-9]$
+    memory_size:
+      type: integer
+      title: Memory (MB)
+      description: Lambda memory allocation
+      default: 256
+      minimum: 128
+      maximum: 3008
+    timeout:
+      type: integer
+      title: Timeout (seconds)
+      description: Maximum execution time
+      default: 30
+      minimum: 1
+      maximum: 900
+
+connections:
+  required:
+    - aws_authentication
+    - database
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    database:
+      $ref: aws-rds-postgres
+      title: PostgreSQL Database
+    vpc:
+      $ref: aws-vpc
+      title: VPC Network
+
+artifacts:
+  required:
+    - application
+  properties:
+    application:
+      $ref: application
+      title: Lambda API
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - api_name
+    - memory_size
+    - timeout
+    - "*"

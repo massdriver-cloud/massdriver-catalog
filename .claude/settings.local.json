@@ -6,7 +6,12 @@
       "Bash(mass pkg get:*)",
       "Bash(mass bundle publish --development:*)",
       "Bash(mass logs:*)",
-      "Bash(mass artifact get:*)"
+      "Bash(mass artifact get:*)",
+      "Bash(mass pkg create:*)",
+      "Bash(mass pkg version:*)",
+      "Bash(mass env list:*)",
+      "Bash(mass bundle list:*)",
+      "Bash(mass pkg cfg test:*)"
     ]
   }
 }
