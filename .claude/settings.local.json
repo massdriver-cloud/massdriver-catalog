@@ -7,7 +7,14 @@
       "Bash(go test:*)",
       "Bash(go build:*)",
       "Bash(tofu init:*)",
-      "Bash(tofu validate:*)"
+      "Bash(tofu validate:*)",
+      "Bash(mass pkg get:*)",
+      "Bash(mass bundle publish:*)",
+      "Bash(mass pkg version:*)",
+      "Bash(mass pkg deploy:*)",
+      "Bash(mass pkg configure:*)",
+      "Bash(mass logs:*)",
+      "Bash(mass artifact get:*)"
     ]
   }
 }

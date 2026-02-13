@@ -226,8 +226,13 @@ connections:
 ```hcl
 # Bundle's src/main.tf
 provider "aws" {
+  region = var.network.region  # Or var.region from params
   assume_role {
-    role_arn = var.aws_authentication.arn
+    role_arn    = var.aws_authentication.arn
+    external_id = try(var.aws_authentication.external_id, null)
+  }
+  default_tags {
+    tags = var.md_metadata.default_tags
   }
 }
 
@@ -513,6 +518,66 @@ Instructions support dynamic variables like `{{EXTERNAL_ID}}` that are populated
 
 ## Common Patterns
 
+### Provider Blocks Mirror Credential Artifact Schemas
+
+**Critical:** When configuring cloud providers, the provider block arguments must match the credential artifact definition schema. The artifact defines what authentication data is available; the provider block consumes it.
+
+**Example: AWS Provider with aws-iam-role artifact**
+
+The `aws-iam-role` artifact definition schema:
+```yaml
+# platforms/aws/massdriver.yaml (or artifact-definitions/aws-iam-role)
+schema:
+  properties:
+    arn:
+      title: IAM Role ARN
+      type: string
+    external_id:
+      title: External ID
+      type: string  # Optional field
+```
+
+The provider block must use ALL relevant fields from the artifact:
+```hcl
+# src/main.tf
+provider "aws" {
+  region = var.region
+  assume_role {
+    role_arn    = var.aws_authentication.arn
+    external_id = try(var.aws_authentication.external_id, null)  # Handle optional field
+  }
+  default_tags {
+    tags = var.md_metadata.default_tags
+  }
+}
+```
+
+**Example: GCP Provider with gcp-service-account artifact**
+```hcl
+provider "google" {
+  project     = var.gcp_authentication.project_id
+  region      = var.region
+  credentials = var.gcp_authentication.service_account_key
+}
+```
+
+**Example: Azure Provider with azure-service-principal artifact**
+```hcl
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure_authentication.subscription_id
+  tenant_id       = var.azure_authentication.tenant_id
+  client_id       = var.azure_authentication.client_id
+  client_secret   = var.azure_authentication.client_secret
+}
+```
+
+**Key Rules:**
+1. **Inspect the artifact schema first** - Run `mass def get <credential-artifact>` to see all available fields
+2. **Use all authentication fields** - Missing fields (like `external_id`) cause auth failures
+3. **Handle optional fields** - Use `try()` or conditional logic for optional schema properties
+4. **Match types exactly** - If the schema says `integer`, don't treat it as a string
+
 ### Accessing Connection Data in Terraform
 
 ```hcl
@@ -672,16 +737,59 @@ mass env create example-test --name "Test Environment"
 # 3. Create and configure package from the bundle
 mass pkg create example-test-mydb --bundle my-database-bundle
 
+# 4. Set package version and release channel
+# Use 'development' channel to automatically receive --development releases
+mass pkg version example-test-mydb@latest --release-channel development
+
 # Configure with JSON params (--params flag, not --set)
 echo '{"database_name": "testdb", "db_version": "16"}' | mass pkg cfg example-test-mydb --params=-
 
-# 4. Deploy and monitor
+# 5. Deploy and monitor
 mass pkg deploy example-test-mydb  # Note: outputs deployment ID on failure
 mass logs <deployment-id>          # View logs using deployment ID from deploy output
 mass pkg get example-test-mydb     # Check deployment status
 
-# 5. Verify artifacts are created correctly
-mass artifact get example-test-mydb
+# 6. Verify artifacts are created correctly
+# Artifact name format: {package-slug}-{field-name}
+mass artifact get example-test-mydb-database
+```
+
+### Package Versions and Release Channels
+
+Packages can be pinned to specific versions or follow release channels:
+
+```bash
+# Set to latest stable version
+mass pkg version example-test-mydb@latest
+
+# Set to specific version
+mass pkg version example-test-mydb@1.2.3
+
+# Set to version constraint (receives updates within constraint)
+mass pkg version example-test-mydb@~1.2
+
+# Use development release channel (receives --development publishes)
+mass pkg version example-test-mydb@latest --release-channel development
+```
+
+**Release Channels:**
+- `stable` (default): Only receives stable releases (`mass bundle publish`)
+- `development`: Receives both stable AND development releases (`mass bundle publish --development`)
+
+**Best Practice for Testing:**
+Set the package to `development` channel once, then every `mass bundle publish --development` automatically makes the new version available without reconfiguring:
+
+```bash
+# One-time setup
+mass pkg version example-test-mydb@latest --release-channel development
+
+# Now iterate freely - package auto-updates to each new dev release
+mass bundle publish --development  # v0.0.1-dev.timestamp1
+mass pkg deploy example-test-mydb
+
+# Make changes, republish
+mass bundle publish --development  # v0.0.2-dev.timestamp2
+mass pkg deploy example-test-mydb  # Automatically uses new version
 ```
 
 **Important:**
@@ -692,14 +800,15 @@ mass artifact get example-test-mydb
 
 **Testing Workflow:**
 1. User sets up: project, environment, assigns credentials
-2. Claude creates packages, configures them, deploys
-3. Claude checks logs and artifact output to verify correctness
+2. Claude creates packages, configures them, sets to development channel
+3. Claude deploys, checks logs and artifact output to verify correctness
 
 ## Common Mistakes & Fixes
 
 | Mistake | Fix |
 |---------|-----|
 | **Coupled lifecycles** (VPC in database bundle) | Foundational resources become connections, not inline resources. Check `mass bundle list` and `mass def list` for existing artifacts to use. |
+| **Provider auth fails** (Cannot assume role) | Provider block must use ALL fields from credential artifact schema. Check `mass def get <credential>` and include optional fields like `external_id` using `try()`. |
 | "variable not declared" | Run `mass bundle build` to generate `_massdriver_variables.tf` |
 | Param and connection have same name | Rename one - they share Terraform namespace |
 | artifacts.tf field doesn't match | Ensure `field = "X"` matches `artifacts.properties.X` in massdriver.yaml |
