@@ -1,0 +1,73 @@
+name: aws-vpc
+label: AWS VPC
+
+ui:
+  environmentDefaultGroup: networks
+
+schema:
+  title: AWS VPC
+  description: AWS Virtual Private Cloud with subnet configuration
+  type: object
+  required:
+    - id
+    - arn
+    - cidr
+    - region
+    - subnets
+  properties:
+    id:
+      title: VPC ID
+      description: AWS VPC resource identifier (vpc-xxx)
+      type: string
+    arn:
+      title: VPC ARN
+      description: Amazon Resource Name of the VPC
+      type: string
+    cidr:
+      title: CIDR
+      description: VPC address range in CIDR notation
+      type: string
+    region:
+      title: Region
+      description: AWS region where the VPC is deployed
+      type: string
+    subnets:
+      title: Subnets
+      description: VPC subnet allocations
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - arn
+          - cidr
+          - availability_zone
+          - type
+        properties:
+          id:
+            title: Subnet ID
+            description: AWS subnet resource identifier (subnet-xxx)
+            type: string
+          arn:
+            title: Subnet ARN
+            description: Amazon Resource Name of the subnet
+            type: string
+          cidr:
+            title: CIDR
+            description: Subnet address range
+            type: string
+          name:
+            title: Name
+            description: Subnet name
+            type: string
+          availability_zone:
+            title: Availability Zone
+            description: AWS availability zone
+            type: string
+          type:
+            title: Type
+            description: Subnet visibility (public or private)
+            type: string
+            enum:
+              - public
+              - private

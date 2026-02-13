@@ -1,0 +1,78 @@
+name: aws-rds-postgres
+label: AWS RDS PostgreSQL
+
+schema:
+  title: AWS RDS PostgreSQL
+  description: AWS RDS PostgreSQL database instance with connection details and access policies
+  type: object
+  required:
+    - id
+    - arn
+    - region
+    - auth
+    - policies
+  properties:
+    id:
+      title: DB Instance ID
+      description: RDS database instance identifier
+      type: string
+    arn:
+      title: DB Instance ARN
+      description: Amazon Resource Name of the RDS instance
+      type: string
+    region:
+      title: Region
+      description: AWS region where the database is deployed
+      type: string
+    auth:
+      title: Authentication
+      description: Database connection parameters
+      type: object
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Endpoint
+          description: RDS endpoint hostname
+          type: string
+        port:
+          title: Port
+          description: TCP port number
+          type: integer
+          default: 5432
+        database:
+          title: Database
+          description: Default database name
+          type: string
+        username:
+          title: Username
+          description: Master username
+          type: string
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: Master password
+          type: string
+    policies:
+      title: Access Policies
+      description: Available security group rules for database access
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier (security group rule ID)
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string
