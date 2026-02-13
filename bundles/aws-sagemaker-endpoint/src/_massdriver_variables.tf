@@ -5,7 +5,18 @@ variable "aws_authentication" {
     external_id = optional(string)
   })
 }
-variable "cidr" {
+variable "custom_model_s3_uri" {
+  type    = string
+  default = ""
+}
+variable "endpoint_name" {
+  type = string
+}
+variable "initial_instance_count" {
+  type    = number
+  default = 1
+}
+variable "instance_type" {
   type = string
 }
 variable "md_metadata" {
@@ -35,20 +46,19 @@ variable "md_metadata" {
     })
   })
 }
-variable "region" {
+variable "model_source" {
   type = string
 }
-variable "subnets" {
-  type = list(object({
-    availability_zone = string
-    cidr              = string
-    name              = string
-    type              = string
-  }))
-  default = [{ "availability_zone" : "a", "cidr" : "10.0.1.0/24", "name" : "public-a", "type" : "public" }, { "availability_zone" : "a", "cidr" : "10.0.10.0/24", "name" : "private-a", "type" : "private" }]
-}
-// Auto-generated variable declarations from massdriver.yaml
-variable "enable_s3_endpoint" {
-  type    = bool
-  default = false
+variable "sagemaker_domain" {
+  type = object({
+    default_bucket     = optional(string)
+    domain_arn         = string
+    domain_id          = string
+    execution_role_arn = string
+    region             = string
+    security_group_id  = optional(string)
+    studio_url         = optional(string)
+    subnet_ids         = optional(list(string))
+    vpc_id             = optional(string)
+  })
 }

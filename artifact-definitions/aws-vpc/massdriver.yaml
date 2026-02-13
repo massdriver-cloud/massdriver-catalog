@@ -71,3 +71,7 @@ schema:
             enum:
               - public
               - private
+    s3_vpc_endpoint_id:
+      title: S3 VPC Endpoint ID
+      description: Gateway VPC endpoint for S3 access (null if not enabled)
+      type: string

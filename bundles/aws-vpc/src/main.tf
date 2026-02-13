@@ -171,3 +171,21 @@ locals {
     type              = subnet.type
   }]
 }
+
+# S3 VPC Gateway Endpoint - enables private subnet access to S3 without NAT Gateway
+resource "aws_vpc_endpoint" "s3" {
+  count             = var.enable_s3_endpoint ? 1 : 0
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${var.region}.s3"
+  vpc_endpoint_type = "Gateway"
+
+  # Associate with both public and private route tables
+  route_table_ids = [
+    aws_route_table.public.id,
+    aws_route_table.private.id
+  ]
+
+  tags = {
+    Name = "${var.md_metadata.name_prefix}-s3-endpoint"
+  }
+}

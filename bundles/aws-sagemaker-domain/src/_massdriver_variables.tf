@@ -1,11 +1,18 @@
 // Auto-generated variable declarations from massdriver.yaml
+variable "auth_mode" {
+  type = string
+}
 variable "aws_authentication" {
   type = object({
     arn         = string
     external_id = optional(string)
   })
 }
-variable "cidr" {
+variable "default_instance_type" {
+  type    = string
+  default = "ml.t3.medium"
+}
+variable "domain_name" {
   type = string
 }
 variable "md_metadata" {
@@ -35,20 +42,22 @@ variable "md_metadata" {
     })
   })
 }
-variable "region" {
-  type = string
+variable "subnet_ids" {
+  type = list(string)
 }
-variable "subnets" {
-  type = list(object({
-    availability_zone = string
-    cidr              = string
-    name              = string
-    type              = string
-  }))
-  default = [{ "availability_zone" : "a", "cidr" : "10.0.1.0/24", "name" : "public-a", "type" : "public" }, { "availability_zone" : "a", "cidr" : "10.0.10.0/24", "name" : "private-a", "type" : "private" }]
-}
-// Auto-generated variable declarations from massdriver.yaml
-variable "enable_s3_endpoint" {
-  type    = bool
-  default = false
+variable "vpc" {
+  type = object({
+    arn    = string
+    cidr   = string
+    id     = string
+    region = string
+    subnets = list(object({
+      arn               = string
+      availability_zone = string
+      cidr              = string
+      id                = string
+      name              = optional(string)
+      type              = string
+    }))
+  })
 }

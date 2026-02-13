@@ -2,13 +2,18 @@ schema: draft-07
 name: aws-vpc
 description: "AWS VPC with configurable CIDR and arbitrary subnets"
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-vpc
-version: 0.0.1
+version: 0.0.2
 
 params:
   required:
     - region
     - cidr
   properties:
+    enable_s3_endpoint:
+      type: boolean
+      title: Enable S3 VPC Endpoint
+      description: Create a Gateway VPC endpoint for S3 access from private subnets (required for SageMaker, Lambda, etc.)
+      default: false
     region:
       type: string
       title: AWS Region
@@ -112,4 +117,5 @@ ui:
     - region
     - cidr
     - subnets
+    - enable_s3_endpoint
     - "*"

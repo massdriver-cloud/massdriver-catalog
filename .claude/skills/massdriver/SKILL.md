@@ -35,11 +35,33 @@ This skill should be loaded when:
 
 **Key Flow**: Edit `massdriver.yaml` → `mass bundle build` (generates schemas) → `tofu validate` → `mass bundle publish`
 
+## What Can Be a Bundle?
+
+**Massdriver orchestrates IaC tools, not just "persistent infrastructure."** If a provisioner can deploy it, it's a valid bundle:
+
+| Provisioner | What it can deploy |
+|-------------|-------------------|
+| OpenTofu/Terraform | AWS/GCP/Azure resources, Helm releases, K8s manifests |
+| Helm | K8s Deployments, Jobs, CronJobs, StatefulSets, etc. |
+| CloudFormation | Anything AWS supports including Step Functions, SageMaker Pipelines |
+| Kubernetes | Raw manifests - Jobs, CronJobs, Spark operators, Argo workflows |
+| Pulumi, CDK, etc. | Whatever they support |
+
+**Valid bundle content includes:**
+- Kubernetes CronJobs and Jobs (scheduled/triggered workloads)
+- Lambda functions and Step Functions (serverless orchestration)
+- SageMaker Pipelines (ML workflow definitions)
+- Spark/Flink operators (data processing)
+- Argo Workflows (CI/CD pipelines)
+- VMware resources, on-prem infrastructure
+
+**The key insight:** A CronJob that runs nightly is still infrastructure that needs to be deployed, versioned, and managed - even though each execution is ephemeral.
+
 ## Bundle Scoping and Resource Lifecycle
 
-**This is critical for designing composable, maintainable bundles.** A bundle should contain resources that share the same operational lifecycle - they're created, updated, and destroyed together as a unit.
+**This is critical for designing composable, maintainable bundles.** The lifecycle principle helps you decide what goes TOGETHER in a bundle - not what CAN be a bundle. Resources that share the same operational lifecycle should be bundled together.
 
-### The Lifecycle Principle
+### The Lifecycle Principle (for Scoping)
 
 Ask these questions when deciding what belongs in a bundle:
 
