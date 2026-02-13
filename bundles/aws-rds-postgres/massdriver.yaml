@@ -121,6 +121,10 @@ artifacts:
 steps:
   - path: src
     provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
 
 ui:
   ui:order:
