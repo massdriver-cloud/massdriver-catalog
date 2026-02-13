@@ -905,7 +905,7 @@ Before publishing a bundle:
 Static validation (`tofu validate`) only checks syntax. To verify a bundle actually works, deploy it through Massdriver's orchestrator:
 
 ```bash
-# 1. Build and publish as development (not stable release)
+# 1. Build and publish as development (NEVER publish stable during testing)
 mass bundle build
 mass bundle publish --development
 
@@ -916,21 +916,25 @@ mass env create example-test --name "Test Environment"
 # 3. Create and configure package from the bundle
 mass pkg create example-test-mydb --bundle my-database-bundle
 
-# 4. Set package version and release channel
-# Use 'development' channel to automatically receive --development releases
+# 4. Set package to development release channel (one-time setup)
 mass pkg version example-test-mydb@latest --release-channel development
 
-# Configure with JSON params (--params flag, not --set)
-echo '{"database_name": "testdb", "db_version": "16"}' | mass pkg cfg example-test-mydb --params=-
+# 5. Configure with JSON params (use file for complex values)
+cat > /tmp/params.json << 'EOF'
+{"database_name": "testdb", "db_version": "16"}
+EOF
+mass pkg cfg example-test-mydb --params=/tmp/params.json
 
-# 5. Deploy and monitor (use -m for deploy comments when iterating)
+# 6. Initial deploy (only needed once - subsequent publishes auto-deploy)
 mass pkg deploy example-test-mydb -m "Initial deployment"
-mass logs <deployment-id>          # View logs using deployment ID from deploy output
-mass pkg get example-test-mydb     # Check deployment status
 
-# 6. Verify artifacts are created correctly
+# 7. Verify artifacts are created correctly
 # Artifact name format: {package-slug}-{field-name}
 mass artifact get example-test-mydb-database
+
+# 8. Iterate: make changes, publish, package auto-upgrades and deploys
+mass bundle publish --development
+# No manual deploy needed - check logs/artifacts to verify
 ```
 
 ### Package Versions and Release Channels
@@ -956,23 +960,35 @@ mass pkg version example-test-mydb@latest --release-channel development
 - `development`: Receives both stable AND development releases (`mass bundle publish --development`)
 
 **Best Practice for Testing:**
-Set the package to `development` channel once, then every `mass bundle publish --development` automatically makes the new version available without reconfiguring:
+Set the package to `development` channel once, then every `mass bundle publish --development` automatically upgrades and deploys the package - no manual deploy needed:
 
 ```bash
 # One-time setup
 mass pkg version example-test-mydb@latest --release-channel development
+mass pkg deploy example-test-mydb -m "Initial deployment"
 
-# Now iterate freely - package auto-updates to each new dev release
-mass bundle publish --development  # v0.0.1-dev.timestamp1
-mass pkg deploy example-test-mydb
+# Now iterate freely - just publish, package auto-upgrades and deploys
+mass bundle publish --development  # v0.0.1-dev.20260213T120000Z
+# Package automatically upgrades and deploys - no manual deploy needed!
 
-# Make changes, republish
-mass bundle publish --development  # v0.0.2-dev.timestamp2
-mass pkg deploy example-test-mydb  # Automatically uses new version
+# Make changes, republish - same version, new timestamp
+mass bundle publish --development  # v0.0.1-dev.20260213T120500Z
+# Package automatically upgrades and deploys again
 ```
 
+**CRITICAL - Don't Burn Semver During Development:**
+- Keep the same version number throughout development (e.g., `0.0.1`)
+- The `--development` flag adds a timestamp suffix (e.g., `0.0.1-dev.20260213T120000Z`)
+- Each `--development` publish creates a new dev release without changing the base version
+- Only bump version when ready for a stable release
+- NEVER publish stable (`mass bundle publish` without `--development`) until the bundle is production-ready
+
+**Auto-Upgrade Behavior:**
+- Packages on `development` channel automatically upgrade when new dev releases are published
+- Packages on `stable` channel only upgrade when new stable releases are published
+- Auto-upgrade triggers an automatic deployment - no need to run `mass pkg deploy` after publishing
+
 **Important:**
-- Always use `--development` flag when testing to avoid creating stable releases
 - User may need to provide a project/environment to work in
 - Credential assignment to packages may require manual setup in the UI (no CLI command yet)
 - Ask user to set up credentials in the environment before deploying
@@ -1057,6 +1073,9 @@ Always document the rationale for IGNORE decisions - future maintainers need to 
 | $ref not found | Verify artifact definition exists with `mass def get <name>` |
 | Edited generated file, changes lost | Never edit `schema-*.json` or `_massdriver_variables.tf` |
 | Missing massdriver provider | Add to `required_providers` block |
+| **Publishing stable during development** | NEVER run `mass bundle publish` without `--development` during testing. Stable releases burn semver and can't be unpublished. Use `--development` throughout, only publish stable when production-ready. |
+| **Manual deploy after each publish** | Packages on development channel auto-upgrade and auto-deploy. After initial deploy, just publish - no need to run `mass pkg deploy` again. |
+| **local-exec with Python/dependencies** | Massdriver's provisioner has limited runtime - no sklearn, numpy, pip packages. Pre-build artifacts and include them in the bundle, then use `aws_s3_object` or similar to upload. |
 
 ## Commands Reference
 
