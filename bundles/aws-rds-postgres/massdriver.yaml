@@ -2,7 +2,7 @@ schema: draft-07
 name: aws-rds-postgres
 description: "AWS RDS PostgreSQL with version selection and backup configuration"
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-rds-postgres
-version: 0.0.1
+version: 0.0.2
 
 params:
   required:
@@ -84,6 +84,13 @@ params:
       title: Deletion Protection
       description: Prevent accidental database deletion (recommended for production)
       default: true
+    cpu_alarm_threshold:
+      type: integer
+      title: CPU Alarm Threshold (%)
+      description: Trigger alarm when CPU exceeds this percentage
+      default: 80
+      minimum: 1
+      maximum: 100
     subnet_ids:
       type: array
       title: Subnets
@@ -136,5 +143,6 @@ ui:
     - backup_window
     - backup_retention_period
     - deletion_protection
+    - cpu_alarm_threshold
     - subnet_ids
     - "*"

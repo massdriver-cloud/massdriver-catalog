@@ -14,7 +14,7 @@ resource "massdriver_artifact" "kubernetes_cluster" {
           "certificate-authority-data" = aws_eks_cluster.main.certificate_authority[0].data
         }
         user = {
-          token = "" # Users will configure access via AWS IAM or service account tokens
+          token = kubernetes_secret.massdriver_token.data["token"]
         }
       }
     }

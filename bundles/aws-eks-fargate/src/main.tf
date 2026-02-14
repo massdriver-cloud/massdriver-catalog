@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -164,8 +168,61 @@ resource "aws_iam_openid_connect_provider" "cluster" {
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
-# CoreDNS patch for Fargate (CoreDNS needs to run on Fargate too)
-# This is handled via the kube-system Fargate profile
+# Get cluster auth token
+data "aws_eks_cluster_auth" "main" {
+  name = aws_eks_cluster.main.name
+}
+
+# Kubernetes provider for creating service account
+provider "kubernetes" {
+  host                   = aws_eks_cluster.main.endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.main.token
+}
+
+# Service account for Massdriver to use
+resource "kubernetes_service_account" "massdriver" {
+  metadata {
+    name      = "massdriver"
+    namespace = "kube-system"
+  }
+
+  depends_on = [aws_eks_fargate_profile.namespaces]
+}
+
+# Cluster admin binding for the service account
+resource "kubernetes_cluster_role_binding" "massdriver" {
+  metadata {
+    name = "massdriver-cluster-admin"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = "cluster-admin"
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.massdriver.metadata[0].name
+    namespace = kubernetes_service_account.massdriver.metadata[0].namespace
+  }
+}
+
+# Create a secret to hold the service account token (K8s 1.24+)
+resource "kubernetes_secret" "massdriver_token" {
+  metadata {
+    name      = "massdriver-token"
+    namespace = "kube-system"
+    annotations = {
+      "kubernetes.io/service-account.name" = kubernetes_service_account.massdriver.metadata[0].name
+    }
+  }
+
+  type = "kubernetes.io/service-account-token"
+
+  depends_on = [kubernetes_service_account.massdriver]
+}
 
 # Outputs
 output "cluster_name" {
