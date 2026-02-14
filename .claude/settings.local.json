@@ -11,7 +11,9 @@
       "Bash(mass pkg version:*)",
       "Bash(mass env list:*)",
       "Bash(mass bundle list:*)",
-      "Bash(mass pkg cfg test:*)"
+      "Bash(mass pkg cfg test:*)",
+      "Bash(mass def get:*)",
+      "Bash(mass def get postgres)"
     ]
   }
 }
