@@ -11,7 +11,7 @@ module "alarm_high_cpu" {
 
   alarm_name   = "${var.md_metadata.name_prefix}-high-cpu"
   display_name = "High CPU Utilization"
-  message      = "RDS CPU utilization is above 80%"
+  message      = "RDS CPU utilization is above ${var.cpu_alarm_threshold}%"
 
   namespace   = "AWS/RDS"
   metric_name = "CPUUtilization"
@@ -20,7 +20,7 @@ module "alarm_high_cpu" {
 
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
-  threshold           = "80"
+  threshold           = var.cpu_alarm_threshold
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.main.identifier

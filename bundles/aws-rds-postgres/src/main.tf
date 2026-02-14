@@ -198,31 +198,3 @@ locals {
   hostname = aws_db_instance.main.endpoint
   port     = aws_db_instance.main.port
 }
-
-# SNS Topic for alarms
-# checkov:skip=CKV_AWS_26:SNS encryption not needed for alarm notifications
-resource "aws_sns_topic" "alarms" {
-  name = "${var.md_metadata.name_prefix}-rds-alarms"
-  tags = var.md_metadata.default_tags
-}
-
-# CPU Utilization Alarm
-resource "aws_cloudwatch_metric_alarm" "cpu" {
-  alarm_name          = "${var.md_metadata.name_prefix}-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/RDS"
-  period              = 60
-  statistic           = "Average"
-  threshold           = var.cpu_alarm_threshold
-  alarm_description   = "RDS CPU utilization exceeds ${var.cpu_alarm_threshold}%"
-  alarm_actions       = [aws_sns_topic.alarms.arn]
-  ok_actions          = [aws_sns_topic.alarms.arn]
-
-  dimensions = {
-    DBInstanceIdentifier = aws_db_instance.main.identifier
-  }
-
-  tags = var.md_metadata.default_tags
-}
