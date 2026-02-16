@@ -1,0 +1,55 @@
+schema: draft-07
+name: helm-hello-world
+description: "Simple hello-world deployment using Helm provisioner"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/helm-hello-world
+version: 0.0.2
+
+params:
+  required:
+    - namespace
+    - replicas
+  properties:
+    namespace:
+      type: string
+      title: Namespace
+      description: Kubernetes namespace to deploy into
+      default: "default"
+      pattern: ^[a-z][a-z0-9-]{0,62}$
+    replicas:
+      type: integer
+      title: Replicas
+      description: Number of pod replicas
+      default: 1
+      minimum: 1
+      maximum: 10
+    message:
+      type: string
+      title: Hello Message
+      description: Message to display on the hello page
+      default: "Hello from Massdriver!"
+
+connections:
+  required:
+    - kubernetes_cluster
+  properties:
+    kubernetes_cluster:
+      $ref: massdriver/kubernetes-cluster
+      title: Kubernetes Cluster
+
+artifacts:
+  required: []
+  properties: {}
+
+steps:
+  - path: chart
+    provisioner: helm
+    config:
+      namespace: ".params.namespace"
+      kubernetes_cluster: ".connections.kubernetes_cluster"
+
+ui:
+  ui:order:
+    - namespace
+    - replicas
+    - message
+    - "*"

@@ -2,7 +2,7 @@ schema: draft-07
 name: aws-eks-fargate
 description: "AWS EKS with Fargate - Serverless Kubernetes cluster"
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-eks-fargate
-version: 0.0.4
+version: 0.0.5
 
 params:
   required:

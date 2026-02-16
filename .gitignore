@@ -29,3 +29,6 @@ schema-ui.json
 # Build artifacts
 _dist/
 node_modules/
+
+# Local demo notes
+DEMO.md

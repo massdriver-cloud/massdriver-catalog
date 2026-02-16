@@ -136,13 +136,50 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Route table for private subnets (no internet route)
+# NAT Gateway for private subnet internet access (optional)
+locals {
+  # Find first public subnet for NAT Gateway placement
+  first_public_subnet = try([for subnet in var.subnets : subnet.name if subnet.type == "public"][0], null)
+}
+
+resource "aws_eip" "nat" {
+  count  = var.enable_nat_gateway && local.first_public_subnet != null ? 1 : 0
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.md_metadata.name_prefix}-nat-eip"
+  }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+resource "aws_nat_gateway" "main" {
+  count         = var.enable_nat_gateway && local.first_public_subnet != null ? 1 : 0
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.main[local.first_public_subnet].id
+
+  tags = {
+    Name = "${var.md_metadata.name_prefix}-nat"
+  }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# Route table for private subnets
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   tags = {
     Name = "${var.md_metadata.name_prefix}-private-rt"
   }
+}
+
+# Route to NAT Gateway for private subnet internet access
+resource "aws_route" "private_nat" {
+  count                  = var.enable_nat_gateway && local.first_public_subnet != null ? 1 : 0
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[0].id
 }
 
 # Associate public subnets with public route table

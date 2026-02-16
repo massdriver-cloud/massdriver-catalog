@@ -52,3 +52,8 @@ variable "enable_s3_endpoint" {
   type    = bool
   default = false
 }
+// Auto-generated variable declarations from massdriver.yaml
+variable "enable_nat_gateway" {
+  type    = bool
+  default = false
+}

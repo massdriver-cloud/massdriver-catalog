@@ -224,6 +224,91 @@ resource "kubernetes_secret" "massdriver_token" {
   depends_on = [kubernetes_service_account.massdriver]
 }
 
+# VPC Endpoints for ECR (required for Fargate to pull images without NAT Gateway)
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "${local.cluster_name}-vpc-endpoints-sg"
+  description = "Security group for VPC endpoints"
+  vpc_id      = var.vpc.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc.cidr]
+    description = "Allow HTTPS from VPC"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound"
+  }
+
+  tags = {
+    Name = "${local.cluster_name}-vpc-endpoints-sg"
+  }
+}
+
+# ECR API endpoint
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = var.vpc.id
+  service_name        = "com.amazonaws.${var.vpc.region}.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${local.cluster_name}-ecr-api"
+  }
+}
+
+# ECR Docker endpoint
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = var.vpc.id
+  service_name        = "com.amazonaws.${var.vpc.region}.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${local.cluster_name}-ecr-dkr"
+  }
+}
+
+# S3 Gateway endpoint is provided by the VPC bundle (var.vpc.s3_vpc_endpoint_id)
+
+# CloudWatch Logs endpoint (for Fargate logging)
+resource "aws_vpc_endpoint" "logs" {
+  vpc_id              = var.vpc.id
+  service_name        = "com.amazonaws.${var.vpc.region}.logs"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${local.cluster_name}-logs"
+  }
+}
+
+# STS endpoint (for IAM authentication)
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id              = var.vpc.id
+  service_name        = "com.amazonaws.${var.vpc.region}.sts"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnets
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${local.cluster_name}-sts"
+  }
+}
+
 # Outputs
 output "cluster_name" {
   value       = aws_eks_cluster.main.name
