@@ -1,8 +1,37 @@
+---
+templating: mustache
+---
+
 # Azure Function App Operations
 
-## Overview
+> **Templating**: This runbook supports mustache templating.
+> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
 
-This bundle deploys a Node.js Azure Function App that provides a REST API for reading and writing to Azure Blob Storage.
+## Package Information
+
+**Slug:** `{{slug}}`
+
+### Configuration
+
+**Region:** `{{params.region}}`
+
+**Storage Policy:** `{{params.storage_policy}}`
+
+### Connected Storage
+
+**Storage Account:** `{{connections.storage.name}}`
+
+**Container:** `{{connections.storage.data.container_name}}`
+
+---
+
+## Function App Details
+
+**Name:** `{{artifacts.application.name}}`
+
+**Service URL:** `{{artifacts.application.service_url}}`
+
+---
 
 ## API Reference
 
@@ -18,8 +47,8 @@ curl {{artifacts.application.service_url}}/api/health
 ```json
 {
   "status": "healthy",
-  "container": "demo",
-  "policy": "write",
+  "container": "{{connections.storage.data.container_name}}",
+  "policy": "{{params.storage_policy}}",
   "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
@@ -71,7 +100,7 @@ curl -X POST {{artifacts.application.service_url}}/api/blob/example.txt \
 {
   "message": "Blob created",
   "name": "example.txt",
-  "url": "https://storageaccount.blob.core.windows.net/demo/example.txt"
+  "url": "{{connections.storage.endpoint}}{{connections.storage.data.container_name}}/example.txt"
 }
 ```
 
@@ -88,6 +117,8 @@ curl -X DELETE {{artifacts.application.service_url}}/api/blob/example.txt
   "name": "example.txt"
 }
 ```
+
+---
 
 ## Quick Demo Script
 
@@ -123,6 +154,8 @@ echo -e "\n=== List Blobs (empty) ==="
 curl -s "$BASE_URL/blobs" | jq
 ```
 
+---
+
 ## Access Policies
 
 The function respects the storage policy selected during configuration:
@@ -132,6 +165,8 @@ The function respects the storage policy selected during configuration:
 | `read` | Yes | No | No |
 | `write` | Yes | Yes | Yes |
 
+**Current Policy:** `{{params.storage_policy}}`
+
 If an operation is denied, you'll receive a 403 response:
 
 ```json
@@ -140,24 +175,37 @@ If an operation is denied, you'll receive a 403 response:
 }
 ```
 
+---
+
 ## Troubleshooting
 
 ### Function Not Responding
+
 1. Check Azure Portal > Function App > Functions to verify deployment
 2. Check Application Insights for errors (if enabled)
-3. Verify the function is running: `curl {{artifacts.application.service_url}}/api/health`
+3. Verify the function is running:
+
+```bash
+curl {{artifacts.application.service_url}}/api/health
+```
 
 ### Storage Errors
+
 1. Verify the storage account connection in Configuration > Application settings
 2. Check that `BLOB_STORAGE_CONNECTION_STRING` is set correctly
-3. Ensure the container exists in the storage account
+3. Ensure the container `{{connections.storage.data.container_name}}` exists in storage account `{{connections.storage.name}}`
 
 ### Permission Denied
+
 The function's access level is controlled by the `storage_policy` parameter:
 - **Read**: Can list and read blobs
 - **Write**: Can list, read, create, update, and delete blobs
 
+Current policy is: `{{params.storage_policy}}`
+
 To change access level, update the bundle configuration in Massdriver.
+
+---
 
 ## Azure Portal Access
 
@@ -165,3 +213,7 @@ To change access level, update the bundle configuration in Massdriver.
 2. Go to Function Apps
 3. Find: `{{artifacts.application.name}}`
 4. View logs: Functions > api > Monitor
+
+---
+
+**Ready to customize?** [Edit this runbook](https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-function-app/operator.md)

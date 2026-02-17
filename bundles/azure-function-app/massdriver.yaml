@@ -2,7 +2,7 @@ schema: draft-07
 name: azure-function-app
 description: "Azure Function App with Node.js for demo - reads/writes to blob storage"
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-function-app
-version: 0.0.3
+version: 0.0.4
 
 params:
   required:
