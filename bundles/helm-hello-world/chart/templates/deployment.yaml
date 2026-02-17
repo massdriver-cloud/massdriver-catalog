@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-hello
+  labels:
+    app: hello-world
+spec:
+  replicas: {{ .Values.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: hello-world
+  template:
+    metadata:
+      annotations:
+        massdriver.cloud/restartedAt: "{{ now | date "2006-01-02T15:04:05Z07:00" }}"
+      labels:
+        app: hello-world
+    spec:
+      containers:
+        - name: hello
+          image: public.ecr.aws/docker/library/httpd:2.4
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10

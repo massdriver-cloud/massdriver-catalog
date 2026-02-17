@@ -17,6 +17,11 @@ schema:
       title: Name
       description: Application name
       type: string
+    url:
+      title: URL
+      description: Public URL to access the application
+      type: string
+      format: uri
     tags:
       title: Tags
       description: Resource tags

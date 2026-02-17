@@ -1,0 +1,4 @@
+# Default values - overridden by Massdriver params
+replicas: 1
+message: "Hello World"
+namespace: "default"

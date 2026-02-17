@@ -1,0 +1,125 @@
+{
+  "$md": {
+    "label": "Backstage Component",
+    "name": "backstage-component"
+  },
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "Backstage Component",
+  "description": "Backstage catalog component entity",
+  "type": "object",
+  "required": ["metadata", "spec"],
+  "properties": {
+    "metadata": {
+      "title": "Metadata",
+      "description": "Entity identification and categorization",
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "Entity name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "description": "Namespace for entity grouping",
+          "type": "string",
+          "default": "default"
+        },
+        "title": {
+          "title": "Title",
+          "description": "Human-readable display name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "description": "Entity purpose and functionality",
+          "type": "string"
+        },
+        "labels": {
+          "title": "Labels",
+          "description": "Key-value pairs for filtering",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "title": "Annotations",
+          "description": "Non-identifying metadata",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "title": "Tags",
+          "description": "Categorization keywords",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "title": "Spec",
+      "description": "Component specification",
+      "type": "object",
+      "required": ["type", "lifecycle", "owner"],
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "Component classification",
+          "type": "string",
+          "enum": ["service", "website", "library", "documentation", "other"]
+        },
+        "lifecycle": {
+          "title": "Lifecycle",
+          "description": "Development stage",
+          "type": "string",
+          "enum": ["experimental", "production", "deprecated"]
+        },
+        "owner": {
+          "title": "Owner",
+          "description": "Responsible team or user",
+          "type": "string"
+        },
+        "system": {
+          "title": "System",
+          "description": "Parent system reference",
+          "type": "string"
+        },
+        "subcomponentOf": {
+          "title": "Subcomponent Of",
+          "description": "Parent component reference",
+          "type": "string"
+        },
+        "providesApis": {
+          "title": "Provides APIs",
+          "description": "APIs exposed by this component",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "consumesApis": {
+          "title": "Consumes APIs",
+          "description": "APIs consumed by this component",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependsOn": {
+          "title": "Depends On",
+          "description": "Component and resource dependencies",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

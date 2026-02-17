@@ -1,0 +1,99 @@
+schema: draft-07
+name: aws-sagemaker-endpoint
+description: "AWS SageMaker Endpoint - Deploy ML models for real-time inference"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-sagemaker-endpoint
+version: 0.0.5
+
+params:
+  required:
+    - endpoint_name
+    - instance_type
+    - model_source
+  properties:
+    endpoint_name:
+      type: string
+      title: Endpoint Name
+      description: Name for the SageMaker endpoint
+      default: "inference"
+      pattern: ^[a-zA-Z0-9](-*[a-zA-Z0-9])*$
+    instance_type:
+      type: string
+      title: Instance Type
+      description: Instance type for inference
+      default: "ml.t2.medium"
+      oneOf:
+        - title: "T2 Medium (2 vCPU, 4 GB) - Dev/Testing"
+          const: "ml.t2.medium"
+        - title: "T2 Large (2 vCPU, 8 GB) - Light Workloads"
+          const: "ml.t2.large"
+        - title: "M5 Large (2 vCPU, 8 GB) - General Purpose"
+          const: "ml.m5.large"
+        - title: "M5 XLarge (4 vCPU, 16 GB) - Medium Workloads"
+          const: "ml.m5.xlarge"
+        - title: "C5 Large (2 vCPU, 4 GB) - Compute Optimized"
+          const: "ml.c5.large"
+        - title: "C5 XLarge (4 vCPU, 8 GB) - Heavy Compute"
+          const: "ml.c5.xlarge"
+        - title: "G4DN XLarge (4 vCPU, 16 GB, 1 GPU) - GPU Inference"
+          const: "ml.g4dn.xlarge"
+    initial_instance_count:
+      type: integer
+      title: Initial Instance Count
+      description: Number of instances to launch
+      default: 1
+      minimum: 1
+      maximum: 10
+    model_source:
+      type: string
+      title: Model Source
+      description: Source of the model to deploy
+      default: "poc-sklearn"
+      oneOf:
+        - const: "poc-sklearn"
+          title: "POC: Scikit-learn Iris Classifier (demo)"
+        - const: "custom-s3"
+          title: "Custom: S3 Model Artifact"
+    custom_model_s3_uri:
+      type: string
+      title: Custom Model S3 URI
+      description: "S3 URI to model artifact (required if using Custom S3)"
+      default: ""
+      examples:
+        - "s3://my-bucket/models/model.tar.gz"
+
+connections:
+  required:
+    - aws_authentication
+    - sagemaker_domain
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    sagemaker_domain:
+      $ref: aws-sagemaker-domain
+      title: SageMaker Domain
+
+artifacts:
+  required:
+    - endpoint
+  properties:
+    endpoint:
+      $ref: aws-sagemaker-endpoint
+      title: SageMaker Endpoint
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - endpoint_name
+    - model_source
+    - custom_model_s3_uri
+    - instance_type
+    - initial_instance_count
+    - "*"

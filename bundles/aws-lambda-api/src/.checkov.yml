@@ -1,0 +1,19 @@
+skip-check:
+  # IAM Role Policy
+  - CKV_AWS_111  # WritePolicy is required for CloudWatch Logs
+  - CKV_AWS_356  # Resource wildcard needed for log group creation
+
+  # S3 Bucket for Lambda Code
+  - CKV_AWS_144  # Cross-region replication not needed for Lambda code
+  - CKV_AWS_145  # KMS encryption not required for demo Lambda code
+  - CKV2_AWS_62  # Event notifications not needed for Lambda code bucket
+  - CKV2_AWS_61  # Lifecycle configuration not needed for Lambda code
+  - CKV_AWS_18   # Access logging not required for demo
+
+  # Lambda Function
+  - CKV_AWS_116  # DLQ not required for simple REST API
+  - CKV_AWS_173  # Environment variables contain DB credentials by design
+  - CKV_AWS_272  # Code signing not required for demo
+
+  # CloudWatch Log Groups
+  - CKV_AWS_158  # KMS encryption optional for demo logs

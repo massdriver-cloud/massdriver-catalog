@@ -1,0 +1,15 @@
+skip-check:
+  # S3 Bucket - Static website hosting requires public access
+  - CKV2_AWS_62  # Event notifications not needed for simple static sites
+  - CKV2_AWS_6   # Public access is intentional for static website hosting
+  - CKV2_AWS_61  # Lifecycle configuration optional for static marketing pages
+  - CKV_AWS_18   # Access logging is optional for public marketing content
+  - CKV_AWS_144  # Cross-region replication is overkill for marketing pages
+  - CKV_AWS_145  # SSE-S3 default encryption is sufficient for public content
+  - CKV_AWS_21   # Versioning is user-configurable via enable_versioning param
+
+  # Public Access Block - Required for static website hosting
+  - CKV_AWS_53   # Public ACLs required for static website hosting
+  - CKV_AWS_54   # Public policy required for static website hosting
+  - CKV_AWS_55   # Ignore public ACLs disabled - required for static website hosting
+  - CKV_AWS_56   # Restrict public buckets disabled - required for static website hosting

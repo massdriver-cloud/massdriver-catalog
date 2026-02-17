@@ -1,0 +1,95 @@
+schema: draft-07
+name: aws-sagemaker-domain
+description: "AWS SageMaker Domain - Studio workspace for ML experimentation and model development"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-sagemaker-domain
+version: 0.0.5
+
+params:
+  required:
+    - domain_name
+    - auth_mode
+    - subnet_ids
+  properties:
+    domain_name:
+      type: string
+      title: Domain Name
+      description: Name for the SageMaker Domain
+      default: "ml-studio"
+      pattern: ^[a-zA-Z0-9](-*[a-zA-Z0-9])*$
+    auth_mode:
+      type: string
+      title: Authentication Mode
+      description: Authentication mode for Studio users
+      default: "IAM"
+      enum:
+        - "IAM"
+        - "SSO"
+    default_instance_type:
+      type: string
+      title: Default Notebook Instance Type
+      description: Default instance type for KernelGateway apps (notebook kernels)
+      default: "ml.t3.medium"
+      oneOf:
+        - title: "T3 Medium (2 vCPU, 4 GB) - Dev/Testing"
+          const: "ml.t3.medium"
+        - title: "T3 Large (2 vCPU, 8 GB) - Light Workloads"
+          const: "ml.t3.large"
+        - title: "M5 Large (2 vCPU, 8 GB) - General Purpose"
+          const: "ml.m5.large"
+        - title: "M5 XLarge (4 vCPU, 16 GB) - Medium Workloads"
+          const: "ml.m5.xlarge"
+        - title: "C5 Large (2 vCPU, 4 GB) - Compute Optimized"
+          const: "ml.c5.large"
+        - title: "C5 XLarge (4 vCPU, 8 GB) - Heavy Compute"
+          const: "ml.c5.xlarge"
+        - title: "G4DN XLarge (4 vCPU, 16 GB, 1 GPU) - GPU Training"
+          const: "ml.g4dn.xlarge"
+    subnet_ids:
+      type: array
+      title: Subnets
+      description: Select subnets for SageMaker workloads (use private subnets)
+      minItems: 1
+      items:
+        type: string
+        title: Subnet
+        $md.enum:
+          connection: vpc
+          options: .subnets
+          value: .id
+          label: .name
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: AWS VPC
+
+artifacts:
+  required:
+    - domain
+  properties:
+    domain:
+      $ref: aws-sagemaker-domain
+      title: SageMaker Domain
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - domain_name
+    - auth_mode
+    - default_instance_type
+    - subnet_ids
+    - "*"

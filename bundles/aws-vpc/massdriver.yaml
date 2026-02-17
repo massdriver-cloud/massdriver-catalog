@@ -1,0 +1,127 @@
+schema: draft-07
+name: aws-vpc
+description: "AWS VPC with configurable CIDR and arbitrary subnets"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-vpc
+version: 0.0.3
+
+params:
+  required:
+    - region
+    - cidr
+  properties:
+    enable_s3_endpoint:
+      type: boolean
+      title: Enable S3 VPC Endpoint
+      description: Create a Gateway VPC endpoint for S3 access from private subnets (required for SageMaker, Lambda, etc.)
+      default: false
+    enable_nat_gateway:
+      type: boolean
+      title: Enable NAT Gateway
+      description: Create NAT Gateway for private subnet internet access (required for EKS Fargate to pull public container images)
+      default: false
+    region:
+      type: string
+      title: AWS Region
+      description: AWS region to deploy the VPC
+      default: "us-east-1"
+      $md.immutable: true
+      enum:
+        - "us-east-1"
+        - "us-east-2"
+        - "us-west-1"
+        - "us-west-2"
+        - "eu-west-1"
+        - "eu-west-2"
+        - "eu-central-1"
+        - "ap-southeast-1"
+        - "ap-southeast-2"
+        - "ap-northeast-1"
+    cidr:
+      type: string
+      title: VPC CIDR
+      description: CIDR block for the VPC (e.g., 10.0.0.0/16)
+      default: "10.0.0.0/16"
+      $md.immutable: true
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    subnets:
+      type: array
+      title: Subnets
+      description: Configure subnets for the VPC
+      default:
+        - name: "public-a"
+          cidr: "10.0.1.0/24"
+          availability_zone: "a"
+          type: "public"
+        - name: "private-a"
+          cidr: "10.0.10.0/24"
+          availability_zone: "a"
+          type: "private"
+      items:
+        type: object
+        required:
+          - name
+          - cidr
+          - availability_zone
+          - type
+        properties:
+          name:
+            type: string
+            title: Subnet Name
+            description: Name for the subnet
+            pattern: ^[a-z][a-z0-9-]*$
+          cidr:
+            type: string
+            title: Subnet CIDR
+            description: CIDR block for the subnet
+            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+          availability_zone:
+            type: string
+            title: Availability Zone Suffix
+            description: AZ suffix (a, b, c, etc.)
+            enum:
+              - "a"
+              - "b"
+              - "c"
+              - "d"
+              - "e"
+              - "f"
+          type:
+            type: string
+            title: Subnet Type
+            description: Public subnets get internet access, private subnets are isolated
+            enum:
+              - "public"
+              - "private"
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - vpc
+  properties:
+    vpc:
+      $ref: aws-vpc
+      title: AWS VPC
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - cidr
+    - subnets
+    - enable_nat_gateway
+    - enable_s3_endpoint
+    - "*"
