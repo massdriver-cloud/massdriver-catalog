@@ -1,0 +1,62 @@
+schema: draft-07
+name: azure-storage-account
+description: "Azure Storage Account with Blob container for demo purposes"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-storage-account
+version: 0.0.1
+
+params:
+  required:
+    - region
+    - container_name
+  properties:
+    region:
+      type: string
+      title: Region
+      description: Azure region for the storage account
+      default: eastus
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - centralus
+        - northeurope
+        - westeurope
+    container_name:
+      type: string
+      title: Container Name
+      description: Name of the blob container
+      default: demo
+      pattern: ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$
+      message:
+        pattern: Must be 3-63 lowercase letters, numbers, or hyphens
+
+connections:
+  required:
+    - azure_authentication
+  properties:
+    azure_authentication:
+      $ref: azure-service-principal
+      title: Azure Service Principal
+
+artifacts:
+  required:
+    - storage
+  properties:
+    storage:
+      $ref: azure-storage-account
+      title: Azure Storage Account
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: false
+
+ui:
+  ui:order:
+    - region
+    - container_name
+    - "*"

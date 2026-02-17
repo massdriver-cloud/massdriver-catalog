@@ -6,7 +6,6 @@ schema:
   description: Generic application template for customization or extension
   type: object
   required:
-    - deployment_id
     - name
   properties:
     deployment_id:
@@ -16,6 +15,10 @@ schema:
     name:
       title: Name
       description: Application name
+      type: string
+    service_url:
+      title: Service URL
+      description: Base URL for the application service
       type: string
     tags:
       title: Tags

@@ -1,0 +1,9 @@
+{
+  "name": "azure-function-demo",
+  "version": "1.0.0",
+  "description": "Demo Azure Function for Massdriver",
+  "main": "api/index.js",
+  "dependencies": {
+    "@azure/storage-blob": "^12.17.0"
+  }
+}
