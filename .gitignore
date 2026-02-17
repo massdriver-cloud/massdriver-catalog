@@ -28,3 +28,4 @@ schema-ui.json
 
 # Build artifacts
 _dist/
+.claude/settings.local.json
