@@ -9,7 +9,8 @@ resource "massdriver_artifact" "database" {
       username = var.username
       password = random_pet.main.id
     }
-    id = random_pet.main.id
+    id      = random_pet.main.id
+    version = var.db_version
     policies = [
       {
         id   = "read-only"

@@ -48,6 +48,10 @@ schema:
       title: ID
       description: Unique database instance identifier
       type: string
+    version:
+      title: Version
+      description: PostgreSQL major version
+      type: string
     policies:
       title: Access Policies
       description: Available IAM policies for database access
