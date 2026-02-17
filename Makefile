@@ -6,7 +6,7 @@ ENABLED_PLATFORMS ?= aws gcp azure kubernetes
 
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
-ARTDEFS = $(shell find artifact-definitions -name "*.json" -exec basename {} .json \;)
+ARTDEFS = $(shell find artifact-definitions -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 PLATFORMS = $(ENABLED_PLATFORMS)
 
 help:
@@ -58,7 +58,7 @@ publish-bundles: clean-lock build-bundles validate-bundles
 publish-artifact-definitions:
 	@for artdef in $(ARTDEFS); do \
 		echo "Publishing artifact definition $$artdef..."; \
-		mass definition publish artifact-definitions/$$artdef.json; \
+		mass definition publish artifact-definitions/$$artdef/massdriver.yaml; \
 	done
 
 build-bundles:
