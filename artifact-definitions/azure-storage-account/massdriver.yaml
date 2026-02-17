@@ -1,0 +1,75 @@
+name: azure-storage-account
+label: Azure Storage Account
+
+schema:
+  title: Azure Storage Account
+  description: Azure Blob Storage account with container and access policies
+  type: object
+  required:
+    - id
+    - name
+    - endpoint
+    - policies
+    - data
+  properties:
+    id:
+      title: ID
+      description: Storage account resource ID
+      type: string
+    name:
+      title: Name
+      description: Storage account name
+      type: string
+    endpoint:
+      title: Endpoint
+      description: Primary blob endpoint URL
+      type: string
+    policies:
+      title: Access Policies
+      description: Available access policies for the storage account
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier (read, write)
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string
+    data:
+      title: Connection Data
+      description: Azure-specific connection data for applications
+      type: object
+      required:
+        - resource_group_name
+        - container_name
+        - connection_string
+      properties:
+        resource_group_name:
+          title: Resource Group Name
+          description: Azure resource group containing the storage account
+          type: string
+        container_name:
+          title: Container Name
+          description: Default blob container name
+          type: string
+        primary_access_key:
+          $md.sensitive: true
+          title: Primary Access Key
+          description: Storage account primary access key
+          type: string
+        connection_string:
+          $md.sensitive: true
+          title: Connection String
+          description: Storage account connection string
+          type: string
+        primary_blob_endpoint:
+          title: Primary Blob Endpoint
+          description: Primary blob service endpoint URL
+          type: string

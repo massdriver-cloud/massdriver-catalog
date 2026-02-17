@@ -1,0 +1,14 @@
+skip-check:
+  # Storage Account
+  - CKV_AZURE_33   # Queue logging - not using queues
+  - CKV_AZURE_35   # Default network access - demo simplicity
+  - CKV_AZURE_36   # No private endpoint - demo simplicity
+  - CKV_AZURE_59   # No public access - demo requires public for function
+  - CKV2_AZURE_1   # CMK encryption - demo uses Microsoft-managed keys
+  - CKV2_AZURE_18  # CMK encryption - demo uses Microsoft-managed keys
+  - CKV2_AZURE_33  # Private endpoint - demo simplicity
+  - CKV2_AZURE_38  # Soft delete for blobs - demo simplicity
+  - CKV2_AZURE_40  # Soft delete for containers - demo simplicity
+  - CKV2_AZURE_41  # Diagnostic settings - demo simplicity
+  - CKV2_AZURE_47  # Infrastructure encryption - demo uses standard encryption
+  - CKV2_AZURE_50  # Network rules - demo simplicity
