@@ -215,7 +215,8 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
 > [!TIP]
 > **Claude Code Users**: Install the Massdriver skill for AI-assisted bundle development with built-in guardrails, patterns, and validation rules:
 > ```bash
-> /plugin marketplace add massdriver-cloud/massdriver-skill
+> /plugin marketplace add massdriver-cloud/claude-plugins
+> /plugin install massdriver@massdriver-cloud-claude-plugins
 > ```
 > The skill auto-activates when working with `massdriver.yaml` files or in `bundles/`, `artifact-definitions/`, or `platforms/` directories.
 
