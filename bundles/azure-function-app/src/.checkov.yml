@@ -1,0 +1,32 @@
+skip-check:
+  # Function App - Demo simplicity
+  - CKV_AZURE_221  # VNet integration - demo simplicity
+  - CKV_AZURE_17   # Managed identity - using connection string for demo
+  - CKV_AZURE_63   # App Insights - demo simplicity
+  - CKV_AZURE_66   # HTTP logging - demo simplicity
+  - CKV_AZURE_71   # FTP deploy disabled - not using FTP
+  - CKV_AZURE_72   # Remote debugging - demo simplicity
+  - CKV_AZURE_78   # HTTP/2 - demo simplicity
+  - CKV_AZURE_213  # Minimum TLS for func - using default
+
+  # Service Plan - Demo simplicity (consumption plan)
+  - CKV_AZURE_212  # Min instances - consumption plan scales to zero
+  - CKV_AZURE_225  # Zone redundant - not available on consumption plan
+
+  # Storage Account (function runtime storage)
+  - CKV_AZURE_33   # Queue logging - not using queues
+  - CKV_AZURE_35   # Default network access - demo simplicity
+  - CKV_AZURE_36   # No private endpoint - demo simplicity
+  - CKV_AZURE_59   # Public access - function needs access
+  - CKV_AZURE_190  # Blob public access - demo simplicity
+  - CKV_AZURE_206  # Storage replication - LRS sufficient for demo
+  - CKV_AZURE_244  # Local users - demo simplicity
+  - CKV2_AZURE_1   # CMK encryption - demo uses Microsoft-managed keys
+  - CKV2_AZURE_18  # CMK encryption - demo uses Microsoft-managed keys
+  - CKV2_AZURE_21  # Blob logging for reads - demo simplicity
+  - CKV2_AZURE_33  # Private endpoint - demo simplicity
+  - CKV2_AZURE_38  # Soft delete for blobs - demo simplicity
+  - CKV2_AZURE_40  # Soft delete for containers - demo simplicity
+  - CKV2_AZURE_41  # Diagnostic settings - demo simplicity
+  - CKV2_AZURE_47  # Infrastructure encryption - demo uses standard encryption
+  - CKV2_AZURE_50  # Network rules - demo simplicity

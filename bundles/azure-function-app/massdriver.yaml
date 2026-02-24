@@ -1,0 +1,67 @@
+schema: draft-07
+name: azure-function-app
+description: "Azure Function App with Node.js for demo - reads/writes to blob storage"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-function-app
+version: 0.0.4
+
+params:
+  required:
+    - region
+    - storage_policy
+  properties:
+    region:
+      type: string
+      title: Region
+      description: Azure region for the function app
+      default: eastus
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - centralus
+        - northeurope
+        - westeurope
+    storage_policy:
+      type: string
+      title: Storage Access Policy
+      description: Access policy for the connected storage account
+      $md.enum:
+        connection: storage
+        options: .policies
+        value: .id
+        label: .name
+
+connections:
+  required:
+    - azure_authentication
+    - storage
+  properties:
+    azure_authentication:
+      $ref: azure-service-principal
+      title: Azure Service Principal
+    storage:
+      $ref: azure-storage-account
+      title: Azure Storage Account
+
+artifacts:
+  required:
+    - application
+  properties:
+    application:
+      $ref: application
+      title: Function App
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: false
+
+ui:
+  ui:order:
+    - region
+    - storage_policy
+    - "*"
