@@ -1,0 +1,6 @@
+skip-check:
+  # LOW: AWS managed encryption is sufficient for most use cases.
+  # Using a Customer Managed Key (CMK) adds operational overhead without
+  # significant security benefit for typical application workloads.
+  # For regulatory requirements needing CMK, users can fork the bundle.
+  - CKV_AWS_119

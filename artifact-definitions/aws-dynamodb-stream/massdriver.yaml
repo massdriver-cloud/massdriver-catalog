@@ -1,0 +1,59 @@
+name: aws-dynamodb-stream
+label: AWS DynamoDB Stream
+
+schema:
+  title: AWS DynamoDB Stream
+  description: AWS DynamoDB Stream artifact for event-driven architectures.
+  type: object
+  required:
+    - data
+    - specs
+  properties:
+    data:
+      title: Artifact Data
+      type: object
+      required:
+        - infrastructure
+      properties:
+        infrastructure:
+          title: Infrastructure
+          type: object
+          required:
+            - arn
+            - table_arn
+          properties:
+            arn:
+              title: Stream ARN
+              description: Amazon Resource Name of the DynamoDB stream.
+              type: string
+            table_arn:
+              title: Table ARN
+              description: ARN of the parent DynamoDB table.
+              type: string
+        security:
+          title: Security
+          type: object
+          properties:
+            iam:
+              title: IAM Policies
+              description: IAM policies for stream access.
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  policy_arn:
+                    title: Policy ARN
+                    description: ARN of the IAM policy.
+                    type: string
+    specs:
+      title: Artifact Specs
+      type: object
+      properties:
+        aws:
+          title: AWS Specs
+          type: object
+          properties:
+            region:
+              title: Region
+              description: AWS region where the stream is located.
+              type: string
