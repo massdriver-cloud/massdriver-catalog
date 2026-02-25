@@ -1,0 +1,59 @@
+name: aws-dynamodb-table
+label: AWS DynamoDB Table
+
+schema:
+  title: AWS DynamoDB Table
+  description: AWS DynamoDB table artifact containing table ARN, name, and IAM policies for access.
+  type: object
+  required:
+    - data
+    - specs
+  properties:
+    data:
+      title: Artifact Data
+      type: object
+      required:
+        - infrastructure
+      properties:
+        infrastructure:
+          title: Infrastructure
+          type: object
+          required:
+            - arn
+            - table_name
+          properties:
+            arn:
+              title: Table ARN
+              description: Amazon Resource Name of the DynamoDB table.
+              type: string
+            table_name:
+              title: Table Name
+              description: Name of the DynamoDB table.
+              type: string
+        security:
+          title: Security
+          type: object
+          properties:
+            iam:
+              title: IAM Policies
+              description: IAM policies for table access.
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  policy_arn:
+                    title: Policy ARN
+                    description: ARN of the IAM policy.
+                    type: string
+    specs:
+      title: Artifact Specs
+      type: object
+      properties:
+        aws:
+          title: AWS Specs
+          type: object
+          properties:
+            region:
+              title: Region
+              description: AWS region where the table is deployed.
+              type: string

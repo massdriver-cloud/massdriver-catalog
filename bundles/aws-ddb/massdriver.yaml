@@ -1,0 +1,410 @@
+schema: draft-07
+name: aws-ddb
+description: Self-service DynamoDB tables for application developers. Supports user sessions, feature flags, application state, and other NoSQL workloads with flexible key design, secondary indexes, and optional DynamoDB Streams.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-ddb
+version: 0.0.1
+
+params:
+  required:
+    - region
+    - table
+    - billing
+  examples:
+    - __name: Development
+      region: us-east-1
+      table:
+        name: my-table
+        hash_key:
+          name: pk
+          type: S
+      billing:
+        mode: PAY_PER_REQUEST
+      backup:
+        point_in_time_recovery: false
+        deletion_protection: false
+      stream:
+        enabled: false
+    - __name: Production
+      region: us-east-1
+      table:
+        name: my-table
+        hash_key:
+          name: pk
+          type: S
+        range_key:
+          name: sk
+          type: S
+      billing:
+        mode: PAY_PER_REQUEST
+      backup:
+        point_in_time_recovery: true
+        deletion_protection: true
+      stream:
+        enabled: false
+    - __name: Event-Driven
+      region: us-east-1
+      table:
+        name: my-table
+        hash_key:
+          name: pk
+          type: S
+        range_key:
+          name: sk
+          type: S
+      billing:
+        mode: PAY_PER_REQUEST
+      backup:
+        point_in_time_recovery: true
+        deletion_protection: true
+      stream:
+        enabled: true
+        view_type: NEW_AND_OLD_IMAGES
+  properties:
+    region:
+      title: AWS Region
+      description: AWS region to deploy the DynamoDB table.
+      type: string
+      $md.immutable: true
+      default: us-east-1
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ap-northeast-1
+    table:
+      title: Table Configuration
+      type: object
+      required:
+        - name
+        - hash_key
+      properties:
+        name:
+          title: Table Name
+          description: Name of the DynamoDB table. Must be unique within the AWS account and region.
+          type: string
+          pattern: "^[a-zA-Z0-9._-]{3,255}$"
+          $md.immutable: true
+        hash_key:
+          title: Partition Key
+          description: The partition (hash) key for the table. This is the primary key attribute.
+          type: object
+          required:
+            - name
+            - type
+          properties:
+            name:
+              title: Attribute Name
+              description: Name of the partition key attribute.
+              type: string
+              pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,254}$"
+            type:
+              title: Attribute Type
+              description: Data type of the partition key.
+              type: string
+              enum:
+                - S
+                - N
+                - B
+              enumNames:
+                - String (S)
+                - Number (N)
+                - Binary (B)
+        range_key:
+          title: Sort Key (Optional)
+          description: Optional sort (range) key for composite primary keys. Enables range queries within a partition.
+          type: object
+          properties:
+            name:
+              title: Attribute Name
+              description: Name of the sort key attribute.
+              type: string
+              pattern: "^[a-zA-Z][a-zA-Z0-9_]{0,254}$"
+            type:
+              title: Attribute Type
+              description: Data type of the sort key.
+              type: string
+              enum:
+                - S
+                - N
+                - B
+              enumNames:
+                - String (S)
+                - Number (N)
+                - Binary (B)
+    billing:
+      title: Billing Configuration
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          title: Billing Mode
+          description: |
+            PAY_PER_REQUEST (on-demand) scales automatically and charges per request.
+            PROVISIONED requires capacity planning but offers predictable costs.
+          type: string
+          default: PAY_PER_REQUEST
+          enum:
+            - PAY_PER_REQUEST
+            - PROVISIONED
+        provisioned:
+          title: Provisioned Capacity
+          description: Required when using PROVISIONED billing mode.
+          type: object
+          properties:
+            read_capacity:
+              title: Read Capacity Units
+              description: Number of read capacity units (RCUs). 1 RCU = 1 strongly consistent read/sec for items up to 4KB.
+              type: integer
+              minimum: 1
+              maximum: 40000
+              default: 5
+            write_capacity:
+              title: Write Capacity Units
+              description: Number of write capacity units (WCUs). 1 WCU = 1 write/sec for items up to 1KB.
+              type: integer
+              minimum: 1
+              maximum: 40000
+              default: 5
+      dependencies:
+        mode:
+          oneOf:
+            - properties:
+                mode:
+                  const: PAY_PER_REQUEST
+            - properties:
+                mode:
+                  const: PROVISIONED
+                provisioned:
+                  required:
+                    - read_capacity
+                    - write_capacity
+              required:
+                - provisioned
+    indexes:
+      title: Secondary Indexes
+      type: object
+      properties:
+        global:
+          title: Global Secondary Indexes (GSI)
+          description: GSIs allow queries on non-primary key attributes. Each GSI has its own capacity settings.
+          type: array
+          default: []
+          maxItems: 20
+          items:
+            type: object
+            required:
+              - name
+              - hash_key
+            properties:
+              name:
+                title: Index Name
+                type: string
+                pattern: "^[a-zA-Z0-9._-]{3,255}$"
+              hash_key:
+                title: Hash Key
+                type: object
+                required:
+                  - name
+                  - type
+                properties:
+                  name:
+                    title: Attribute Name
+                    type: string
+                  type:
+                    title: Type
+                    type: string
+                    enum:
+                      - S
+                      - N
+                      - B
+              range_key:
+                title: Range Key (Optional)
+                type: object
+                properties:
+                  name:
+                    title: Attribute Name
+                    type: string
+                  type:
+                    title: Type
+                    type: string
+                    enum:
+                      - S
+                      - N
+                      - B
+              projection_type:
+                title: Projection Type
+                description: Which attributes to project into the index.
+                type: string
+                default: ALL
+                enum:
+                  - ALL
+                  - KEYS_ONLY
+                  - INCLUDE
+              non_key_attributes:
+                title: Non-Key Attributes
+                description: Attributes to include when projection_type is INCLUDE.
+                type: array
+                items:
+                  type: string
+        local:
+          title: Local Secondary Indexes (LSI)
+          description: LSIs share capacity with the table and must have the same hash key. Can only be created at table creation time.
+          type: array
+          default: []
+          maxItems: 5
+          items:
+            type: object
+            required:
+              - name
+              - range_key
+            properties:
+              name:
+                title: Index Name
+                type: string
+                pattern: "^[a-zA-Z0-9._-]{3,255}$"
+              range_key:
+                title: Range Key
+                type: object
+                required:
+                  - name
+                  - type
+                properties:
+                  name:
+                    title: Attribute Name
+                    type: string
+                  type:
+                    title: Type
+                    type: string
+                    enum:
+                      - S
+                      - N
+                      - B
+              projection_type:
+                title: Projection Type
+                type: string
+                default: ALL
+                enum:
+                  - ALL
+                  - KEYS_ONLY
+                  - INCLUDE
+              non_key_attributes:
+                title: Non-Key Attributes
+                type: array
+                items:
+                  type: string
+    backup:
+      title: Backup & Recovery
+      type: object
+      properties:
+        point_in_time_recovery:
+          title: Point-in-Time Recovery
+          description: Enable continuous backups and point-in-time recovery. Recommended for production tables.
+          type: boolean
+          default: false
+        deletion_protection:
+          title: Deletion Protection
+          description: Prevent accidental table deletion. Must be explicitly disabled before deleting.
+          type: boolean
+          default: false
+    stream:
+      title: DynamoDB Streams
+      type: object
+      properties:
+        enabled:
+          title: Enable Streams
+          description: Enable DynamoDB Streams for change data capture and event-driven architectures.
+          type: boolean
+          default: false
+        view_type:
+          title: Stream View Type
+          description: What data to include in stream records.
+          type: string
+          default: NEW_AND_OLD_IMAGES
+          enum:
+            - KEYS_ONLY
+            - NEW_IMAGE
+            - OLD_IMAGE
+            - NEW_AND_OLD_IMAGES
+          enumNames:
+            - Keys Only
+            - New Image
+            - Old Image
+            - New and Old Images
+      dependencies:
+        enabled:
+          oneOf:
+            - properties:
+                enabled:
+                  const: false
+            - properties:
+                enabled:
+                  const: true
+                view_type:
+                  type: string
+              required:
+                - view_type
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - table
+  properties:
+    table:
+      $ref: aws-dynamodb-table
+      title: DynamoDB Table
+    stream:
+      $ref: aws-dynamodb-stream
+      title: DynamoDB Stream
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        enable: true
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - table
+    - billing
+    - indexes
+    - backup
+    - stream
+    - "*"
+  table:
+    ui:order:
+      - name
+      - hash_key
+      - range_key
+  billing:
+    ui:order:
+      - mode
+      - provisioned
+  indexes:
+    ui:order:
+      - global
+      - local
+  backup:
+    ui:order:
+      - point_in_time_recovery
+      - deletion_protection
+  stream:
+    ui:order:
+      - enabled
+      - view_type
