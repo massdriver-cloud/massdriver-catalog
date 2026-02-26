@@ -6,13 +6,25 @@ This runbook provides operational guidance for the {{ name }} Kubernetes deploym
 
 {{ description }}
 
+This bundle deploys a containerized application to Kubernetes using Helm.
+
+## Configuration
+
+Key params:
+- `image.repository` / `image.tag` - Container image
+- `namespace` - Target Kubernetes namespace
+- `replicas` - Number of pod replicas
+- `port` - Container port
+- `resources` - CPU/memory requests and limits
+- `env` - Environment variables
+
 ## Common Operations
 
 ### Scaling
 
 Update the `replicas` parameter and redeploy, or use kubectl:
 ```bash
-kubectl scale deployment {{ name }} -n <namespace> --replicas=<count>
+kubectl scale deployment <release-name> -n <namespace> --replicas=<count>
 ```
 
 ### Updating the Image
@@ -23,13 +35,20 @@ kubectl scale deployment {{ name }} -n <namespace> --replicas=<count>
 ### Viewing Logs
 
 ```bash
-kubectl logs -n <namespace> -l app.kubernetes.io/name={{ name }} -f
+kubectl logs -n <namespace> -l app.kubernetes.io/name=<release-name> -f
 ```
 
 ### Restarting Pods
 
 ```bash
-kubectl rollout restart deployment {{ name }} -n <namespace>
+kubectl rollout restart deployment <release-name> -n <namespace>
+```
+
+### Viewing Release Status
+
+```bash
+helm status <release-name> -n <namespace>
+helm history <release-name> -n <namespace>
 ```
 
 ## Troubleshooting
@@ -43,20 +62,15 @@ kubectl rollout restart deployment {{ name }} -n <namespace>
 ### Pod Issues
 
 ```bash
-# Check pod status
-kubectl get pods -n <namespace> -l app.kubernetes.io/name={{ name }}
-
-# View pod logs
-kubectl logs -n <namespace> -l app.kubernetes.io/name={{ name }}
-
-# Describe pod for events
-kubectl describe pods -n <namespace> -l app.kubernetes.io/name={{ name }}
+kubectl get pods -n <namespace> -l app.kubernetes.io/name=<release-name>
+kubectl describe pods -n <namespace> -l app.kubernetes.io/name=<release-name>
 ```
 
 ### Resource Issues
 
-If pods are being OOMKilled or throttled, increase the resource limits in the `resources` parameter.
+If pods are being OOMKilled or CPU throttled, increase the resource limits.
 
-## Support
+## References
 
-For additional support, contact your platform team or visit the [Massdriver documentation](https://docs.massdriver.cloud).
+- [Helm Provisioner Docs](https://docs.massdriver.cloud/provisioners/helm)
+- [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec)

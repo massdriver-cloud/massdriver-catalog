@@ -1,4 +1,4 @@
-# Default values - these are overridden by Massdriver params
+# Default values - overridden by params via values.jq
 # This file documents the expected structure
 
 image:
@@ -6,7 +6,6 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-namespace: default
 replicas: 1
 port: 80
 

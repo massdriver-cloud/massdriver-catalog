@@ -1,5 +1,5 @@
 # Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
-# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Helm Provisioner: https://docs.massdriver.cloud/provisioners/helm
 # Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
 
 schema: draft-07
@@ -11,6 +11,9 @@ version: 0.0.0
 steps:
   - path: chart
     provisioner: helm
+    config:
+      namespace: .params.namespace
+      release_name: .md.package.name
 
 params:
   examples:

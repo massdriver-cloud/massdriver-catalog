@@ -110,7 +110,7 @@ Available templates:
 
 | Template | Provisioner | Description |
 |----------|-------------|-------------|
-| `opentofu` | OpenTofu | OpenTofu/Terraform module template |
+| `opentofu` | OpenTofu | OpenTofu module template |
 | `terraform` | Terraform | Terraform module template |
 | `bicep` | Bicep | Azure Bicep template |
 | `helm-chart` | Helm | Deploy external Helm charts |
