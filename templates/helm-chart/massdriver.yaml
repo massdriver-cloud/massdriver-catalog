@@ -1,0 +1,105 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+schema: draft-07
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: chart
+    provisioner: helm
+
+params:
+  examples:
+    - __name: Development
+      helm:
+        repository: https://charts.bitnami.com/bitnami
+        chart: nginx
+        version: "15.0.0"
+      namespace: dev
+      replicas: 1
+    - __name: Production
+      helm:
+        repository: https://charts.bitnami.com/bitnami
+        chart: nginx
+        version: "15.0.0"
+      namespace: production
+      replicas: 3
+  required:
+    - helm
+    - namespace
+  properties:
+    helm:
+      type: object
+      title: Helm Chart
+      description: Helm chart to deploy
+      required:
+        - repository
+        - chart
+      properties:
+        repository:
+          type: string
+          title: Repository URL
+          description: Helm chart repository URL
+        chart:
+          type: string
+          title: Chart Name
+          description: Name of the chart in the repository
+        version:
+          type: string
+          title: Chart Version
+          description: Specific chart version to deploy (leave empty for latest)
+    namespace:
+      type: string
+      title: Namespace
+      description: Kubernetes namespace for deployment
+      default: default
+    replicas:
+      type: integer
+      title: Replicas
+      description: Number of replicas to run
+      default: 1
+      minimum: 1
+      maximum: 100
+    values:
+      type: object
+      title: Helm Values
+      description: Additional values to pass to the Helm chart
+      default: {}
+
+connections:
+  required:
+    - kubernetes_cluster
+{%- if connections.size > 0 %}
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+{%- endif %}
+  properties:
+    kubernetes_cluster:
+      $ref: massdriver/kubernetes-cluster
+{%- if connections.size > 0 %}
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+{%- endif %}
+
+artifacts:
+  properties: {}
+
+ui:
+  ui:order:
+    - helm
+    - namespace
+    - replicas
+    - values
+    - "*"
+  helm:
+    ui:order:
+      - repository
+      - chart
+      - version

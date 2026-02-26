@@ -1,0 +1,99 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+schema: draft-07
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: src
+    provisioner: opentofu
+
+params:
+  examples:
+    - __name: Development
+      instance_name: dev-instance
+      instance_count: 1
+      enable_monitoring: false
+    - __name: Production
+      instance_name: prod-instance
+      instance_count: 3
+      enable_monitoring: true
+  required:
+    - instance_name
+  properties:
+    instance_name:
+      type: string
+      title: Instance Name
+      description: A unique name for this instance
+      minLength: 3
+      maxLength: 63
+    instance_count:
+      type: integer
+      title: Instance Count
+      description: Number of instances to create
+      default: 1
+      minimum: 1
+      maximum: 10
+    enable_monitoring:
+      type: boolean
+      title: Enable Monitoring
+      description: Enable monitoring for this instance
+      default: false
+    tags:
+      type: array
+      title: Tags
+      description: Tags to apply to resources
+      default: []
+      items:
+        type: string
+    advanced:
+      type: object
+      title: Advanced Settings
+      description: Advanced configuration options
+      properties:
+        timeout_seconds:
+          type: integer
+          title: Timeout
+          description: Operation timeout in seconds
+          default: 300
+        retry_count:
+          type: integer
+          title: Retry Count
+          description: Number of retries on failure
+          default: 3
+
+connections:
+{%- if connections.size > 0 %}
+  required:
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+  properties:
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+{% else %}
+  properties: {}
+{% endif %}
+
+artifacts:
+  properties: {}
+  # required:
+  #   - my_artifact
+  # properties:
+  #   my_artifact:
+  #     $ref: your-artifact-definition
+
+ui:
+  ui:order:
+    - instance_name
+    - instance_count
+    - enable_monitoring
+    - tags
+    - advanced
+    - "*"

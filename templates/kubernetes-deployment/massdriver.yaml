@@ -1,0 +1,176 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+schema: draft-07
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: chart
+    provisioner: helm
+
+params:
+  examples:
+    - __name: Development
+      image:
+        repository: nginx
+        tag: "1.25"
+      namespace: dev
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+    - __name: Production
+      image:
+        repository: nginx
+        tag: "1.25"
+      namespace: production
+      replicas: 3
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+  required:
+    - image
+    - namespace
+  properties:
+    image:
+      type: object
+      title: Container Image
+      description: Container image to deploy
+      required:
+        - repository
+      properties:
+        repository:
+          type: string
+          title: Repository
+          description: Container image repository (e.g., nginx, myregistry.io/myapp)
+        tag:
+          type: string
+          title: Tag
+          description: Image tag
+          default: latest
+        pullPolicy:
+          type: string
+          title: Pull Policy
+          description: Image pull policy
+          default: IfNotPresent
+          enum:
+            - Always
+            - IfNotPresent
+            - Never
+    namespace:
+      type: string
+      title: Namespace
+      description: Kubernetes namespace for deployment
+      default: default
+    replicas:
+      type: integer
+      title: Replicas
+      description: Number of replicas to run
+      default: 1
+      minimum: 1
+      maximum: 100
+    port:
+      type: integer
+      title: Container Port
+      description: Port the container listens on
+      default: 80
+      minimum: 1
+      maximum: 65535
+    resources:
+      type: object
+      title: Resources
+      description: CPU and memory resource requests and limits
+      properties:
+        requests:
+          type: object
+          title: Requests
+          properties:
+            cpu:
+              type: string
+              title: CPU Request
+              default: 100m
+            memory:
+              type: string
+              title: Memory Request
+              default: 128Mi
+        limits:
+          type: object
+          title: Limits
+          properties:
+            cpu:
+              type: string
+              title: CPU Limit
+              default: 500m
+            memory:
+              type: string
+              title: Memory Limit
+              default: 512Mi
+    env:
+      type: array
+      title: Environment Variables
+      description: Environment variables for the container
+      default: []
+      items:
+        type: object
+        required:
+          - name
+          - value
+        properties:
+          name:
+            type: string
+            title: Name
+          value:
+            type: string
+            title: Value
+
+connections:
+  required:
+    - kubernetes_cluster
+{%- if connections.size > 0 %}
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+{%- endif %}
+  properties:
+    kubernetes_cluster:
+      $ref: massdriver/kubernetes-cluster
+{%- if connections.size > 0 %}
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+{%- endif %}
+
+artifacts:
+  properties: {}
+
+ui:
+  ui:order:
+    - image
+    - namespace
+    - replicas
+    - port
+    - resources
+    - env
+    - "*"
+  image:
+    ui:order:
+      - repository
+      - tag
+      - pullPolicy
+  resources:
+    ui:order:
+      - requests
+      - limits

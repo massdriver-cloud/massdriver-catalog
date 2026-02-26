@@ -1,0 +1,21 @@
+# Default values - these are overridden by Massdriver params
+# This file documents the expected structure
+
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+namespace: default
+replicas: 1
+port: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+env: []

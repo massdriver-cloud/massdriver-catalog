@@ -100,6 +100,40 @@ Each bundle includes:
 
 These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
 
+For more details, see the [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) and [Module Patterns](https://docs.massdriver.cloud/guides/module-patterns) guides.
+
+### 📁 `templates/`
+
+**Bundle templates** are starter scaffolds for creating new bundles. Use them with the Massdriver CLI to quickly bootstrap new infrastructure modules with the correct structure and boilerplate.
+
+Available templates:
+
+| Template | Provisioner | Description |
+|----------|-------------|-------------|
+| `opentofu` | OpenTofu | OpenTofu/Terraform module template |
+| `terraform` | Terraform | Terraform module template |
+| `bicep` | Bicep | Azure Bicep template |
+| `helm-chart` | Helm | Deploy external Helm charts |
+| `kubernetes-deployment` | Helm | Full Kubernetes deployment with chart skeleton |
+
+**Usage with the CLI:**
+
+```bash
+# Set custom template path (optional - for local development)
+export MD_TEMPLATES_PATH=/path/to/massdriver-catalog/templates
+
+# Create a new bundle from a template
+mass bundle new --name my-bundle --template-name opentofu
+```
+
+Each template includes:
+- `massdriver.yaml` - Pre-configured with example params, connections, and artifacts
+- `operator.md` - Runbook template for operational guidance
+- `icon.svg` - Placeholder icon
+- `src/` or `chart/` - IaC boilerplate for the specific provisioner
+
+For more details, see the [Bundle Templates](https://docs.massdriver.cloud/guides/bundle-templates) guide.
+
 ### 📁 `platforms/`
 
 **Platform integrations** define how Massdriver connects to your cloud providers and infrastructure platforms. Each platform directory contains everything needed to authenticate and interact with that platform.
@@ -378,6 +412,12 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── mysql/                          # MySQL database
 │   ├── network/                        # VPC/Network
 │   └── postgres/                       # PostgreSQL database
+├── templates/                          # Bundle templates for mass bundle new
+│   ├── opentofu/                       # OpenTofu module template
+│   ├── terraform/                      # Terraform module template
+│   ├── bicep/                          # Azure Bicep template
+│   ├── helm-chart/                     # External Helm chart template
+│   └── kubernetes-deployment/          # Full K8s deployment template
 └── platforms/                          # Supported cloud platforms & default auth methods
     ├── aws/                            # IAM Role
     ├── azure/                          # Service Principal
@@ -390,7 +430,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 ### Artifact Definitions
 
-[Artifact definitions](https://docs.massdriver.cloud/concepts/artifact-definitions) in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another.
+[Artifact definitions](https://docs.massdriver.cloud/concepts/artifact-definitions) in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another. See the [Artifact Definition YAML Spec](https://docs.massdriver.cloud/guides/artifact-definition-yaml-spec) for the complete schema reference.
 
 [Customize artifact definitions](https://docs.massdriver.cloud/guides/custom-artifact-definition) to:
 
@@ -403,7 +443,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 ### Bundle Schemas
 
-Each bundle's `massdriver.yaml` defines the complete contract for that infrastructure component:
+Each bundle's `massdriver.yaml` defines the complete contract for that infrastructure component. See the [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for the complete schema reference.
 
 - **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code. They provide extra UI controls and validations not available in most IaC tools.
 
