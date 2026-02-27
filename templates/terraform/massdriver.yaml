@@ -2,7 +2,6 @@
 # Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
 # Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
 
-schema: draft-07
 name: "{{ name }}"
 description: "{{ description }}"
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
@@ -77,9 +76,10 @@ connections:
     {{ conn.name }}:
       $ref: {{ conn.artifact_definition }}
   {%- endfor %}
-{% else %}
+{%- else %}
+  required: []
   properties: {}
-{% endif %}
+{%- endif %}
 
 artifacts:
   properties: {}
