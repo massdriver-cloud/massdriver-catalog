@@ -66,7 +66,7 @@ connections:
   required:
     - network
     - database
-    # - bucket
+    - zone
   properties:
     network:
       $ref: network
@@ -79,6 +79,8 @@ connections:
           const: "16"
     bucket:
       $ref: bucket
+    zone:
+      $ref: landing-zone
 
 artifacts:
   required:

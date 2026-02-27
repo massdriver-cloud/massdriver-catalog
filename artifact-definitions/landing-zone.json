@@ -1,0 +1,26 @@
+{
+  "$md": {
+    "label": "Landing Zone",
+    "name": "landing-zone",
+    "ui": {
+      "connectionOrientation": "environmentDefault",
+      "environmentDefaultGroup": "Landing Zones"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "description": "Example landing zone artifact - customize this schema to match your landing zone outputs",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "The ID of the project"
+    },
+    "service_account_id": {
+      "type": "string",
+      "description": "The ID of the service account"
+    },
+    "network_id": {
+      "type": "string",
+      "description": "The ID of the network"
+    }
+  }
+}

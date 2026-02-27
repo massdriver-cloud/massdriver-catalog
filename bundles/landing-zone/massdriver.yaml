@@ -1,0 +1,30 @@
+schema: draft-07
+name: landing-zone
+description: "Landing Zones"
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket
+version: 0.0.0
+
+params:
+  properties:
+    project_name:
+      type: string
+
+connections:
+  required: []
+  properties: {}
+
+artifacts:
+  required:
+    - zone
+  properties:
+    zone:
+      $ref: landing-zone
+      title: Landing Zone
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - "*"
