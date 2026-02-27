@@ -143,19 +143,13 @@ Massdriver can orchestrate any platform your IaC tooling supports. Adding a new 
 
 ```
 platforms/aws/
-  ├── massdriver.yaml       # Platform definition (source of truth)
-  ├── icon.png              # Platform icon
-  ├── instructions/         # Setup walkthroughs
-  │   ├── AWS CLI.md
-  │   ├── AWS Console.md
-  │   └── AWS One Click.md
-  └── exports/              # Downloadable templates (optional)
-
-_dist/                      # Built artifacts (auto-generated, do not edit)
-  ├── aws-iam-role.json
-  ├── azure-service-principal.json
-  ├── gcp-service-account.json
-  └── kubernetes-cluster.json
+├── massdriver.yaml       # Platform definition (source of truth)
+├── icon.png              # Platform icon
+├── instructions/         # Setup walkthroughs
+│   ├── AWS CLI.md
+│   ├── AWS Console.md
+│   └── AWS One Click.md
+└── exports/              # Downloadable templates (optional)
 ```
 
 **The `massdriver.yaml` Format**:
