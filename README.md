@@ -114,7 +114,6 @@ Available templates:
 | `terraform` | Terraform | Terraform module template |
 | `bicep` | Bicep | Azure Bicep template |
 | `helm-chart` | Helm | Deploy external Helm charts |
-| `kubernetes-deployment` | Helm | Full Kubernetes deployment with chart skeleton |
 
 **Usage with the CLI:**
 
@@ -416,8 +415,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── opentofu/                       # OpenTofu module template
 │   ├── terraform/                      # Terraform module template
 │   ├── bicep/                          # Azure Bicep template
-│   ├── helm-chart/                     # External Helm chart template
-│   └── kubernetes-deployment/          # Full K8s deployment template
+│   └── helm-chart/                     # External Helm chart template
 └── platforms/                          # Supported cloud platforms & default auth methods
     ├── aws/                            # IAM Role
     ├── azure/                          # Service Principal
