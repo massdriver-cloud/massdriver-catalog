@@ -7,6 +7,7 @@ repos:
       - id: check-merge-conflict
       - id: check-json
       - id: check-yaml
+        exclude: ^templates/
       - id: end-of-file-fixer
       - id: no-commit-to-branch
         args: [-b, main]
@@ -17,6 +18,7 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
+        exclude: ^templates/
         args:
           [
             -d,
@@ -27,6 +29,8 @@ repos:
     rev: v2.1.0
     hooks:
       - id: tofu_fmt
+        exclude: ^templates/
       - id: tofu_validate
+        exclude: ^templates/
         args:
           - --hook-config=--retry-once-with-cleanup=true

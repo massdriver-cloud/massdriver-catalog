@@ -1,0 +1,13 @@
+# Values to override the remote chart defaults
+# These values are merged with the remote chart's values.yaml
+#
+# You can reference params and connections using JQ in a values.jq file:
+# https://docs.massdriver.cloud/provisioners/helm
+#
+# Example overrides (uncomment and modify as needed):
+# replicaCount: 2
+# image:
+#   tag: "latest"
+# service:
+#   type: ClusterIP
+#   port: 80

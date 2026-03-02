@@ -1,0 +1,102 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: src
+    provisioner: bicep
+
+params:
+  examples:
+    - __name: Development
+      resource_name: dev-resource
+      instance_count: 1
+      enable_monitoring: false
+    - __name: Production
+      resource_name: prod-resource
+      instance_count: 3
+      enable_monitoring: true
+  required:
+    - resource_name
+  properties:
+    resource_name:
+      type: string
+      title: Resource Name
+      description: A unique name for this resource
+      minLength: 3
+      maxLength: 63
+    location:
+      type: string
+      title: Location
+      description: Azure region for deployment
+      default: eastus
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - westeurope
+        - northeurope
+    instance_count:
+      type: integer
+      title: Instance Count
+      description: Number of instances to create
+      default: 1
+      minimum: 1
+      maximum: 10
+    enable_monitoring:
+      type: boolean
+      title: Enable Monitoring
+      description: Enable monitoring for this resource
+      default: false
+    tags:
+      type: array
+      title: Tags
+      description: Tags to apply to resources
+      default: []
+      items:
+        type: string
+    advanced:
+      type: object
+      title: Advanced Settings
+      description: Advanced configuration options
+      properties:
+        timeout_minutes:
+          type: integer
+          title: Timeout
+          description: Deployment timeout in minutes
+          default: 30
+
+connections:
+{%- if connections.size > 0 %}
+  required:
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+  properties:
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+{%- else %}
+  required: []
+  properties: {}
+{%- endif %}
+
+artifacts:
+  properties: {}
+
+ui:
+  ui:order:
+    - resource_name
+    - location
+    - instance_count
+    - enable_monitoring
+    - tags
+    - advanced
+    - "*"
