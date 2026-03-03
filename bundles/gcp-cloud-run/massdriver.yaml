@@ -1,0 +1,137 @@
+name: gcp-cloud-run
+description: "GCP Cloud Run serverless container service for demo workloads"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-cloud-run
+version: 0.0.1
+
+params:
+  required:
+    - region
+    - container
+  properties:
+    region:
+      type: string
+      title: Region
+      description: GCP region to deploy Cloud Run service
+      default: "us-central1"
+      enum:
+        - "us-central1"
+        - "us-east1"
+        - "us-west1"
+        - "europe-west1"
+        - "asia-east1"
+    container:
+      type: object
+      title: Container Configuration
+      required:
+        - image
+      properties:
+        image:
+          type: string
+          title: Container Image
+          description: Full container image URL (e.g., gcr.io/project/image:tag)
+          default: "gcr.io/cloudrun/hello"
+        port:
+          type: integer
+          title: Container Port
+          description: Port the container listens on
+          default: 8080
+          minimum: 1
+          maximum: 65535
+        cpu:
+          type: string
+          title: CPU
+          description: CPU allocation per instance
+          default: "1"
+          enum:
+            - "1"
+            - "2"
+            - "4"
+        memory:
+          type: string
+          title: Memory
+          description: Memory allocation per instance
+          default: "512Mi"
+          enum:
+            - "256Mi"
+            - "512Mi"
+            - "1Gi"
+            - "2Gi"
+            - "4Gi"
+        env:
+          type: array
+          title: Environment Variables
+          description: Environment variables for the container
+          default: []
+          items:
+            type: object
+            required:
+              - name
+              - value
+            properties:
+              name:
+                type: string
+                title: Name
+              value:
+                type: string
+                title: Value
+    scaling:
+      type: object
+      title: Scaling Configuration
+      properties:
+        min_instances:
+          type: integer
+          title: Minimum Instances
+          description: Minimum number of instances (0 allows scale to zero)
+          default: 0
+          minimum: 0
+          maximum: 100
+        max_instances:
+          type: integer
+          title: Maximum Instances
+          description: Maximum number of instances
+          default: 10
+          minimum: 1
+          maximum: 1000
+    ingress:
+      type: string
+      title: Ingress
+      description: Ingress traffic settings
+      default: "all"
+      enum:
+        - "all"
+        - "internal"
+        - "internal-and-cloud-load-balancing"
+
+connections:
+  required:
+    - gcp_authentication
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Service Account
+    subnetwork:
+      $ref: gcp-subnetwork
+      title: GCP Subnetwork (Optional)
+    database:
+      $ref: postgres
+      title: PostgreSQL Database (Optional)
+
+artifacts:
+  required:
+    - service
+  properties:
+    service:
+      $ref: application
+      title: Cloud Run Service
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - container
+    - scaling
+    - ingress
+    - "*"

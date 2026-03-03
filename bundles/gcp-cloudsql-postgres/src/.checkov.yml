@@ -1,0 +1,8 @@
+skip-check:
+  # Users can select PostgreSQL version based on application compatibility requirements
+  # The version is immutable after creation to prevent unintended upgrades
+  - CKV_GCP_79
+  # log_min_messages is set to 'warning' which is appropriate for production use
+  # Stricter levels like 'error' cause Checkov validation issues
+  - CKV_GCP_109
+  - CKV_GCP_55

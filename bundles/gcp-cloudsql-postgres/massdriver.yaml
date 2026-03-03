@@ -1,0 +1,124 @@
+name: gcp-cloudsql-postgres
+description: "GCP Cloud SQL PostgreSQL database for demo workloads"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-cloudsql-postgres
+version: 0.0.1
+
+params:
+  required:
+    - region
+    - db_version
+    - database_name
+    - username
+  properties:
+    region:
+      type: string
+      title: Region
+      description: GCP region to deploy Cloud SQL instance
+      default: "us-central1"
+      enum:
+        - "us-central1"
+        - "us-east1"
+        - "us-west1"
+        - "europe-west1"
+        - "asia-east1"
+    db_version:
+      type: string
+      title: PostgreSQL Version
+      description: PostgreSQL major version
+      default: "POSTGRES_16"
+      $md.immutable: true
+      enum:
+        - "POSTGRES_12"
+        - "POSTGRES_13"
+        - "POSTGRES_14"
+        - "POSTGRES_15"
+        - "POSTGRES_16"
+    database_name:
+      type: string
+      title: Database Name
+      description: Name of the default database
+      default: "app"
+      pattern: ^[a-z][a-z0-9_]*$
+    username:
+      type: string
+      title: Database Username
+      description: Admin username
+      default: "postgres"
+      pattern: ^[a-z][a-z0-9_]*$
+    tier:
+      type: string
+      title: Instance Tier
+      description: Machine type for the database instance
+      default: "db-f1-micro"
+      enum:
+        - "db-f1-micro"
+        - "db-g1-small"
+        - "db-custom-1-3840"
+        - "db-custom-2-7680"
+        - "db-custom-4-15360"
+    disk_size:
+      type: integer
+      title: Disk Size (GB)
+      description: Storage size in gigabytes
+      default: 10
+      minimum: 10
+      maximum: 65536
+    availability:
+      type: object
+      title: Availability
+      properties:
+        high_availability:
+          type: boolean
+          title: High Availability
+          description: Enable regional high availability (increases cost)
+          default: false
+    backup:
+      type: object
+      title: Backup Configuration
+      properties:
+        enabled:
+          type: boolean
+          title: Enable Backups
+          description: Enable automated daily backups
+          default: true
+        point_in_time_recovery:
+          type: boolean
+          title: Point-in-Time Recovery
+          description: Enable point-in-time recovery with transaction logs
+          default: false
+
+connections:
+  required:
+    - gcp_authentication
+    - subnetwork
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Service Account
+    subnetwork:
+      $ref: gcp-subnetwork
+      title: GCP Subnetwork
+
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: postgres
+      title: PostgreSQL Database
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - db_version
+    - database_name
+    - username
+    - tier
+    - disk_size
+    - availability
+    - backup
+    - "*"

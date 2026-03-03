@@ -1,0 +1,45 @@
+name: gcp-subnetwork
+label: GCP Subnetwork
+
+ui:
+  environmentDefaultGroup: networks
+
+schema:
+  title: GCP Subnetwork
+  description: Google Cloud Platform regional subnetwork with VPC Access connector
+  type: object
+  required:
+    - network_id
+    - subnet_id
+    - project_id
+    - region
+    - cidr
+  properties:
+    network_id:
+      title: Network ID
+      description: VPC network self_link
+      type: string
+    subnet_id:
+      title: Subnet ID
+      description: Subnetwork self_link
+      type: string
+    project_id:
+      title: Project ID
+      description: GCP project containing the network
+      type: string
+    region:
+      title: Region
+      description: Region for the subnetwork
+      type: string
+    cidr:
+      title: CIDR
+      description: Subnetwork IP range
+      type: string
+    vpc_access_connector:
+      title: VPC Access Connector
+      description: Serverless VPC Access connector ID for Cloud Run/Functions
+      type: string
+    private_services_connection:
+      title: Private Services Connection
+      description: Private Services Access connection name for Cloud SQL peering
+      type: string
