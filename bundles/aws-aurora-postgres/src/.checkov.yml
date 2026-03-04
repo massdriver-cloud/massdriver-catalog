@@ -1,0 +1,5 @@
+skip-check:
+  # Aurora Serverless v2 doesn't support read replicas in the same way
+  - CKV_AWS_327
+  # Global cluster not required for demo workloads
+  - CKV_AWS_328
