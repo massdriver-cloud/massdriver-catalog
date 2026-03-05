@@ -1,0 +1,70 @@
+name: aws-vpc
+label: AWS VPC
+
+ui:
+  environmentDefaultGroup: networks
+
+schema:
+  $schema: http://json-schema.org/draft-07/schema
+  $id: https://api.massdriver.cloud/artifact-definitions/gcd/aws-vpc
+  title: AWS VPC
+  description: Amazon Web Services VPC with public and private subnets
+  type: object
+  required:
+    - id
+    - vpc_id
+    - region
+    - cidr
+    - public_subnets
+    - private_subnets
+  properties:
+    id:
+      title: ID
+      description: Unique identifier for the VPC
+      type: string
+    vpc_id:
+      title: VPC ID
+      description: VPC identifier
+      type: string
+    region:
+      title: Region
+      description: AWS region for the VPC
+      type: string
+    cidr:
+      title: CIDR
+      description: VPC IP range
+      type: string
+    public_subnets:
+      title: Public Subnets
+      description: Public subnet IDs (for NAT Gateway, load balancers)
+      type: array
+      items:
+        type: object
+        required:
+          - subnet_id
+          - availability_zone
+          - cidr
+        properties:
+          subnet_id:
+            type: string
+          availability_zone:
+            type: string
+          cidr:
+            type: string
+    private_subnets:
+      title: Private Subnets
+      description: Private subnet IDs (for databases, containers)
+      type: array
+      items:
+        type: object
+        required:
+          - subnet_id
+          - availability_zone
+          - cidr
+        properties:
+          subnet_id:
+            type: string
+          availability_zone:
+            type: string
+          cidr:
+            type: string

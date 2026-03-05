@@ -1,0 +1,151 @@
+name: aws-app-runner
+description: "AWS App Runner serverless container service for demo workloads"
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-app-runner
+version: 0.0.1
+
+params:
+  required:
+    - region
+    - container
+  properties:
+    region:
+      type: string
+      title: Region
+      description: AWS region to deploy App Runner service
+      default: "us-east-1"
+      enum:
+        - "us-east-1"
+        - "us-east-2"
+        - "us-west-1"
+        - "us-west-2"
+        - "eu-west-1"
+        - "eu-central-1"
+        - "ap-southeast-1"
+    container:
+      type: object
+      title: Container Configuration
+      required:
+        - image
+      properties:
+        image:
+          type: string
+          title: Container Image
+          description: Full container image URL (e.g., public.ecr.aws/repository/image:tag)
+          default: "public.ecr.aws/aws-containers/hello-app-runner:latest"
+        port:
+          type: integer
+          title: Container Port
+          description: Port the container listens on
+          default: 8080
+          minimum: 1
+          maximum: 65535
+        cpu:
+          type: string
+          title: vCPU
+          description: vCPU allocation per instance
+          default: "1 vCPU"
+          enum:
+            - "0.25 vCPU"
+            - "0.5 vCPU"
+            - "1 vCPU"
+            - "2 vCPU"
+            - "4 vCPU"
+        memory:
+          type: string
+          title: Memory
+          description: Memory allocation per instance
+          default: "2 GB"
+          enum:
+            - "0.5 GB"
+            - "1 GB"
+            - "2 GB"
+            - "3 GB"
+            - "4 GB"
+            - "6 GB"
+            - "8 GB"
+            - "10 GB"
+            - "12 GB"
+        env:
+          type: array
+          title: Environment Variables
+          description: Environment variables for the container
+          default: []
+          items:
+            type: object
+            required:
+              - name
+              - value
+            properties:
+              name:
+                type: string
+                title: Name
+              value:
+                type: string
+                title: Value
+    scaling:
+      type: object
+      title: Auto Scaling Configuration
+      properties:
+        min_instances:
+          type: integer
+          title: Minimum Instances
+          description: Minimum number of instances
+          default: 1
+          minimum: 1
+          maximum: 25
+        max_instances:
+          type: integer
+          title: Maximum Instances
+          description: Maximum number of instances
+          default: 10
+          minimum: 1
+          maximum: 25
+        max_concurrency:
+          type: integer
+          title: Max Concurrency
+          description: Maximum concurrent requests per instance
+          default: 100
+          minimum: 1
+          maximum: 200
+    ingress:
+      type: string
+      title: Ingress
+      description: Network ingress configuration
+      default: "public"
+      enum:
+        - "public"
+        - "private"
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS IAM Role
+    vpc:
+      $ref: aws-vpc
+      title: AWS VPC (Optional)
+    database:
+      $ref: postgres
+      title: PostgreSQL Database (Optional)
+
+artifacts:
+  required:
+    - service
+  properties:
+    service:
+      $ref: application
+      title: App Runner Service
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - container
+    - scaling
+    - ingress
+    - "*"

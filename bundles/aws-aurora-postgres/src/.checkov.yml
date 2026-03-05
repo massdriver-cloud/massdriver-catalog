@@ -1,0 +1,4 @@
+# Checkov configuration for aws-aurora-postgres
+# Muted checks with justification
+
+skip-check: []

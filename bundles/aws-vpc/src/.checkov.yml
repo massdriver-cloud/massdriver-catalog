@@ -1,0 +1,14 @@
+# Checkov configuration for AWS VPC bundle
+
+skip-check:
+  # Public subnets intentionally assign public IPs by design
+  - CKV_AWS_130  # Ensure VPC subnets do not assign public IP by default
+  # Default security group - would require additional resources to manage
+  - CKV2_AWS_12  # Ensure the default security group of every VPC restricts all traffic
+  # CloudWatch log encryption - would require KMS key setup
+  - CKV_AWS_158  # Ensure that CloudWatch Log Group is encrypted by KMS
+  # Log retention 1 year - not needed for demo
+  - CKV_AWS_338  # Ensure CloudWatch log groups retains logs for at least 1 year
+  # IAM policy resource constraint - Flow Logs needs broad access
+  - CKV_AWS_355  # Ensure no IAM policies documents allow "*" as a statement's resource
+  - CKV_AWS_290  # Ensure IAM policies does not allow write access without constraints
