@@ -65,21 +65,19 @@ variable "username" {
 }
 variable "vpc" {
   type = object({
-    arn  = optional(string)
     cidr = string
     id   = string
     private_subnets = list(object({
-      arn               = optional(string)
-      availability_zone = optional(string)
-      cidr              = optional(string)
-      id                = optional(string)
+      availability_zone = string
+      cidr              = string
+      id                = string
     }))
     public_subnets = list(object({
-      arn               = optional(string)
-      availability_zone = optional(string)
-      cidr              = optional(string)
-      id                = optional(string)
+      availability_zone = string
+      cidr              = string
+      id                = string
     }))
     region = string
+    vpc_id = string
   })
 }

@@ -41,11 +41,11 @@ schema:
       items:
         type: object
         required:
-          - subnet_id
+          - id
           - availability_zone
           - cidr
         properties:
-          subnet_id:
+          id:
             type: string
           availability_zone:
             type: string
@@ -58,11 +58,11 @@ schema:
       items:
         type: object
         required:
-          - subnet_id
+          - id
           - availability_zone
           - cidr
         properties:
-          subnet_id:
+          id:
             type: string
           availability_zone:
             type: string

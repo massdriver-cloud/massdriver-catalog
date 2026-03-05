@@ -9,14 +9,14 @@ resource "massdriver_artifact" "vpc" {
     cidr   = var.cidr
     public_subnets = [
       for subnet in aws_subnet.public : {
-        subnet_id         = subnet.id
+        id                = subnet.id
         availability_zone = subnet.availability_zone
         cidr              = subnet.cidr_block
       }
     ]
     private_subnets = [
       for subnet in aws_subnet.private : {
-        subnet_id         = subnet.id
+        id                = subnet.id
         availability_zone = subnet.availability_zone
         cidr              = subnet.cidr_block
       }
