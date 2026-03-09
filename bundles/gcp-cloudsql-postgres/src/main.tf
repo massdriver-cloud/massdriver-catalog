@@ -50,8 +50,8 @@ resource "google_sql_database_instance" "main" {
       ipv4_enabled                                  = false
       private_network                               = var.subnetwork.network_id
       enable_private_path_for_google_cloud_services = true
-      require_ssl                                   = true
-      ssl_mode                                      = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"
+      require_ssl                                   = false
+      ssl_mode                                      = "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
     }
 
     database_flags {

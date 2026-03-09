@@ -31,7 +31,7 @@ params:
           type: string
           title: Container Image
           description: Full container image URL (e.g., public.ecr.aws/repository/image:tag)
-          default: "public.ecr.aws/aws-containers/hello-app-runner:latest"
+          default: "public.ecr.aws/x4n2b2b6/todo-api:latest"
         port:
           type: integer
           title: Container Port

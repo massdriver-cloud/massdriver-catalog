@@ -107,6 +107,6 @@ resource "google_compute_firewall" "allow_internal" {
     protocol = "icmp"
   }
 
-  source_ranges = [var.cidr]
-  description   = "Allow all internal traffic within the VPC"
+  source_ranges = [var.cidr, "10.8.0.0/28"]
+  description   = "Allow all internal traffic within the VPC and from VPC Access Connector"
 }

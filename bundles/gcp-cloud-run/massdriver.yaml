@@ -29,7 +29,7 @@ params:
           type: string
           title: Container Image
           description: Full container image URL (e.g., gcr.io/project/image:tag)
-          default: "gcr.io/cloudrun/hello"
+          default: "massdrivercloud/todo-api:latest"
         port:
           type: integer
           title: Container Port

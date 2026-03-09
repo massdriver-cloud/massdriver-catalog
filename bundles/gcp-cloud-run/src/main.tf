@@ -103,7 +103,7 @@ resource "google_cloud_run_v2_service" "main" {
       for_each = var.subnetwork != null ? [1] : []
       content {
         connector = var.subnetwork.vpc_access_connector
-        egress    = "PRIVATE_RANGES_ONLY"
+        egress    = "ALL_TRAFFIC"
       }
     }
   }
