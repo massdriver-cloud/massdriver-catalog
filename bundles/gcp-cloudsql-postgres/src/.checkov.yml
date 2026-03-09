@@ -6,3 +6,6 @@ skip-check:
   # Stricter levels like 'error' cause Checkov validation issues
   - CKV_GCP_109
   - CKV_GCP_55
+  # SSL disabled for demo compatibility - applications connecting via VPC Access Connector
+  # don't have SSL certificates configured. Traffic is encrypted at the VPC level.
+  - CKV_GCP_6

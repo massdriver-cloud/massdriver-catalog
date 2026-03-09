@@ -127,21 +127,23 @@ resource "aws_iam_role_policy_attachment" "monitoring" {
 
 # Aurora Cluster
 resource "aws_rds_cluster" "main" {
-  cluster_identifier      = var.md_metadata.name_prefix
-  engine                  = "aurora-postgresql"
-  engine_mode             = "provisioned"
-  engine_version          = local.engine_version
-  database_name           = var.database_name
-  master_username         = var.username
-  master_password         = random_password.main.result
-  db_subnet_group_name    = aws_db_subnet_group.main.name
-  vpc_security_group_ids  = [aws_security_group.main.id]
-  backup_retention_period = local.retention_days
-  preferred_backup_window = "03:00-04:00"
-  storage_encrypted       = true
-  kms_key_id              = aws_kms_key.main.arn
-  skip_final_snapshot     = true
-  apply_immediately       = true
+  cluster_identifier                  = var.md_metadata.name_prefix
+  engine                              = "aurora-postgresql"
+  engine_mode                         = "provisioned"
+  engine_version                      = local.engine_version
+  database_name                       = var.database_name
+  master_username                     = var.username
+  master_password                     = random_password.main.result
+  db_subnet_group_name                = aws_db_subnet_group.main.name
+  vpc_security_group_ids              = [aws_security_group.main.id]
+  backup_retention_period             = local.retention_days
+  preferred_backup_window             = "03:00-04:00"
+  storage_encrypted                   = true
+  kms_key_id                          = aws_kms_key.main.arn
+  skip_final_snapshot                 = true
+  apply_immediately                   = true
+  copy_tags_to_snapshot               = true
+  iam_database_authentication_enabled = true
 
   serverlessv2_scaling_configuration {
     min_capacity = local.min_acu
