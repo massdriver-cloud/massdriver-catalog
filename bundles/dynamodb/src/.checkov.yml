@@ -1,0 +1,10 @@
+# Checkov configuration for the DynamoDB bundle
+# Compliance items that ARE hardcoded in Terraform (no skip needed — they pass):
+#   CKV_AWS_28  — PITR enabled via point_in_time_recovery block
+#   CKV_AWS_119 — Encryption at rest via server_side_encryption block
+#   CKV_AWS_341 — Deletion protection via deletion_protection_enabled = true
+#
+# Intentional skips:
+skip-check:
+  - CKV2_AWS_16  # DynamoDB auto scaling — not applicable for PAY_PER_REQUEST tables;
+                 # PROVISIONED tables at this scope don't require application auto scaling.
