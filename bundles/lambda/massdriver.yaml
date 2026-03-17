@@ -1,0 +1,137 @@
+name: lambda
+description: "AWS Lambda function with Function URL for TODO REST API, connected to DynamoDB"
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/lambda
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      __description: Development configuration with minimal resources
+      region: us-east-1
+      lambda_memory_mb: 512
+      lambda_timeout_seconds: 30
+      dynamodb_policy: read-write
+      log_retention_days: 7
+    - __name: Production
+      __description: Production configuration with higher resources
+      region: us-east-1
+      lambda_memory_mb: 1024
+      lambda_timeout_seconds: 60
+      dynamodb_policy: read-write
+      log_retention_days: 30
+  required:
+    - region
+    - lambda_memory_mb
+    - lambda_timeout_seconds
+    - dynamodb_policy
+    - log_retention_days
+  properties:
+    region:
+      type: string
+      title: AWS Region
+      description: AWS region where the Lambda function will be deployed (should match DynamoDB region)
+      $md.immutable: true
+      default: us-east-1
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ap-northeast-1
+    lambda_memory_mb:
+      type: integer
+      title: Lambda Memory (MB)
+      description: Amount of memory allocated to the Lambda function
+      default: 512
+      enum:
+        - 128
+        - 256
+        - 512
+        - 1024
+        - 2048
+        - 3072
+      enumNames:
+        128 MB: 128
+        256 MB: 256
+        512 MB: 512
+        1 GB: 1024
+        2 GB: 2048
+        3 GB: 3072
+    lambda_timeout_seconds:
+      type: integer
+      title: Lambda Timeout (Seconds)
+      description: Maximum execution time for the Lambda function
+      default: 30
+      minimum: 3
+      maximum: 900
+    dynamodb_policy:
+      type: string
+      title: DynamoDB Access Level
+      description: Level of access the Lambda function has to the DynamoDB table
+      default: read-write
+      enum:
+        - read-only
+        - read-write
+        - admin
+      enumNames:
+        Read Only: read-only
+        Read/Write: read-write
+        Admin: admin
+    log_retention_days:
+      type: integer
+      title: Log Retention (Days)
+      description: Number of days to retain CloudWatch logs
+      default: 7
+      enum:
+        - 1
+        - 7
+        - 14
+        - 30
+        - 60
+        - 90
+      enumNames:
+        1 Day: 1
+        7 Days: 7
+        14 Days: 14
+        30 Days: 30
+        60 Days: 60
+        90 Days: 90
+
+connections:
+  required:
+    - aws_authentication
+    - dynamodb_table
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    dynamodb_table:
+      $ref: dynamodb
+      title: DynamoDB Table
+
+artifacts:
+  required:
+    - lambda_function
+  properties:
+    lambda_function:
+      $ref: application
+      title: Lambda Function
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "prod"'
+
+ui:
+  ui:order:
+    - region
+    - lambda_memory_mb
+    - lambda_timeout_seconds
+    - dynamodb_policy
+    - log_retention_days
+    - "*"

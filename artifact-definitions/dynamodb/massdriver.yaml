@@ -1,0 +1,48 @@
+name: dynamodb
+label: DynamoDB Table
+
+schema:
+  title: DynamoDB Table
+  description: AWS DynamoDB table with connection details and access policies
+  type: object
+  required:
+    - arn
+    - name
+    - region
+    - stream_arn
+    - policies
+  properties:
+    arn:
+      title: ARN
+      description: Amazon Resource Name of the DynamoDB table
+      type: string
+    name:
+      title: Table Name
+      description: Name of the DynamoDB table
+      type: string
+    region:
+      title: AWS Region
+      description: AWS region where the table is deployed
+      type: string
+    stream_arn:
+      title: Stream ARN
+      description: ARN of the DynamoDB Stream (if enabled)
+      type: string
+    policies:
+      title: Access Policies
+      description: Available IAM policies for table access
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string

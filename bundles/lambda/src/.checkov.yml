@@ -1,0 +1,11 @@
+# Checkov configuration for Lambda bundle
+# This is a demo TODO API bundle - skipping checks that don't apply
+skip-check:
+  - CKV_AWS_272  # Lambda code signing - not needed for demo
+  - CKV_AWS_173  # Env vars contain non-sensitive config (table name)
+  - CKV_AWS_158  # CloudWatch KMS encryption - overkill for demo
+  - CKV_AWS_338  # 1 year log retention - user configurable
+  - CKV_AWS_116  # DLQ - simple TODO API doesn't need DLQ
+  - CKV_AWS_117  # VPC - public Lambda URL by design
+  - CKV_AWS_258  # AuthType NONE - public by design
+  - CKV2_AWS_75  # Open CORS - intentional for demo API

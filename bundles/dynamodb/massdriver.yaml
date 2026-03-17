@@ -1,0 +1,178 @@
+name: dynamodb
+description: "AWS DynamoDB table with configurable keys, streams, and compliance features"
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/dynamodb
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      __description: Pay-per-request billing for development environments
+      region: us-east-1
+      partition_key:
+        name: id
+        type: S
+      sort_key:
+        enabled: false
+      stream_view_type: NEW_AND_OLD_IMAGES
+      deletion_protection: false
+      point_in_time_recovery: true
+    - __name: Production
+      __description: Production configuration with deletion protection
+      region: us-east-1
+      partition_key:
+        name: id
+        type: S
+      sort_key:
+        enabled: false
+      stream_view_type: NEW_AND_OLD_IMAGES
+      deletion_protection: true
+      point_in_time_recovery: true
+  required:
+    - region
+    - partition_key
+    - sort_key
+    - stream_view_type
+    - deletion_protection
+    - point_in_time_recovery
+  properties:
+    region:
+      type: string
+      title: AWS Region
+      description: AWS region where the DynamoDB table will be created (immutable after creation)
+      $md.immutable: true
+      default: us-east-1
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ap-northeast-1
+    partition_key:
+      type: object
+      title: Partition Key
+      description: Primary key for the table
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          title: Attribute Name
+          description: Name of the partition key attribute
+          default: id
+          pattern: ^[a-zA-Z0-9_]+$
+        type:
+          type: string
+          title: Attribute Type
+          description: Data type of the partition key
+          default: S
+          enum:
+            - S
+            - N
+            - B
+          enumNames:
+            String: S
+            Number: N
+            Binary: B
+    sort_key:
+      type: object
+      title: Sort Key (Optional)
+      description: Optional sort key for the table
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          title: Enable Sort Key
+          description: Add a sort key to the table
+          default: false
+      dependencies:
+        enabled:
+          oneOf:
+            - properties:
+                enabled:
+                  const: false
+            - properties:
+                enabled:
+                  const: true
+                name:
+                  type: string
+                  title: Attribute Name
+                  description: Name of the sort key attribute
+                  pattern: ^[a-zA-Z0-9_]+$
+                type:
+                  type: string
+                  title: Attribute Type
+                  description: Data type of the sort key
+                  enum:
+                    - S
+                    - N
+                    - B
+                  enumNames:
+                    String: S
+                    Number: N
+                    Binary: B
+              required:
+                - name
+                - type
+    stream_view_type:
+      type: string
+      title: Stream View Type
+      description: Information written to the stream when table is modified
+      default: NEW_AND_OLD_IMAGES
+      enum:
+        - KEYS_ONLY
+        - NEW_IMAGE
+        - OLD_IMAGE
+        - NEW_AND_OLD_IMAGES
+      enumNames:
+        Keys Only: KEYS_ONLY
+        New Image: NEW_IMAGE
+        Old Image: OLD_IMAGE
+        New and Old Images: NEW_AND_OLD_IMAGES
+    deletion_protection:
+      type: boolean
+      title: Deletion Protection
+      description: Prevents accidental table deletion
+      default: false
+    point_in_time_recovery:
+      type: boolean
+      title: Point-in-Time Recovery
+      description: Enable continuous backups for the table
+      default: true
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - table
+  properties:
+    table:
+      $ref: dynamodb
+      title: DynamoDB Table
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "prod"'
+
+ui:
+  ui:order:
+    - region
+    - partition_key
+    - sort_key
+    - stream_view_type
+    - deletion_protection
+    - point_in_time_recovery
+    - "*"

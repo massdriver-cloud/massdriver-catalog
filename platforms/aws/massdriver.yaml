@@ -21,6 +21,7 @@ schema:
   type: object
   required:
     - arn
+    - external_id
   properties:
     arn:
       title: IAM Role ARN
