@@ -1,0 +1,51 @@
+skip-check:
+  # CKV_AWS_117: Lambda inside VPC
+  # Intentional: This is a public serverless REST API. VPC placement adds cost
+  # and complexity (NAT gateway) with no security benefit for this use case.
+  - CKV_AWS_117
+
+  # CKV_AWS_50: X-Ray active tracing
+  # Intentional: X-Ray is optional observability. Not required for this API tier.
+  # Operators can enable it by modifying the Lambda resource if needed.
+  - CKV_AWS_50
+
+  # CKV_AWS_116: Dead letter queue configured
+  # Intentional: Lambda is invoked synchronously by API Gateway. DLQs only apply
+  # to asynchronous invocations. This check does not apply here.
+  - CKV_AWS_116
+
+  # CKV_AWS_272: Lambda code signing
+  # Intentional: Deployment package is deployed from a controlled S3 bucket.
+  # Code signing adds operational overhead inappropriate for this bundle tier.
+  - CKV_AWS_272
+
+  # CKV_AWS_309: API Gateway route authorization type
+  # Intentional: This is a public demo TODO API with no authentication requirement.
+  # Operators who need auth should add a Cognito authorizer or API key at the manifest layer.
+  - CKV_AWS_309
+
+  # CKV_AWS_338: CloudWatch log group retains logs >= 1 year
+  # Intentional: Retention is configurable via the log_retention_days parameter.
+  # Dev environments use short retention; production operators should set 365+ days.
+  - CKV_AWS_338
+
+  # CKV_AWS_173: Lambda env var encryption via KMS
+  # Intentional: The only env var is DYNAMODB_TABLE (a table name, not a secret).
+  # No sensitive values are passed via environment variables.
+  - CKV_AWS_173
+
+  # CKV2_AWS_62: S3 bucket event notifications
+  # Intentional: This is a deployment artifact bucket. Event notifications are
+  # not required for a bucket that only stores Lambda deployment packages.
+  - CKV2_AWS_62
+
+  # CKV_AWS_144: S3 cross-region replication
+  # Intentional: Deployment artifact bucket. Lambda packages can be re-uploaded
+  # from source — cross-region replication adds cost with no resilience benefit here.
+  - CKV_AWS_144
+
+  # CKV_AWS_158: CloudWatch log group KMS encryption
+  # Intentional: Log groups contain Lambda execution logs (not sensitive data).
+  # KMS encryption for log groups requires a customer-managed key, which is out
+  # of scope for this bundle tier.
+  - CKV_AWS_158
