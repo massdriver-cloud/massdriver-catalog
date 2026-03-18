@@ -1,0 +1,15 @@
+# Checkov skip configuration for aws-dynamodb-table
+#
+# Checks that are hardcoded in Terraform (no need to skip — they will pass):
+#   CKV_AWS_28  - server_side_encryption.enabled = true
+#   CKV2_AWS_16 - point_in_time_recovery.enabled = true
+#   CKV2_AWS_118 - deletion_protection_enabled = true
+#
+# Muted checks with documented rationale:
+skip-check:
+  # CKV_AWS_119: DynamoDB table with customer-managed KMS key
+  # Rationale: AWS-managed SSE is enforced (CKV_AWS_28). Customer-managed KMS
+  # adds operational burden (key rotation, cross-account complexity) that is
+  # out of scope for this general-purpose bundle. Teams requiring CMK can fork
+  # this bundle and add the kms_master_key_id attribute.
+  - CKV_AWS_119
