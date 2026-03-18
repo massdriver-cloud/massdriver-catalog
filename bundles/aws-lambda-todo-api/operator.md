@@ -1,28 +1,23 @@
+---
+templating: mustache
+---
+
 # TODO API (AWS Lambda) — Operator Notes
 
-## Architecture Overview
-
-This bundle provisions:
-
-- **AWS Lambda** — Node.js 22.x function, deployed from an S3 zip package
-- **API Gateway HTTP API (v2)** — Proxy integration, free `*.execute-api.*.amazonaws.com` endpoint
-- **CloudWatch Log Groups** — Separate groups for Lambda and API Gateway access logs
-- **IAM Execution Role** — Least-privilege role with the DynamoDB policy selected at deploy time
-
-No Route 53, no custom domain, no VPC required.
+**Package:** `{{slug}}`
 
 ## API Endpoint
 
-The API Gateway URL is published in the `api` artifact under `service_url`. Downstream bundles or operators can reference it as:
+The API Gateway URL is published in the `api` artifact under `service_url`:
 
 ```
-.artifacts.api.service_url
+{{artifacts.api.service_url}}
 ```
 
 ## curl Examples
 
 ```bash
-BASE_URL="{{ .artifacts.api.service_url }}"
+BASE_URL="{{artifacts.api.service_url}}"
 
 # List all TODOs
 curl "$BASE_URL/todos"
@@ -44,11 +39,26 @@ curl -X PUT "$BASE_URL/todos/{id}" \
 curl -X DELETE "$BASE_URL/todos/{id}"
 ```
 
-## Updating the Deployment Package
+## Configuration
 
-1. Upload a new zip to the same S3 bucket and key (or a new key)
-2. If changing the S3 key, update the `s3_key` parameter in Massdriver
-3. Redeploy — Lambda will pull the new package from S3
+**Memory:** `{{params.lambda_memory_mb}}` MB
+
+**Timeout:** `{{params.lambda_timeout_sec}}` seconds
+
+**Log Retention:** `{{params.log_retention_days}}` days
+
+**Region:** `{{params.region}}`
+
+## Architecture Overview
+
+This bundle provisions:
+
+- **AWS Lambda** — Node.js 22.x function, deployed from an S3 zip package
+- **API Gateway HTTP API (v2)** — Proxy integration, free `*.execute-api.*.amazonaws.com` endpoint
+- **CloudWatch Log Groups** — Separate groups for Lambda and API Gateway access logs
+- **IAM Execution Role** — Least-privilege role with the DynamoDB policy selected at deploy time
+
+No Route 53, no custom domain, no VPC required.
 
 ## DynamoDB Policy Selection
 
