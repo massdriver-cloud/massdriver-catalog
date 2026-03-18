@@ -1,0 +1,14 @@
+{
+  "name": "todoapi",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Simple TODO REST API for AWS Lambda + DynamoDB demos",
+  "main": "index.mjs",
+  "scripts": {
+    "package": "zip -r todoapi.zip index.mjs node_modules package.json"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0"
+  }
+}
