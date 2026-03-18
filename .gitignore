@@ -29,4 +29,5 @@ schema-ui.json
 # Build artifacts
 _dist/
 .claude/settings.local.json
-bundles/aws-lambda-todo-api/src/todoapi.zip
+node_modules/
+*.zip
