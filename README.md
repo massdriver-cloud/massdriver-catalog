@@ -404,6 +404,9 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── mysql/                          # MySQL database
 │   ├── network/                        # VPC/Network
 │   └── postgres/                       # PostgreSQL database
+├── examples/                           # Example applications for bundle demos
+│   └── apps/
+│       └── todoapi/                    # Lambda + DynamoDB TODO API
 ├── templates/                          # Bundle templates for mass bundle new
 │   ├── opentofu/                       # OpenTofu module template
 │   ├── terraform/                      # Terraform module template
@@ -506,6 +509,30 @@ These resources complement this catalog by showing you how to work with bundles 
 - **Skip documentation**: Update descriptions and help text
 - **Ignore validation**: Use JSON Schema to prevent errors
 - **Forget about UI**: Good UX makes adoption easier
+
+## Example Applications
+
+The `examples/apps/` directory contains sample applications used by bundles in this catalog.
+
+### TODO API (`examples/apps/todoapi/`)
+
+A minimal Node.js REST API for the `aws-lambda-todo-api` bundle. Uses AWS Lambda + API Gateway + DynamoDB.
+
+**Building the deployment package:**
+
+```bash
+cd examples/apps/todoapi
+npm install
+npm run package
+```
+
+This produces `todoapi.zip` containing `index.mjs`, `node_modules/`, and `package.json`. Copy it into the bundle's `src/` directory before publishing:
+
+```bash
+cp todoapi.zip ../../bundles/aws-lambda-todo-api/src/todoapi.zip
+```
+
+The zip is gitignored — rebuild it locally before publishing the bundle. See `examples/apps/todoapi/README.md` for API routes and configuration details.
 
 ## Resources
 
