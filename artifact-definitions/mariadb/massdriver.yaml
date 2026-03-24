@@ -1,9 +1,9 @@
-name: postgres
-label: PostgreSQL
+name: mariadb
+label: MariaDB
 
 schema:
-  title: PostgreSQL Database
-  description: PostgreSQL database instance with connection details and access policies
+  title: MariaDB Database
+  description: MariaDB database instance with connection details and access policies
   type: object
   required:
     - auth
@@ -29,7 +29,7 @@ schema:
           title: Port
           description: TCP port number
           type: integer
-          default: 5432
+          default: 3306
         database:
           title: Database
           description: Default database name
@@ -47,10 +47,6 @@ schema:
     id:
       title: ID
       description: Unique database instance identifier
-      type: string
-    version:
-      title: Version
-      description: PostgreSQL major version
       type: string
     policies:
       title: Access Policies

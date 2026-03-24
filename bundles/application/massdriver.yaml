@@ -64,16 +64,13 @@ params:
 
 connections:
   required:
-    - network
+    - aws_vpc
     - database
-    # - bucket
   properties:
-    network:
-      $ref: network
+    aws_vpc:
+      $ref: aws-vpc
     database:
-      $ref: postgres
-    bucket:
-      $ref: bucket
+      $ref: mariadb
 
 artifacts:
   required:

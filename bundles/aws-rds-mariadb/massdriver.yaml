@@ -1,0 +1,249 @@
+name: aws-rds-mariadb
+description: "Production-grade MariaDB on AWS RDS with encryption, multi-AZ, automated backups, and enhanced monitoring. Outputs separate reader and writer connection artifacts."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-rds-mariadb
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: "us-east-1"
+      engine_version: "10.11"
+      instance_class: db.t3.micro
+      allocated_storage: 20
+      max_allocated_storage: 100
+      database_name: appdb
+      username: admin
+      multi_az: false
+      backup_retention_period: 1
+      deletion_protection: false
+      performance_insights_enabled: false
+      monitoring:
+        enhanced_monitoring_interval: 0
+      maintenance:
+        auto_minor_version_upgrade: true
+        preferred_maintenance_window: "sun:05:00-sun:06:00"
+        preferred_backup_window: "03:00-04:00"
+    - __name: Production
+      region: "us-east-1"
+      engine_version: "10.11"
+      instance_class: db.r6g.large
+      allocated_storage: 100
+      max_allocated_storage: 1000
+      database_name: appdb
+      username: admin
+      multi_az: true
+      backup_retention_period: 7
+      deletion_protection: true
+      performance_insights_enabled: true
+      monitoring:
+        enhanced_monitoring_interval: 60
+      maintenance:
+        auto_minor_version_upgrade: false
+        preferred_maintenance_window: "sun:05:00-sun:06:00"
+        preferred_backup_window: "03:00-04:00"
+
+  required:
+    - region
+    - engine_version
+    - instance_class
+    - allocated_storage
+    - database_name
+    - username
+    - multi_az
+    - backup_retention_period
+    - deletion_protection
+
+  properties:
+    region:
+      type: string
+      title: AWS Region
+      description: AWS region to deploy the MariaDB RDS instance.
+      default: "us-east-1"
+      $md.immutable: true
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ap-northeast-1
+
+    engine_version:
+      type: string
+      title: MariaDB Engine Version
+      description: MariaDB version to deploy. Use the latest minor version for security patches.
+      default: "10.11"
+      $md.immutable: true
+      enum:
+        - "10.6"
+        - "10.11"
+
+    instance_class:
+      type: string
+      title: Instance Class
+      description: RDS instance type. Graviton (r6g/m6g/t4g) instances offer better price-performance.
+      default: db.t3.micro
+      enum:
+        - db.t3.micro
+        - db.t3.small
+        - db.t3.medium
+        - db.t3.large
+        - db.t4g.micro
+        - db.t4g.small
+        - db.t4g.medium
+        - db.t4g.large
+        - db.m6g.large
+        - db.m6g.xlarge
+        - db.m6g.2xlarge
+        - db.r6g.large
+        - db.r6g.xlarge
+        - db.r6g.2xlarge
+        - db.r6g.4xlarge
+
+    allocated_storage:
+      type: integer
+      title: Allocated Storage (GB)
+      description: Initial storage allocation in GiB. Minimum 20 GiB for gp3.
+      default: 20
+      minimum: 20
+      maximum: 65536
+
+    max_allocated_storage:
+      type: integer
+      title: Max Allocated Storage (GB)
+      description: Maximum storage ceiling for autoscaling. Set to 0 to disable storage autoscaling.
+      default: 100
+      minimum: 0
+      maximum: 65536
+
+    database_name:
+      type: string
+      title: Database Name
+      description: Name of the initial database to create.
+      default: "appdb"
+      pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+
+    username:
+      type: string
+      title: Master Username
+      description: Master username for the database. Cannot be changed after creation.
+      default: "admin"
+      $md.immutable: true
+      pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+
+    multi_az:
+      type: boolean
+      title: Multi-AZ Deployment
+      description: Deploy a standby replica in a different Availability Zone for automatic failover.
+      default: false
+
+    backup_retention_period:
+      type: integer
+      title: Backup Retention Period (days)
+      description: Number of days to retain automated backups. 0 disables automated backups (not recommended for production).
+      default: 7
+      minimum: 0
+      maximum: 35
+
+    deletion_protection:
+      type: boolean
+      title: Deletion Protection
+      description: Prevent accidental database deletion. Must be disabled before the instance can be deleted.
+      default: true
+
+    performance_insights_enabled:
+      type: boolean
+      title: Performance Insights
+      description: Enable Performance Insights for query-level performance analysis.
+      default: false
+
+    monitoring:
+      type: object
+      title: Enhanced Monitoring
+      description: CloudWatch enhanced monitoring configuration.
+      properties:
+        enhanced_monitoring_interval:
+          type: integer
+          title: Enhanced Monitoring Interval (seconds)
+          description: Interval for enhanced monitoring metrics. 0 disables enhanced monitoring.
+          default: 0
+          enum:
+            - 0
+            - 1
+            - 5
+            - 10
+            - 15
+            - 30
+            - 60
+
+    maintenance:
+      type: object
+      title: Maintenance Settings
+      properties:
+        auto_minor_version_upgrade:
+          type: boolean
+          title: Auto Minor Version Upgrade
+          description: Automatically apply minor engine upgrades during maintenance windows.
+          default: true
+        preferred_maintenance_window:
+          type: string
+          title: Preferred Maintenance Window
+          description: Weekly time range for maintenance operations (UTC). Format ddd:hh24:mi-ddd:hh24:mi.
+          default: "sun:05:00-sun:06:00"
+        preferred_backup_window:
+          type: string
+          title: Preferred Backup Window
+          description: Daily time range for automated backups (UTC). Format hh24:mi-hh24:mi.
+          default: "03:00-04:00"
+
+connections:
+  required:
+    - aws_vpc
+    - aws_authentication
+  properties:
+    aws_vpc:
+      $ref: aws-vpc
+      title: AWS VPC
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - writer
+    - reader
+  properties:
+    writer:
+      $ref: mariadb
+      title: Writer Connection
+    reader:
+      $ref: mariadb
+      title: Reader Connection
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "prod"'
+
+ui:
+  ui:order:
+    - region
+    - engine_version
+    - instance_class
+    - allocated_storage
+    - max_allocated_storage
+    - database_name
+    - username
+    - multi_az
+    - backup_retention_period
+    - deletion_protection
+    - performance_insights_enabled
+    - monitoring
+    - maintenance
+    - "*"

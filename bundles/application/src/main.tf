@@ -14,7 +14,7 @@ terraform {
 
 locals {
   has_database = var.database != null
-  has_bucket   = var.bucket != null
+  # has_bucket   = var.bucket != null
 }
 
 resource "random_pet" "main" {
@@ -22,9 +22,9 @@ resource "random_pet" "main" {
     image      = var.image
     replicas   = tostring(var.replicas)
     port       = tostring(var.port)
-    network_id = var.network.id
+    network_id = var.aws_vpc.id
     database   = local.has_database ? var.database.auth.hostname : "none"
-    bucket     = local.has_bucket ? var.bucket.name : "none"
+    #  bucket     = local.has_bucket ? var.bucket.name : "none"
   }
 }
 

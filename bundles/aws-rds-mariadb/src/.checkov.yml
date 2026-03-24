@@ -1,0 +1,25 @@
+skip-check:
+  # CKV2_AWS_60: "Ensure RDS cluster has backtrack enabled"
+  # Backtrack is an Aurora-specific feature, not available for standard RDS MariaDB.
+  - CKV2_AWS_60
+
+  # CKV_AWS_118: "Ensure that enhanced monitoring is enabled for Amazon RDS instances"
+  # Enhanced monitoring is configurable via params. Dev preset has it disabled for cost savings.
+  - CKV_AWS_118
+
+  # CKV_AWS_293: "Ensure that AWS database instances have deletion protection enabled"
+  # Deletion protection is configurable via params. Dev preset has it disabled for teardown ease.
+  - CKV_AWS_293
+
+  # CKV_AWS_157: "Ensure that RDS instances have Multi-AZ enabled"
+  # Multi-AZ is configurable via params. Dev preset has it disabled for cost savings.
+  - CKV_AWS_157
+
+  # CKV_AWS_382: "Ensure no security groups allow egress from 0.0.0.0:0 to port -1"
+  # RDS needs outbound for AWS services (CloudWatch, SSM, etc). Restricted ingress is the control.
+  - CKV_AWS_382
+
+  # CKV2_AWS_69: "Ensure AWS RDS database instance configured with encryption in transit"
+  # MariaDB RDS supports SSL but require_secure_transport is a parameter group setting
+  # that can break client connectivity. Left to operator discretion.
+  - CKV2_AWS_69
