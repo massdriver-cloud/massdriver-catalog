@@ -6,3 +6,9 @@ variable "aws_authentication" {
   })
   sensitive = true
 }
+
+variable "create_nat_gateway" {
+  description = "Create a NAT Gateway for private subnet egress. Disable in development to avoid Elastic IP usage."
+  type        = bool
+  default     = true
+}

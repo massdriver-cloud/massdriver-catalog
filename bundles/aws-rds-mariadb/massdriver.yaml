@@ -1,7 +1,7 @@
 name: aws-rds-mariadb
 description: "Production-grade MariaDB on AWS RDS with encryption, multi-AZ, automated backups, and enhanced monitoring. Outputs separate reader and writer connection artifacts."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-rds-mariadb
-version: 0.1.0
+version: 0.1.1
 
 params:
   examples:

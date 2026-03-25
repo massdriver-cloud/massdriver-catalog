@@ -4,7 +4,7 @@
 variable "aws_authentication" {
   type = object({
     arn         = string
-    external_id = optional(string)
+    external_id = string
   })
 }
 variable "aws_vpc" {
@@ -27,13 +27,13 @@ variable "database" {
       port     = number
       username = string
     })
-    id                  = string
-    security_group_id   = string
-    secrets_manager_arn = string
+    id = string
     policies = list(object({
       id   = string
       name = string
     }))
+    secrets_manager_arn = string
+    security_group_id   = string
   })
 }
 variable "database_policy" {
