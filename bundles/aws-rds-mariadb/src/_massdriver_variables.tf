@@ -79,6 +79,10 @@ variable "performance_insights_enabled" {
 variable "region" {
   type = string
 }
+variable "skip_final_snapshot" {
+  type    = bool
+  default = false
+}
 variable "username" {
   type = string
 }

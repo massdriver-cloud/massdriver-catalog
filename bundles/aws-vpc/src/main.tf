@@ -16,7 +16,7 @@ provider "aws" {
   region = var.region
   assume_role {
     role_arn    = var.aws_authentication.arn
-    external_id = try(var.aws_authentication.external_id, null)
+    external_id = var.aws_authentication.external_id
   }
   default_tags {
     tags = var.md_metadata.default_tags

@@ -9,7 +9,9 @@ resource "massdriver_artifact" "writer" {
       username = var.username
       password = random_password.master.result
     }
-    id = aws_db_instance.main.id
+    id                  = aws_db_instance.main.id
+    security_group_id   = aws_security_group.rds.id
+    secrets_manager_arn = aws_secretsmanager_secret.master_credentials.arn
     policies = [
       {
         id   = "read-write"
@@ -34,7 +36,9 @@ resource "massdriver_artifact" "reader" {
       username = var.username
       password = random_password.master.result
     }
-    id = var.multi_az ? aws_db_instance.reader[0].id : aws_db_instance.main.id
+    id                  = var.multi_az ? aws_db_instance.reader[0].id : aws_db_instance.main.id
+    security_group_id   = aws_security_group.rds.id
+    secrets_manager_arn = aws_secretsmanager_secret.master_credentials.arn
     policies = [
       {
         id   = "read-only"

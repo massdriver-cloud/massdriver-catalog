@@ -16,6 +16,7 @@ params:
       multi_az: false
       backup_retention_period: 1
       deletion_protection: false
+      skip_final_snapshot: true
       performance_insights_enabled: false
       monitoring:
         enhanced_monitoring_interval: 0
@@ -34,6 +35,7 @@ params:
       multi_az: true
       backup_retention_period: 7
       deletion_protection: true
+      skip_final_snapshot: false
       performance_insights_enabled: true
       monitoring:
         enhanced_monitoring_interval: 60
@@ -123,8 +125,9 @@ params:
     database_name:
       type: string
       title: Database Name
-      description: Name of the initial database to create.
+      description: Name of the initial database to create. Cannot be changed after creation.
       default: "appdb"
+      $md.immutable: true
       pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
 
     username:
@@ -154,6 +157,12 @@ params:
       title: Deletion Protection
       description: Prevent accidental database deletion. Must be disabled before the instance can be deleted.
       default: true
+
+    skip_final_snapshot:
+      type: boolean
+      title: Skip Final Snapshot
+      description: If true, no final DB snapshot is created when the instance is deleted. Set to true for dev/test environments.
+      default: false
 
     performance_insights_enabled:
       type: boolean
@@ -243,6 +252,7 @@ ui:
     - multi_az
     - backup_retention_period
     - deletion_protection
+    - skip_final_snapshot
     - performance_insights_enabled
     - monitoring
     - maintenance

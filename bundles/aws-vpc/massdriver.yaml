@@ -36,8 +36,9 @@ params:
     cidr:
       type: string
       title: Network CIDR
-      description: CIDR block for the VPC.
+      description: CIDR block for the VPC. Cannot be changed after creation — changing a VPC CIDR forces replacement of all resources.
       default: "10.0.0.0/16"
+      $md.immutable: true
       pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
 
 connections:

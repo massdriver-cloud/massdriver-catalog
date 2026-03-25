@@ -8,6 +8,8 @@ schema:
   required:
     - auth
     - id
+    - security_group_id
+    - secrets_manager_arn
     - policies
   properties:
     auth:
@@ -47,6 +49,14 @@ schema:
     id:
       title: ID
       description: Unique database instance identifier
+      type: string
+    security_group_id:
+      title: Security Group ID
+      description: VPC security group controlling network access to the database. Consuming bundles can create ingress rules against this group to establish auditable, programmatic connectivity.
+      type: string
+    secrets_manager_arn:
+      title: Secrets Manager ARN
+      description: ARN of the AWS Secrets Manager secret containing database credentials (username and password). Applications should reference this ARN at runtime instead of passing raw credentials.
       type: string
     policies:
       title: Access Policies

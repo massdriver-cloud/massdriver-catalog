@@ -20,7 +20,7 @@ provider "aws" {
   region = local.region
   assume_role {
     role_arn    = var.aws_authentication.arn
-    external_id = try(var.aws_authentication.external_id, null)
+    external_id = var.aws_authentication.external_id
   }
   default_tags {
     tags = var.md_metadata.default_tags
@@ -55,16 +55,29 @@ resource "random_password" "master" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-# Store password in SSM Parameter Store for operational access
-resource "aws_ssm_parameter" "master_password" {
-  name        = "/${local.name_prefix}/mariadb/master-password"
-  description = "MariaDB master password for ${local.name_prefix}"
-  type        = "SecureString"
-  value       = random_password.master.result
+# Store credentials in Secrets Manager so consuming applications can reference
+# the secret ARN instead of receiving raw passwords through artifacts.
+resource "aws_secretsmanager_secret" "master_credentials" {
+  name_prefix = "${local.name_prefix}-mariadb-credentials-"
+  description = "MariaDB master credentials for ${local.name_prefix}"
+  kms_key_id  = aws_kms_key.rds.arn
 
   tags = {
-    Name = "${local.name_prefix}-mariadb-master-password"
+    Name = "${local.name_prefix}-mariadb-credentials"
   }
+}
+
+resource "aws_secretsmanager_secret_version" "master_credentials" {
+  secret_id = aws_secretsmanager_secret.master_credentials.id
+  secret_string = jsonencode({
+    username = var.username
+    password = random_password.master.result
+    host     = aws_db_instance.main.address
+    port     = 3306
+    dbname   = var.database_name
+  })
+
+  depends_on = [aws_db_instance.main]
 }
 
 # -----------------------------------------------------------------------------
@@ -259,8 +272,8 @@ resource "aws_db_instance" "main" {
   backup_retention_period   = var.backup_retention_period
   backup_window             = var.maintenance.preferred_backup_window
   copy_tags_to_snapshot     = true
-  skip_final_snapshot       = false
-  final_snapshot_identifier = "${local.name_prefix}-mariadb-final-snapshot"
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${local.name_prefix}-mariadb-final-snapshot"
   delete_automated_backups  = false
 
   # Maintenance

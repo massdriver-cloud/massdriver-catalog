@@ -1,0 +1,264 @@
+name: aws-elasticache-redis
+description: "AWS ElastiCache Redis with presets for caching, session storage, and pub/sub. Includes encryption at rest and in transit, automatic failover, and VPC isolation."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-elasticache-redis
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Caching
+      region: "us-east-1"
+      node_type: cache.t3.micro
+      num_cache_clusters: 1
+      engine_version: "7.1"
+      port: 6379
+      at_rest_encryption_enabled: true
+      transit_encryption_enabled: true
+      auth_token_enabled: false
+      automatic_failover_enabled: false
+      multi_az_enabled: false
+      snapshot_retention_limit: 0
+      apply_immediately: true
+      use_case: caching
+      maintenance:
+        auto_minor_version_upgrade: true
+        preferred_maintenance_window: "sun:05:00-sun:06:00"
+        snapshot_window: "03:00-04:00"
+
+    - __name: Session Storage
+      region: "us-east-1"
+      node_type: cache.t3.small
+      num_cache_clusters: 2
+      engine_version: "7.1"
+      port: 6379
+      at_rest_encryption_enabled: true
+      transit_encryption_enabled: true
+      auth_token_enabled: true
+      automatic_failover_enabled: true
+      multi_az_enabled: true
+      snapshot_retention_limit: 1
+      apply_immediately: false
+      use_case: session
+      maintenance:
+        auto_minor_version_upgrade: true
+        preferred_maintenance_window: "sun:05:00-sun:06:00"
+        snapshot_window: "03:00-04:00"
+
+    - __name: Pub/Sub
+      region: "us-east-1"
+      node_type: cache.t3.small
+      num_cache_clusters: 2
+      engine_version: "7.1"
+      port: 6379
+      at_rest_encryption_enabled: true
+      transit_encryption_enabled: true
+      auth_token_enabled: false
+      automatic_failover_enabled: true
+      multi_az_enabled: true
+      snapshot_retention_limit: 0
+      apply_immediately: false
+      use_case: pubsub
+      maintenance:
+        auto_minor_version_upgrade: true
+        preferred_maintenance_window: "sun:05:00-sun:06:00"
+        snapshot_window: "03:00-04:00"
+
+  required:
+    - region
+    - node_type
+    - num_cache_clusters
+    - engine_version
+    - port
+    - at_rest_encryption_enabled
+    - transit_encryption_enabled
+    - auth_token_enabled
+    - automatic_failover_enabled
+    - multi_az_enabled
+    - snapshot_retention_limit
+    - use_case
+
+  properties:
+    region:
+      type: string
+      title: AWS Region
+      description: AWS region to deploy the ElastiCache Redis cluster.
+      default: "us-east-1"
+      $md.immutable: true
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ap-northeast-1
+
+    use_case:
+      type: string
+      title: Use Case
+      description: >-
+        Primary use case for this Redis instance. Affects parameter group
+        tuning: caching optimizes for eviction, session optimizes for
+        persistence, pubsub optimizes for message throughput.
+      default: "caching"
+      $md.immutable: true
+      enum:
+        - caching
+        - session
+        - pubsub
+
+    engine_version:
+      type: string
+      title: Redis Engine Version
+      description: Redis engine version. Redis 7.x is recommended for new deployments.
+      default: "7.1"
+      $md.immutable: true
+      enum:
+        - "7.1"
+        - "7.0"
+        - "6.2"
+
+    node_type:
+      type: string
+      title: Node Type
+      description: ElastiCache node type. Graviton (r7g/m7g) nodes offer better price-performance for production.
+      default: cache.t3.micro
+      enum:
+        - cache.t3.micro
+        - cache.t3.small
+        - cache.t3.medium
+        - cache.t4g.micro
+        - cache.t4g.small
+        - cache.t4g.medium
+        - cache.m6g.large
+        - cache.m6g.xlarge
+        - cache.r6g.large
+        - cache.r6g.xlarge
+        - cache.r6g.2xlarge
+
+    num_cache_clusters:
+      type: integer
+      title: Number of Cache Nodes
+      description: Number of cache nodes in the replication group. Set to 1 for single-node (dev). Set to 2+ for automatic failover.
+      default: 1
+      minimum: 1
+      maximum: 6
+
+    port:
+      type: integer
+      title: Port
+      description: Port number for the Redis endpoint.
+      default: 6379
+      minimum: 1024
+      maximum: 65535
+
+    at_rest_encryption_enabled:
+      type: boolean
+      title: Encryption at Rest
+      description: Encrypt data stored on disk using AWS-managed KMS keys.
+      default: true
+
+    transit_encryption_enabled:
+      type: boolean
+      title: Encryption in Transit (TLS)
+      description: Encrypt data in transit between clients and Redis. Required when auth_token_enabled is true.
+      default: true
+
+    auth_token_enabled:
+      type: boolean
+      title: Enable Auth Token (Password)
+      description: Require clients to authenticate with a token (password). Requires transit_encryption_enabled to be true.
+      default: false
+
+    automatic_failover_enabled:
+      type: boolean
+      title: Automatic Failover
+      description: Enable automatic failover to a replica if the primary node fails. Requires num_cache_clusters >= 2.
+      default: false
+
+    multi_az_enabled:
+      type: boolean
+      title: Multi-AZ
+      description: Deploy replicas across multiple Availability Zones. Requires automatic_failover_enabled to be true.
+      default: false
+
+    snapshot_retention_limit:
+      type: integer
+      title: Snapshot Retention (days)
+      description: Number of days to retain automatic snapshots. 0 disables snapshots.
+      default: 0
+      minimum: 0
+      maximum: 35
+
+    apply_immediately:
+      type: boolean
+      title: Apply Changes Immediately
+      description: Apply configuration changes immediately rather than during the next maintenance window. May cause a brief interruption.
+      default: true
+
+    maintenance:
+      type: object
+      title: Maintenance Settings
+      properties:
+        auto_minor_version_upgrade:
+          type: boolean
+          title: Auto Minor Version Upgrade
+          description: Automatically apply minor engine upgrades during maintenance windows.
+          default: true
+        preferred_maintenance_window:
+          type: string
+          title: Preferred Maintenance Window
+          description: Weekly time range for maintenance operations (UTC). Format ddd:hh24:mi-ddd:hh24:mi.
+          default: "sun:05:00-sun:06:00"
+        snapshot_window:
+          type: string
+          title: Snapshot Window
+          description: Daily time range for automatic snapshots (UTC). Format hh24:mi-hh24:mi.
+          default: "03:00-04:00"
+
+connections:
+  required:
+    - aws_vpc
+    - aws_authentication
+  properties:
+    aws_vpc:
+      $ref: aws-vpc
+      title: AWS VPC
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - redis
+  properties:
+    redis:
+      $ref: redis
+      title: Redis Connection
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - use_case
+    - node_type
+    - num_cache_clusters
+    - engine_version
+    - port
+    - at_rest_encryption_enabled
+    - transit_encryption_enabled
+    - auth_token_enabled
+    - automatic_failover_enabled
+    - multi_az_enabled
+    - snapshot_retention_limit
+    - apply_immediately
+    - maintenance
+    - "*"
