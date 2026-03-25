@@ -1,0 +1,20 @@
+skip-check:
+  # CKV2_AWS_60: "Ensure RDS cluster has backtrack enabled"
+  # Backtrack is an Aurora-specific feature. Not available for standard RDS MariaDB instances.
+  - CKV2_AWS_60
+
+  # CKV_AWS_382: "Ensure no security groups allow egress from 0.0.0.0:0 to port -1"
+  # RDS needs outbound connectivity for AWS services (CloudWatch, SSM, Secrets Manager).
+  # This is an infrastructure requirement, not a security gap. Ingress is restricted to the VPC CIDR.
+  - CKV_AWS_382
+
+  # CKV2_AWS_69: "Ensure AWS RDS database instance configured with encryption in transit"
+  # MariaDB RDS supports SSL but require_secure_transport is a parameter group setting managed
+  # at the client/application level. Enforcing it at the DB layer can break client connectivity
+  # for applications not yet configured for SSL. This is an operational decision outside the bundle.
+  - CKV2_AWS_69
+
+  # CKV2_AWS_57: "Ensure Secrets Manager secrets should have automatic rotation enabled"
+  # Secret rotation requires a Lambda rotator function and application-level coordination.
+  # This is an operational concern managed outside the bundle lifecycle.
+  - CKV2_AWS_57

@@ -1,0 +1,62 @@
+name: redis
+label: Redis
+
+schema:
+  title: Redis
+  description: Redis instance with connection details and access policies
+  type: object
+  required:
+    - auth
+    - id
+    - security_group_id
+    - policies
+  properties:
+    auth:
+      title: Authentication
+      description: Redis connection parameters
+      type: object
+      required:
+        - hostname
+        - port
+      properties:
+        hostname:
+          title: Host
+          description: Redis primary endpoint hostname
+          type: string
+        port:
+          title: Port
+          description: TCP port number
+          type: integer
+          default: 6379
+        auth_token:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Auth Token
+          description: Redis AUTH token for password authentication (set when transit encryption and auth are enabled)
+          type: string
+    id:
+      title: ID
+      description: ElastiCache replication group or cluster identifier
+      type: string
+    security_group_id:
+      title: Security Group ID
+      description: VPC security group controlling network access to Redis. Consuming bundles can create ingress rules against this group.
+      type: string
+    policies:
+      title: Access Policies
+      description: Available access policies for this Redis instance
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string

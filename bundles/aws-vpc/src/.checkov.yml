@@ -1,0 +1,5 @@
+skip-check:
+  # CKV_AWS_130: Public subnets intentionally assign public IPs — that is the
+  # definition of a public subnet. Instances requiring public IPs are placed
+  # here by design; private workloads go in private subnets.
+  - CKV_AWS_130

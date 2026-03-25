@@ -1,0 +1,4 @@
+skip-check:
+  # CKV_AWS_382: "Ensure no security groups allow egress from 0.0.0.0:0 to port -1"
+  # ElastiCache needs outbound for AWS services (CloudWatch, SSM). Restricted ingress is the control.
+  - CKV_AWS_382
