@@ -1,31 +1,20 @@
 skip-check:
   # CKV2_AWS_60: "Ensure RDS cluster has backtrack enabled"
-  # Backtrack is an Aurora-specific feature, not available for standard RDS MariaDB.
+  # Backtrack is an Aurora-specific feature. Not available for standard RDS MariaDB instances.
   - CKV2_AWS_60
 
-  # CKV_AWS_118: "Ensure that enhanced monitoring is enabled for Amazon RDS instances"
-  # Enhanced monitoring is configurable via params. Dev preset has it disabled for cost savings.
-  - CKV_AWS_118
-
-  # CKV_AWS_293: "Ensure that AWS database instances have deletion protection enabled"
-  # Deletion protection is configurable via params. Dev preset has it disabled for teardown ease.
-  - CKV_AWS_293
-
-  # CKV_AWS_157: "Ensure that RDS instances have Multi-AZ enabled"
-  # Multi-AZ is configurable via params. Dev preset has it disabled for cost savings.
-  - CKV_AWS_157
-
   # CKV_AWS_382: "Ensure no security groups allow egress from 0.0.0.0:0 to port -1"
-  # RDS needs outbound for AWS services (CloudWatch, SSM, etc). Restricted ingress is the control.
+  # RDS needs outbound connectivity for AWS services (CloudWatch, SSM, Secrets Manager).
+  # This is an infrastructure requirement, not a security gap. Ingress is restricted to the VPC CIDR.
   - CKV_AWS_382
 
   # CKV2_AWS_69: "Ensure AWS RDS database instance configured with encryption in transit"
-  # MariaDB RDS supports SSL but require_secure_transport is a parameter group setting
-  # that can break client connectivity. Left to operator discretion.
+  # MariaDB RDS supports SSL but require_secure_transport is a parameter group setting managed
+  # at the client/application level. Enforcing it at the DB layer can break client connectivity
+  # for applications not yet configured for SSL. This is an operational decision outside the bundle.
   - CKV2_AWS_69
 
   # CKV2_AWS_57: "Ensure Secrets Manager secrets should have automatic rotation enabled"
-  # Automatic rotation requires a Lambda rotator function. This bundle stores the master
-  # password at creation time; rotation is an operational concern handled outside the bundle.
-  # Adding a Lambda rotator would significantly increase bundle complexity.
+  # Secret rotation requires a Lambda rotator function and application-level coordination.
+  # This is an operational concern managed outside the bundle lifecycle.
   - CKV2_AWS_57

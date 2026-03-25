@@ -2,78 +2,118 @@
 templating: mustache
 ---
 
-# 📚 Network Bundle Runbook
-
-> **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
+# AWS VPC Operator Guide
 
 ## Package Information
 
 **Slug:** `{{slug}}`
 
-### Configuration
+**Region:** `{{params.region}}`
 
 **CIDR Block:** `{{params.cidr}}`
 
-**Subnets:**
-
-{{#params.subnets}}
-
-- **{{name}}**: `{{cidr}}`
-  {{/params.subnets}}
+**NAT Gateway:** `{{params.create_nat_gateway}}`
 
 ---
 
-## Welcome to Your Runbook! 👋
+## Architecture
 
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
+This bundle deploys a VPC with public and private subnets across 2 availability zones.
 
-### 📝 How to Use This File
+- **Public subnets** have an Internet Gateway route and auto-assign public IPs
+- **Private subnets** route through a NAT Gateway (when enabled) for outbound-only internet access
+- **Default security group** is locked down with no ingress/egress rules (CKV2_AWS_12)
 
-This `operator.md` file lives in the root of your bundle directory (`./bundles/network/operator.md`). When you edit it, your custom runbook will appear in the Massdriver UI, giving your team instant access to operational documentation right where they need it.
+## Network Details
 
-### 💡 What to Include
+**VPC ID:** `{{artifacts.aws_vpc.id}}`
 
-Consider adding:
-
-- **Common Operations**: How to scale, update, or modify this infrastructure
-- **Troubleshooting Guide**: Known issues and their solutions
-- **Monitoring & Alerts**: What to watch and when to act
-- **Disaster Recovery**: Backup and restore procedures
-- **Configuration Tips**: Best practices and gotchas
-- **Useful Commands**: CLI commands, queries, or scripts
-- **Contact Information**: Who to reach for help
-
-### ✨ Pro Tips
-
-- Use clear headings and sections
-- Include code blocks with examples
-- Add links to relevant documentation
-- Keep it updated as you learn more
-- Make it searchable with good keywords
-
----
-
-## Network Operations
-
-### Network Configuration
-
-**Network ID:** `{{artifacts.network.id}}`
-
-**Network CIDR:** `{{artifacts.network.cidr}}`
+**VPC CIDR:** `{{artifacts.aws_vpc.cidr}}`
 
 ### Subnets
 
 | Subnet ID | CIDR | Type |
 |-----------|------|------|
-{{#artifacts.network.subnets}}
-| {{id}} | {{cidr}} | {{type}} |
-{{/artifacts.network.subnets}}
-
-### Network Information
-
-Use the network ID and subnet details to connect other resources to this network.
+{{#artifacts.aws_vpc.subnets}}
+| `{{id}}` | `{{cidr}}` | {{type}} |
+{{/artifacts.aws_vpc.subnets}}
 
 ---
 
-**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md) 🎯
+## Common Operations
+
+### Verify VPC Connectivity
+
+```bash
+# List all subnets in the VPC
+aws ec2 describe-subnets --filters "Name=vpc-id,Values={{artifacts.aws_vpc.id}}" \
+  --query "Subnets[*].[SubnetId,CidrBlock,AvailabilityZone,MapPublicIpOnLaunch]" \
+  --output table --region {{params.region}}
+```
+
+### Check Route Tables
+
+```bash
+# Show route tables associated with this VPC
+aws ec2 describe-route-tables --filters "Name=vpc-id,Values={{artifacts.aws_vpc.id}}" \
+  --query "RouteTables[*].{ID:RouteTableId,Routes:Routes}" \
+  --output json --region {{params.region}}
+```
+
+### Check NAT Gateway Status
+
+```bash
+# List NAT gateways in this VPC
+aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values={{artifacts.aws_vpc.id}}" \
+  --query "NatGateways[*].[NatGatewayId,State,SubnetId]" \
+  --output table --region {{params.region}}
+```
+
+### Inspect Security Groups
+
+```bash
+# List all security groups in the VPC
+aws ec2 describe-security-groups --filters "Name=vpc-id,Values={{artifacts.aws_vpc.id}}" \
+  --query "SecurityGroups[*].[GroupId,GroupName,Description]" \
+  --output table --region {{params.region}}
+```
+
+---
+
+## Troubleshooting
+
+### Private Subnets Have No Internet Access
+
+If `create_nat_gateway` is `false`, private subnets have no outbound internet route. Resources in private subnets (RDS, ElastiCache) can still communicate within the VPC but cannot reach external endpoints.
+
+To restore outbound access, set `create_nat_gateway: true` and redeploy.
+
+### Subnet IP Exhaustion
+
+Each subnet uses a `/24` CIDR (251 usable IPs). Monitor with:
+
+```bash
+aws ec2 describe-subnets --filters "Name=vpc-id,Values={{artifacts.aws_vpc.id}}" \
+  --query "Subnets[*].[SubnetId,AvailableIpAddressCount,CidrBlock]" \
+  --output table --region {{params.region}}
+```
+
+### DNS Resolution Issues
+
+This VPC has DNS support and DNS hostnames enabled. If resources cannot resolve hostnames:
+
+```bash
+aws ec2 describe-vpc-attribute --vpc-id {{artifacts.aws_vpc.id}} \
+  --attribute enableDnsSupport --region {{params.region}}
+
+aws ec2 describe-vpc-attribute --vpc-id {{artifacts.aws_vpc.id}} \
+  --attribute enableDnsHostnames --region {{params.region}}
+```
+
+---
+
+## Scaling
+
+- **More AZs**: Modify the bundle to use additional availability zones (currently uses 2)
+- **CIDR expansion**: The CIDR is immutable after creation. To change it, decommission and redeploy
+- **Additional subnets**: Add subnet resources to the Terraform for specialized workloads

@@ -12,6 +12,11 @@ resource "massdriver_artifact" "writer" {
     id                  = aws_db_instance.main.id
     security_group_id   = aws_security_group.rds.id
     secrets_manager_arn = aws_secretsmanager_secret.master_credentials.arn
+    # NOTE: These are example IAM policies for demonstration purposes.
+    # Replace with your actual AWS IAM policy ARNs. Downstream consumers
+    # (e.g., applications) bind IAM roles to these policy IDs via artifact
+    # connections. Broadcast the ARNs here so consumers can assume the
+    # appropriate level of access.
     policies = [
       {
         id   = "read-write"
@@ -39,6 +44,12 @@ resource "massdriver_artifact" "reader" {
     id                  = var.multi_az ? aws_db_instance.reader[0].id : aws_db_instance.main.id
     security_group_id   = aws_security_group.rds.id
     secrets_manager_arn = aws_secretsmanager_secret.master_credentials.arn
+    # NOTE: These are example IAM policy stubs. Replace with your actual AWS IAM
+    # policies and broadcast the policy ARNs through artifacts so downstream
+    # consumers can bind IAM roles to them.
+    # NOTE: These are example IAM policies for demonstration purposes.
+    # Replace with your actual AWS IAM policy ARNs. Downstream consumers
+    # bind IAM roles to these policy IDs via artifact connections.
     policies = [
       {
         id   = "read-only"
