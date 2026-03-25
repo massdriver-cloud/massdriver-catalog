@@ -1,7 +1,7 @@
 name: aws-elasticache-redis
 description: "AWS ElastiCache Redis with presets for caching, session storage, and pub/sub. Includes encryption at rest and in transit, automatic failover, and VPC isolation."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-elasticache-redis
-version: 0.1.2
+version: 0.0.0
 
 params:
   examples:

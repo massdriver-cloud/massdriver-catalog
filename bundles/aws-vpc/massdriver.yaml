@@ -1,7 +1,7 @@
 name: aws-vpc
 description: "AWS VPC with public and private subnets across multiple availability zones."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-vpc
-version: 0.1.2
+version: 0.0.0
 
 params:
   examples:

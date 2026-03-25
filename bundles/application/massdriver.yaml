@@ -4,7 +4,7 @@ description: >-
   Massdriver encodes security and compliance into artifact connections —
   network access via security groups, credentials via Secrets Manager.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application
-version: 0.1.1
+version: 0.0.0
 
 params:
   required:
