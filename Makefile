@@ -2,7 +2,7 @@
 
 # Enabled platforms - edit this list to enable additional platforms
 # Available: aws, gcp, azure, kubernetes, vercel, snowflake, ovh, upcloud, scaleway, digitalocean
-ENABLED_PLATFORMS ?= aws gcp azure kubernetes
+ENABLED_PLATFORMS ?= aws gcp
 
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
