@@ -27,8 +27,11 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
-  name_prefix = var.md_metadata.name_prefix
+  name_prefix    = var.md_metadata.name_prefix
+  aws_account_id = data.aws_caller_identity.current.account_id
 
   # Private subnets preferred; fall back to all subnets
   private_subnet_ids = length([
@@ -85,10 +88,41 @@ resource "aws_secretsmanager_secret_version" "auth_token" {
 # KMS Key for encryption at rest
 # -----------------------------------------------------------------------------
 
+data "aws_iam_policy_document" "kms_redis" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.aws_account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "Allow ElastiCache Service"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["elasticache.amazonaws.com"]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+  }
+}
+
 resource "aws_kms_key" "redis" {
   description             = "KMS key for ElastiCache Redis - ${local.name_prefix}"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms_redis.json
 
   tags = {
     Name = "${local.name_prefix}-redis-kms"

@@ -23,3 +23,9 @@ skip-check:
   # MariaDB RDS supports SSL but require_secure_transport is a parameter group setting
   # that can break client connectivity. Left to operator discretion.
   - CKV2_AWS_69
+
+  # CKV2_AWS_57: "Ensure Secrets Manager secrets should have automatic rotation enabled"
+  # Automatic rotation requires a Lambda rotator function. This bundle stores the master
+  # password at creation time; rotation is an operational concern handled outside the bundle.
+  # Adding a Lambda rotator would significantly increase bundle complexity.
+  - CKV2_AWS_57

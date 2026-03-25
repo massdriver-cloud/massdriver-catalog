@@ -27,9 +27,12 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
-  name_prefix = var.md_metadata.name_prefix
-  region      = var.region
+  name_prefix    = var.md_metadata.name_prefix
+  region         = var.region
+  aws_account_id = data.aws_caller_identity.current.account_id
 
   # Private subnets preferred for RDS; fall back to all subnets if none tagged private
   private_subnet_ids = length([
@@ -132,10 +135,41 @@ resource "aws_db_subnet_group" "main" {
 # KMS Key for encryption at rest
 # -----------------------------------------------------------------------------
 
+data "aws_iam_policy_document" "kms_rds" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.aws_account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "Allow RDS Service"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["rds.amazonaws.com"]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+  }
+}
+
 resource "aws_kms_key" "rds" {
   description             = "KMS key for MariaDB RDS encryption - ${local.name_prefix}"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms_rds.json
 
   tags = {
     Name = "${local.name_prefix}-mariadb-kms"

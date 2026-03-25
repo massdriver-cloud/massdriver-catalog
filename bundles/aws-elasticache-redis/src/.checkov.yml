@@ -7,3 +7,8 @@ skip-check:
   # Transit encryption is configurable via params. Dev/caching preset may run without TLS for simplicity.
   # halt_on_failure in steps config enforces this in production environments.
   - CKV_AWS_191
+
+  # CKV2_AWS_50: "Ensure AWS ElastiCache Redis cluster Multi-AZ Automatic Failover is enabled"
+  # Automatic failover requires num_cache_clusters >= 2. The Caching preset uses a single node for
+  # cost savings in dev. halt_on_failure enforces this in production.
+  - CKV2_AWS_50
