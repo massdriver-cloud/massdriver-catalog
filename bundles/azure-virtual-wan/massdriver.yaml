@@ -1,0 +1,111 @@
+name: azure-virtual-wan
+description: "Azure Virtual WAN providing global transit network with virtual hub, optional VPN gateway, and branch connectivity."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/azure-virtual-wan
+version: 0.1.0
+
+params:
+  required:
+    - location
+    - hub_address_prefix
+  properties:
+    location:
+      type: string
+      title: Azure Region
+      description: Azure region where the Virtual WAN hub will be deployed.
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - westus3
+        - centralus
+        - northcentralus
+        - southcentralus
+        - westcentralus
+        - northeurope
+        - westeurope
+        - uksouth
+        - ukwest
+        - australiaeast
+        - australiasoutheast
+        - southeastasia
+        - eastasia
+        - japaneast
+        - japanwest
+        - southindia
+        - centralindia
+        - westindia
+        - canadacentral
+        - canadaeast
+        - brazilsouth
+    hub_address_prefix:
+      type: string
+      title: Hub Address Prefix
+      description: CIDR address space for the Virtual Hub (must be at least /24, recommended /23).
+      default: "10.100.0.0/23"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    wan_type:
+      type: string
+      title: WAN Type
+      description: "Basic supports single hub. Standard supports multi-hub, VNet peering, and ExpressRoute."
+      enum:
+        - Basic
+        - Standard
+      default: Standard
+    enable_vpn_gateway:
+      type: boolean
+      title: Enable VPN Gateway
+      description: Provision a Site-to-Site VPN gateway in the hub for branch office connectivity (additional cost applies).
+      default: false
+    vpn_gateway_scale_unit:
+      type: integer
+      title: VPN Gateway Scale Unit
+      description: "Scale unit determines gateway throughput. Each unit = 500 Mbps. Min 1, max 10."
+      default: 1
+      minimum: 1
+      maximum: 10
+
+  examples:
+    - __name: Development
+      location: eastus
+      hub_address_prefix: "10.100.0.0/23"
+      wan_type: Standard
+      enable_vpn_gateway: false
+    - __name: Production
+      location: eastus
+      hub_address_prefix: "10.100.0.0/23"
+      wan_type: Standard
+      enable_vpn_gateway: true
+      vpn_gateway_scale_unit: 2
+
+connections:
+  required:
+    - azure_service_principal
+  properties:
+    azure_service_principal:
+      $ref: acd/azure-service-principal
+      title: Azure Service Principal
+
+artifacts:
+  required:
+    - azure_virtual_wan
+  properties:
+    azure_virtual_wan:
+      $ref: acd/azure-virtual-wan
+      title: Azure Virtual WAN
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: 'true'
+
+ui:
+  ui:order:
+    - location
+    - hub_address_prefix
+    - wan_type
+    - enable_vpn_gateway
+    - vpn_gateway_scale_unit
+    - "*"

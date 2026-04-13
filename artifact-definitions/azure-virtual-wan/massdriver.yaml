@@ -1,0 +1,38 @@
+name: azure-virtual-wan
+label: Azure Virtual WAN
+
+schema:
+  title: Azure Virtual WAN
+  description: Azure Virtual WAN with virtual hub configuration
+  type: object
+  required:
+    - id
+    - resource_group_name
+    - location
+    - virtual_hub_id
+    - virtual_hub_address_prefix
+  properties:
+    id:
+      title: ID
+      description: Azure resource ID of the Virtual WAN
+      type: string
+    resource_group_name:
+      title: Resource Group Name
+      description: Azure resource group containing the Virtual WAN
+      type: string
+    location:
+      title: Location
+      description: Azure region where the Virtual WAN is deployed
+      type: string
+    virtual_hub_id:
+      title: Virtual Hub ID
+      description: Azure resource ID of the Virtual Hub
+      type: string
+    virtual_hub_address_prefix:
+      title: Virtual Hub Address Prefix
+      description: Address prefix of the Virtual Hub
+      type: string
+    vpn_gateway_id:
+      title: VPN Gateway ID
+      description: Azure resource ID of the VPN Gateway (if provisioned)
+      type: string

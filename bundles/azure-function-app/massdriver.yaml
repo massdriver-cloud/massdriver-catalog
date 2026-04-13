@@ -1,0 +1,226 @@
+name: azure-function-app
+description: "Azure Function App with embedded App Service Plan, Storage Account, Application Insights, private endpoints, and backup via Recovery Services Vault."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/azure-function-app
+version: 0.1.0
+
+params:
+  required:
+    - location
+    - runtime
+    - sku
+  properties:
+    location:
+      type: string
+      title: Azure Region
+      description: Azure region where the Function App will be deployed.
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - westus3
+        - centralus
+        - northcentralus
+        - southcentralus
+        - westcentralus
+        - northeurope
+        - westeurope
+        - uksouth
+        - ukwest
+        - australiaeast
+        - australiasoutheast
+        - southeastasia
+        - eastasia
+        - japaneast
+        - japanwest
+        - southindia
+        - centralindia
+        - westindia
+        - canadacentral
+        - canadaeast
+        - brazilsouth
+    runtime:
+      type: object
+      title: Runtime
+      description: Language runtime and version for the Function App.
+      required:
+        - name
+        - version
+      properties:
+        name:
+          type: string
+          title: Language
+          enum:
+            - dotnet-isolated
+            - node
+            - python
+            - java
+          default: python
+        version:
+          type: string
+          title: Version
+          description: Runtime version (e.g. 3.11 for Python, 18 for Node).
+          default: "3.11"
+    sku:
+      type: object
+      title: Hosting Plan
+      description: App Service Plan SKU controlling scale and capabilities.
+      required:
+        - tier
+        - size
+      properties:
+        tier:
+          type: string
+          title: Tier
+          enum:
+            - ElasticPremium
+            - PremiumV3
+            - Standard
+          default: ElasticPremium
+        size:
+          type: string
+          title: Size
+          description: "ElasticPremium: EP1/EP2/EP3. PremiumV3: P1v3/P2v3/P3v3. Standard: S1/S2/S3."
+          enum:
+            - EP1
+            - EP2
+            - EP3
+            - P1v3
+            - P2v3
+            - P3v3
+            - S1
+            - S2
+            - S3
+          default: EP1
+    storage:
+      type: object
+      title: Storage Account
+      description: Configuration for the backing storage account.
+      properties:
+        replication_type:
+          type: string
+          title: Replication Type
+          description: "LRS: locally redundant. ZRS: zone redundant. GRS: geo-redundant."
+          enum:
+            - LRS
+            - ZRS
+            - GRS
+            - RAGRS
+          default: ZRS
+        enable_https_only:
+          type: boolean
+          title: HTTPS Only
+          description: Enforce HTTPS-only access to the storage account.
+          default: true
+    private_endpoints:
+      type: object
+      title: Private Endpoints
+      description: Deploy private endpoints to lock down Function App and Storage from public internet.
+      properties:
+        enable_function_app:
+          type: boolean
+          title: Function App Private Endpoint
+          description: Place the Function App behind a private endpoint on the connected VNet.
+          default: false
+        enable_storage:
+          type: boolean
+          title: Storage Account Private Endpoint
+          description: Place the Storage Account behind private endpoints (blob + file + queue + table).
+          default: false
+        subnet_name:
+          type: string
+          title: Subnet Name
+          description: Name of the subnet (from connected VNet) to use for private endpoints.
+          default: "private-endpoints"
+    backup:
+      type: object
+      title: Backup
+      description: Recovery Services Vault backup for the Function App (filesystem snapshots).
+      properties:
+        enable:
+          type: boolean
+          title: Enable Backup
+          description: Create a Recovery Services Vault and configure daily backup for the Function App.
+          default: false
+        retention_days:
+          type: integer
+          title: Retention Days
+          description: Number of days to retain daily backups (7–730).
+          default: 30
+          minimum: 7
+          maximum: 730
+
+  examples:
+    - __name: Development
+      location: eastus
+      runtime:
+        name: python
+        version: "3.11"
+      sku:
+        tier: ElasticPremium
+        size: EP1
+      storage:
+        replication_type: ZRS
+        enable_https_only: true
+      private_endpoints:
+        enable_function_app: false
+        enable_storage: false
+        subnet_name: "private-endpoints"
+      backup:
+        enable: false
+        retention_days: 30
+    - __name: Production
+      location: eastus
+      runtime:
+        name: python
+        version: "3.11"
+      sku:
+        tier: ElasticPremium
+        size: EP2
+      storage:
+        replication_type: ZRS
+        enable_https_only: true
+      private_endpoints:
+        enable_function_app: true
+        enable_storage: true
+        subnet_name: "private-endpoints"
+      backup:
+        enable: true
+        retention_days: 90
+
+connections:
+  required:
+    - azure_service_principal
+    - azure_virtual_network
+  properties:
+    azure_service_principal:
+      $ref: acd/azure-service-principal
+      title: Azure Service Principal
+    azure_virtual_network:
+      $ref: acd/azure-virtual-network
+      title: Azure Virtual Network
+
+artifacts:
+  required:
+    - azure_function_app
+  properties:
+    azure_function_app:
+      $ref: acd/azure-function-app
+      title: Azure Function App
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: 'true'
+
+ui:
+  ui:order:
+    - location
+    - runtime
+    - sku
+    - storage
+    - private_endpoints
+    - backup
+    - "*"

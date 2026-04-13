@@ -1,0 +1,42 @@
+name: azure-function-app
+label: Azure Function App
+
+schema:
+  title: Azure Function App
+  description: Azure Function App with hosting plan and supporting infrastructure
+  type: object
+  required:
+    - id
+    - name
+    - resource_group_name
+    - location
+    - default_hostname
+  properties:
+    id:
+      title: ID
+      description: Azure resource ID of the Function App
+      type: string
+    name:
+      title: Name
+      description: Name of the Function App
+      type: string
+    resource_group_name:
+      title: Resource Group Name
+      description: Azure resource group containing the Function App
+      type: string
+    location:
+      title: Location
+      description: Azure region where the Function App is deployed
+      type: string
+    default_hostname:
+      title: Default Hostname
+      description: Default HTTPS hostname of the Function App
+      type: string
+    storage_account_name:
+      title: Storage Account Name
+      description: Name of the storage account backing the Function App
+      type: string
+    app_insights_instrumentation_key:
+      title: App Insights Instrumentation Key
+      description: Application Insights instrumentation key for telemetry
+      type: string

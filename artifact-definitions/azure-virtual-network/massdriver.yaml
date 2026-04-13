@@ -1,0 +1,56 @@
+name: azure-virtual-network
+label: Azure Virtual Network
+
+ui:
+  environmentDefaultGroup: networks
+
+schema:
+  title: Azure Virtual Network
+  description: Azure Virtual Network with subnet configuration
+  type: object
+  required:
+    - id
+    - resource_group_name
+    - location
+    - cidr
+    - subnets
+  properties:
+    id:
+      title: ID
+      description: Azure resource ID of the virtual network
+      type: string
+    resource_group_name:
+      title: Resource Group Name
+      description: Azure resource group containing the virtual network
+      type: string
+    location:
+      title: Location
+      description: Azure region where the virtual network is deployed
+      type: string
+    cidr:
+      title: CIDR
+      description: Address space in CIDR notation
+      type: string
+    subnets:
+      title: Subnets
+      description: Subnet allocations within the virtual network
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+          - cidr
+        properties:
+          id:
+            title: ID
+            description: Azure resource ID of the subnet
+            type: string
+          name:
+            title: Name
+            description: Subnet name
+            type: string
+          cidr:
+            title: CIDR
+            description: Subnet address range
+            type: string
