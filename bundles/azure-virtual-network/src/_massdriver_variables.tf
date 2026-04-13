@@ -12,10 +12,10 @@ variable "azure_service_principal" {
 variable "azure_virtual_wan" {
   type = object({
     id                         = string
-    resource_group_name        = string
     location                   = string
-    virtual_hub_id             = string
+    resource_group_name        = string
     virtual_hub_address_prefix = string
+    virtual_hub_id             = string
     vpn_gateway_id             = optional(string)
   })
   default = null
