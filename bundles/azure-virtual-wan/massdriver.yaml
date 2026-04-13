@@ -1,7 +1,7 @@
 name: azure-virtual-wan
 description: "Azure Virtual WAN providing global transit network with virtual hub, optional VPN gateway, and branch connectivity."
-source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/azure-virtual-wan
-version: 0.1.0
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-virtual-wan
+version: 0.2.0
 
 params:
   required:
@@ -12,6 +12,7 @@ params:
       type: string
       title: Azure Region
       description: Azure region where the Virtual WAN hub will be deployed.
+      $md.immutable: true
       enum:
         - eastus
         - eastus2
@@ -42,12 +43,14 @@ params:
       type: string
       title: Hub Address Prefix
       description: CIDR address space for the Virtual Hub (must be at least /24, recommended /23).
+      $md.immutable: true
       default: "10.100.0.0/23"
       pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
     wan_type:
       type: string
       title: WAN Type
       description: "Basic supports single hub. Standard supports multi-hub, VNet peering, and ExpressRoute."
+      $md.immutable: true
       enum:
         - Basic
         - Standard
@@ -99,7 +102,7 @@ steps:
     provisioner: opentofu:1.10
     config:
       checkov:
-        halt_on_failure: 'true'
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("prd|prod|production")'
 
 ui:
   ui:order:

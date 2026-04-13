@@ -9,6 +9,17 @@ variable "azure_service_principal" {
     tenant_id       = string
   })
 }
+variable "azure_virtual_wan" {
+  type = object({
+    id                         = string
+    resource_group_name        = string
+    location                   = string
+    virtual_hub_id             = string
+    virtual_hub_address_prefix = string
+    vpn_gateway_id             = optional(string)
+  })
+  default = null
+}
 variable "cidr" {
   type = string
 }

@@ -1,5 +1,6 @@
 name: azure-function-app
 label: Azure Function App
+icon: https://raw.githubusercontent.com/massdriver-cloud/icons/main/public/azure/function-apps.svg
 
 schema:
   title: Azure Function App
@@ -39,4 +40,14 @@ schema:
     app_insights_instrumentation_key:
       title: App Insights Instrumentation Key
       description: Application Insights instrumentation key for telemetry
+      type: string
+      $md.sensitive: true
+    app_insights_connection_string:
+      title: App Insights Connection String
+      description: Application Insights connection string (preferred over instrumentation key)
+      type: string
+      $md.sensitive: true
+    principal_id:
+      title: Managed Identity Principal ID
+      description: Object ID of the system-assigned managed identity — use this to grant the Function App access to other Azure resources (Key Vault, Storage, SQL, etc.) via IAM role assignments
       type: string

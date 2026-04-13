@@ -90,3 +90,16 @@ resource "azurerm_subnet_network_security_group_association" "main" {
 # to already exist in the subscription (Azure creates a default one automatically
 # in the NetworkWatcherRG resource group). Bundles that need flow logs should
 # reference the existing Network Watcher via a data source.
+
+# ─────────────────────────────────────────────
+# Virtual WAN Hub Connection (optional)
+# When a Virtual WAN artifact is connected, this peers the VNet into the hub.
+# Network teams manage the WAN centrally; project teams bring their own VNets.
+# ─────────────────────────────────────────────
+resource "azurerm_virtual_hub_connection" "main" {
+  count                     = var.azure_virtual_wan != null ? 1 : 0
+  name                      = "${local.name_prefix}-hub-conn"
+  virtual_hub_id            = var.azure_virtual_wan.virtual_hub_id
+  remote_virtual_network_id = azurerm_virtual_network.main.id
+  internet_security_enabled = true
+}

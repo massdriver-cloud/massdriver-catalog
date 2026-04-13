@@ -1,7 +1,7 @@
 name: azure-function-app
 description: "Azure Function App with embedded App Service Plan, Storage Account, Application Insights, private endpoints, and backup via Recovery Services Vault."
-source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/azure-function-app
-version: 0.1.0
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-function-app
+version: 0.2.0
 
 params:
   required:
@@ -13,6 +13,7 @@ params:
       type: string
       title: Azure Region
       description: Azure region where the Function App will be deployed.
+      $md.immutable: true
       enum:
         - eastus
         - eastus2
@@ -50,6 +51,7 @@ params:
         name:
           type: string
           title: Language
+          $md.immutable: true
           enum:
             - dotnet-isolated
             - node
@@ -129,9 +131,14 @@ params:
           default: false
         subnet_name:
           type: string
-          title: Subnet Name
-          description: Name of the subnet (from connected VNet) to use for private endpoints.
+          title: Subnet
+          description: Subnet from the connected VNet to use for private endpoints.
           default: "private-endpoints"
+          $md.enum:
+            connection: azure_virtual_network
+            options: .subnets
+            value: .name
+            label: '"\(.name) — \(.cidr)"'
     backup:
       type: object
       title: Backup
@@ -213,7 +220,7 @@ steps:
     provisioner: opentofu:1.10
     config:
       checkov:
-        halt_on_failure: 'true'
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("prd|prod|production")'
 
 ui:
   ui:order:

@@ -1,5 +1,6 @@
 name: azure-virtual-network
 label: Azure Virtual Network
+icon: https://raw.githubusercontent.com/massdriver-cloud/icons/main/public/azure/virtual-networks.svg
 
 ui:
   environmentDefaultGroup: networks

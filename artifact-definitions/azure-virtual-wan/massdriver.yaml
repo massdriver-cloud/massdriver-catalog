@@ -1,5 +1,6 @@
 name: azure-virtual-wan
 label: Azure Virtual WAN
+icon: https://raw.githubusercontent.com/massdriver-cloud/icons/main/public/azure/virtual-wans.svg
 
 schema:
   title: Azure Virtual WAN
