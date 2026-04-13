@@ -1,6 +1,7 @@
 name: azure-virtual-network
 description: "Azure Virtual Network providing foundational networking with configurable address space, subnets, and DDoS protection."
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-virtual-network
+icon: https://raw.githubusercontent.com/massdriver-cloud/icons/main/public/azure/virtual-networks.svg
 version: 0.3.0
 
 params:
