@@ -1,7 +1,7 @@
 name: azure-virtual-wan
 description: "Azure Virtual WAN providing global transit network with virtual hub, optional VPN gateway, and branch connectivity."
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-virtual-wan
-version: 0.3.0
+version: 0.2.1
 
 params:
   required:
