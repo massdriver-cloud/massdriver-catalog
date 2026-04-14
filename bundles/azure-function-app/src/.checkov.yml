@@ -1,0 +1,56 @@
+skip-check:
+  # CKV_AZURE_59: Public network access to the storage account is required when
+  # private endpoints are not enabled, because the Azure Functions service plane
+  # must reach the storage account to create the file share at provisioning time.
+  # When private endpoints are enabled (production), public_network_access_enabled
+  # is set to false in Terraform. The network firewall (default_action = "Deny" +
+  # AzureServices bypass) restricts access to trusted Azure services in both cases.
+  - CKV_AZURE_59
+
+  # CKV_AZURE_35: The storage network default action must be "Allow" when no
+  # private endpoint or VNet service endpoint is configured, because the Azure
+  # Functions provisioning plane cannot create the required file share through
+  # the AzureServices bypass alone without subnet-level access. When private
+  # endpoints are enabled, the network default action is set to "Deny" in Terraform.
+  - CKV_AZURE_35
+
+  # CKV2_AZURE_40: Azure Functions runtime requires Shared Key access to its backing
+  # storage account to store internal state (host keys, blob triggers, etc.).
+  # Disabling shared key breaks the Functions runtime entirely.
+  - CKV2_AZURE_40
+
+  # CKV2_AZURE_41: SAS expiration policy is only enforceable when SAS tokens are
+  # actively issued. The Functions runtime uses connection strings, not SAS tokens,
+  # so this policy has no effect on the actual access pattern.
+  - CKV2_AZURE_41
+
+  # CKV2_AZURE_1: Customer-Managed Key encryption for storage requires a pre-existing
+  # Azure Key Vault and a user-assigned managed identity — both are external
+  # dependencies outside the scope of this bundle. CMK can be added post-deployment
+  # by operators who require it.
+  - CKV2_AZURE_1
+
+  # CKV_AZURE_212: Minimum instance count (worker_count) is auto-managed by the
+  # Azure Functions ElasticPremium (EP) plan and cannot be set statically via
+  # azurerm_service_plan. The EP plan scales from 1 to N based on demand.
+  - CKV_AZURE_212
+
+  # CKV_AZURE_221: Public network access must remain enabled when no private
+  # endpoint is configured for the Function App — disabling it makes the function
+  # completely unreachable. When private endpoints are enabled (production),
+  # public_network_access_enabled is set to false in Terraform.
+  - CKV_AZURE_221
+
+  # CKV_AZURE_225: Zone balancing (zone_balancing_enabled) is not supported on
+  # ElasticPremium Linux plans — it is only available for PremiumV2/PremiumV3
+  # Windows plans. Enabling it on EP Linux causes a deployment error.
+  - CKV_AZURE_225
+
+  # CKV_AZURE_206: This check requires geo-redundant replication (GRS/GZRS).
+  # The backing storage account for Azure Functions stores host keys and internal
+  # runtime state — it is an operational dependency, not a primary data store.
+  # Geo-redundant replication for this account adds cost without providing useful
+  # DR benefit unless the entire application is architected for geo-failover.
+  # For geo-DR deployments, operators should configure GZRS and deploy a paired
+  # regional failover manually. ZRS (zone redundant) is enforced by default.
+  - CKV_AZURE_206
