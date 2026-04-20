@@ -6,17 +6,19 @@ templating: mustache
 
 ## Non-obvious constraints
 
-**Topic name is immutable.** To rename a topic: decommission this package, recreate it with the new name, and update all consumer subscriptions. Plan a maintenance window.
+**Topic name is immutable.** Renaming requires decommissioning this package, recreating with the new name, and updating all consumer subscriptions. Plan a maintenance window.
 
 **Message retention changes are safe in-place.** Updating `message_retention_duration` applies without disruption. In-flight messages are not affected.
 
-**Enabling DLQ after-the-fact does not update existing subscriptions.** When you enable the DLQ on an existing topic, Terraform creates the DLQ topic — but existing consumer subscriptions do not automatically gain a dead-letter policy. Consumer bundles must be updated separately to reference the new DLQ topic.
+**Enabling DLQ after-the-fact does not update existing subscriptions.** When you enable the DLQ, Terraform creates the DLQ topic — but existing consumer subscriptions do not automatically gain a dead-letter policy. Consumer bundles must be updated separately to reference the new DLQ topic.
 
-**Disabling DLQ destroys the DLQ topic.** Any consumer subscriptions that have a dead-letter policy pointing to the old DLQ topic will fail to deliver dead letters after the destroy. Remove dead-letter policies from consumer subscriptions before disabling the DLQ here.
+**Disabling DLQ destroys the DLQ topic.** Consumer subscriptions that have a dead-letter policy pointing to the old DLQ topic will fail to deliver dead letters after the destroy. Remove dead-letter policies from consumer subscriptions before disabling the DLQ here.
 
-**Message ordering on the topic is not enforcement.** Setting ordering on the topic is a configuration label. Publishers must also set `enable_message_ordering = true` in their SDK client and pass an ordering key on every publish call. Without ordering keys from publishers, messages are not ordered regardless of the topic setting.
+**Message ordering on the topic is a label, not enforcement.** Publishers must also set `enable_message_ordering = true` in their SDK client and pass an ordering key on every publish call. Without ordering keys from the publisher, messages are not ordered regardless of the topic label.
 
 **`max_delivery_attempts` is enforced at the subscription, not the topic.** This bundle provisions the DLQ topic. The delivery attempt limit lives on the consumer's subscription (managed by the consumer bundle). If messages aren't reaching the DLQ, check the consumer subscription's dead-letter policy first.
+
+**This bundle creates no IAM bindings.** Consumer bundles bind their own service accounts to this topic. If a service can't publish, the IAM binding is missing from the consumer bundle — not from here.
 
 ## Troubleshooting
 
@@ -33,17 +35,18 @@ If the field is absent, the consumer bundle is not configured to use the DLQ.
 Add `pubsub.googleapis.com` to `enabled_apis` in the `gcp-landing-zone` package, redeploy the landing zone, wait ~60 seconds, then retry.
 
 **Publisher permission denied.**
-The workload SA needs `roles/pubsub.publisher` on the topic:
+Check the topic IAM policy — the publisher's SA must have `roles/pubsub.publisher`:
 ```bash
 gcloud pubsub topics get-iam-policy {{artifacts.pubsub_topic.topic_name}} \
   --project={{artifacts.pubsub_topic.project_id}}
 ```
+If missing, the consumer bundle needs to be redeployed with the topic wired on the canvas.
 
 ## Day-2 operations
 
 **Changing retention duration:** Update param and redeploy. In-place, no disruption.
 
-**Enabling DLQ on an existing topic:** Set `dlq.enabled = true`, configure `max_delivery_attempts`, redeploy. Then update consumer bundles to add dead-letter policies to their subscriptions pointing to `{{artifacts.pubsub_topic.dlq_topic_name}}`.
+**Enabling DLQ on an existing topic:** Set `dlq.enabled = true`, configure `max_delivery_attempts`, redeploy. Then update consumer bundles to add dead-letter policies pointing to `{{artifacts.pubsub_topic.dlq_topic_name}}`.
 
 **Disabling DLQ:** Remove dead-letter policies from all consumer subscriptions first. Then set `dlq.enabled = false` and redeploy. The DLQ topic is destroyed.
 

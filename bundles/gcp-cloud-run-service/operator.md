@@ -6,19 +6,17 @@ templating: mustache
 
 ## Non-obvious constraints
 
-**Each bundle instance creates its own service account.** Unlike the previous pattern where all services shared the landing zone's workload SA, this bundle provisions `google_service_account.runtime` scoped to this specific service. If you redeploy after the old landing-zone SA is gone from state, the Cloud Run service will be updated to run as the new per-service SA. Cold start on the first revision after a SA switch is expected.
+**Each bundle instance creates its own service account.** The SA email is derived from the bundle's `name_prefix`. If the package is renamed, the SA is destroyed and recreated. Any out-of-band IAM bindings referencing the old SA email (e.g., manually granted Artifact Registry reader) must be reapplied. Canvas-wired bindings (Pub/Sub, BigQuery, GCS) are recreated automatically on the next deploy.
 
-**Rotating the runtime SA is destructive — expect cold start.** The SA `account_id` is derived from the bundle's `name_prefix`. Changing the package name or name_prefix recreates the SA with a new email. Any out-of-band IAM bindings referencing the old SA email (e.g., manually granted Artifact Registry reader) must be reapplied. Canvas-wired bindings (Pub/Sub, BigQuery, GCS) are recreated automatically on the next deploy.
+**New deployments route 100% of traffic to the latest revision immediately.** Blue/green splits must be configured before deploying the new revision. You cannot retroactively split traffic between revisions once the new one is live at 100%.
 
-**New deployments route 100% of traffic to the latest revision immediately.** Blue/green splits must be configured before deploying the new revision. You cannot retroactively split traffic between an old and new revision once the new one is live at 100%.
+**Changing `ingress` triggers a new revision and a cold start.** Even if `min_instances > 0`, an ingress change forces revision replacement.
 
-**Changing `ingress` triggers a new revision and a cold start.** Even if `min_instances > 0`, an ingress change forces revision replacement. Expect a brief cold start.
+**`min_instances > 0` means continuous billing.** You pay for idle capacity at the full CPU+memory rate at all times.
 
-**`min_instances > 0` means continuous billing.** No scale-to-zero. You pay for idle capacity at the full CPU+memory rate at all times.
+**Container port must match what the image listens on.** A mismatch causes revision health check failure and Cloud Run rolls back. Error in logs: `Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.`
 
-**Container port must match what the image listens on.** If the image doesn't listen on the configured port, the revision fails health checks and Cloud Run rolls back. Error in logs: `Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.` Check application logs before the platform logs.
-
-**Image pull from Artifact Registry: the runtime SA needs `roles/artifactregistry.reader`.** This bundle does not grant that role. If a revision fails with `image not found` or `permission denied` at startup, grant the role manually or add it to the bundle:
+**The runtime SA does not have `roles/artifactregistry.reader` by default.** If a revision fails with `image not found` or `permission denied` at startup, grant the role:
 ```bash
 gcloud artifacts repositories add-iam-policy-binding <REPO> \
   --location={{artifacts.cloud_run_service.location}} \
@@ -27,7 +25,7 @@ gcloud artifacts repositories add-iam-policy-binding <REPO> \
   --role="roles/artifactregistry.reader"
 ```
 
-**Connecting or disconnecting canvas wires requires a Massdriver deploy to take effect.** Wiring an artifact on the canvas does not grant IAM access. The Terraform apply must run to create or destroy the IAM binding.
+**Canvas wire changes require a deploy to take effect.** Connecting or disconnecting a data artifact on the canvas does not grant or revoke IAM access. The Terraform apply must run to create or destroy the binding.
 
 ## Troubleshooting
 
@@ -39,7 +37,7 @@ gcloud logging read \
   --project={{artifacts.cloud_run_service.project_id}} \
   --limit=20
 ```
-Check for: missing environment variables, failed DB connections, wrong port. Test locally: `docker run -p 8080:<port> <image>` and confirm it starts quickly.
+Check for: missing environment variables, wrong port, failed startup connections. Test locally: `docker run -p 8080:<port> <image>` and confirm it starts quickly.
 
 **5xx errors in production.**
 ```bash
@@ -50,10 +48,7 @@ gcloud logging read \
   --format="table(timestamp,httpRequest.status,httpRequest.requestUrl)"
 ```
 
-**IAM binding not applied after connecting a canvas wire.**
-Connect the wire on the canvas AND redeploy this package. The binding does not exist until Terraform applies it.
-
-**Service can't access a resource it's connected to.**
+**Service can't access a connected resource (Pub/Sub, BigQuery, GCS).**
 Confirm the canvas wire is connected AND the package has been deployed since the wire was added. Check the specific IAM binding:
 ```bash
 # Pub/Sub
@@ -73,20 +68,20 @@ The member should be `{{artifacts.cloud_run_service.runtime_service_account_memb
 
 **Rolling back to a prior revision:**
 ```bash
-# 1. List revisions to find the last known-good one
+# List revisions to find the last known-good one
 gcloud run revisions list \
   --service={{artifacts.cloud_run_service.service_name}} \
   --region={{artifacts.cloud_run_service.location}} \
   --project={{artifacts.cloud_run_service.project_id}} \
   --format="table(name,status.conditions[0].status)"
 
-# 2. Shift 100% traffic to the prior revision
+# Shift 100% traffic to the prior revision
 gcloud run services update-traffic {{artifacts.cloud_run_service.service_name}} \
   --region={{artifacts.cloud_run_service.location}} \
   --project={{artifacts.cloud_run_service.project_id}} \
   --to-revisions=<REVISION_NAME>=100
 ```
-This rollback is manual and temporary. The next Massdriver deploy will override it. Fix the image or config, then redeploy.
+This rollback is manual and temporary. The next Massdriver deploy overrides it. Fix the image or config, then redeploy.
 
 **Pinning to a digest to prevent silent image changes:**
 ```bash
@@ -95,9 +90,7 @@ gcloud container images describe <IMAGE>:<TAG> \
 # Use the output sha256:... in the image param: <IMAGE>@sha256:...
 ```
 
-**Scaling changes:** Update `min_instances` or `max_instances` params and redeploy. In-place safe.
-
-**Rotating the runtime service account:** The SA is derived from the bundle's name_prefix. Rotating requires renaming, which is destructive — the old SA is deleted, a new one is created, and all canvas-wired IAM bindings are recreated on next deploy. Any out-of-band bindings (e.g., Artifact Registry reader) must be reapplied manually.
+**Scaling changes:** Update `min_instances` or `max_instances` params and redeploy. In-place, safe.
 
 ## Useful commands
 
@@ -134,13 +127,4 @@ gcloud run services get-iam-policy {{artifacts.cloud_run_service.service_name}} 
 # Describe the runtime service account
 gcloud iam service-accounts describe {{artifacts.cloud_run_service.runtime_service_account_email}} \
   --project={{artifacts.cloud_run_service.project_id}}
-
-# Check runtime SA's IAM bindings on a connected Pub/Sub topic
-gcloud pubsub topics get-iam-policy <TOPIC_NAME> \
-  --project={{artifacts.cloud_run_service.project_id}} \
-  --format="table(bindings.role,bindings.members)"
-
-# Check runtime SA's IAM bindings on a connected GCS bucket
-gcloud storage buckets get-iam-policy gs://<BUCKET_NAME> \
-  --format="table(bindings.role,bindings.members)"
 ```

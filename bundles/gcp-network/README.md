@@ -1,45 +1,42 @@
 # gcp-network
 
-Minimal GCP VPC network with a single regional subnet. This is the foundational networking bundle for the GCP data platform stack. Other bundles — including `gcp-landing-zone`, Cloud Run, and Vertex Workbench — consume the `gcp-network` artifact it produces.
+Minimal GCP VPC network with a single regional subnet. Deploy this before `gcp-landing-zone` — the landing zone consumes the `gcp-network` artifact and passes it downstream so other bundles only need one connection.
 
-## Purpose
+## Use Cases
 
-Creates a production-ready VPC with sensible defaults:
-
-- VPC created in custom (non-auto) mode so subnets are explicitly managed
-- Flow logging enabled on the subnet for visibility into traffic
-- Private Google Access enabled on the subnet so workloads reach Google APIs without a NAT gateway
-- A deny-all ingress firewall rule at priority 65534 enforces explicit allowlisting — workload bundles add targeted allow rules on top
+- Foundational networking for a GCP data platform stack
+- Single regional subnet with Private Google Access so VMs reach GCP APIs without a NAT gateway
+- Baseline deny-all ingress policy; workload bundles layer their own allow rules on top
 
 ## Resources Created
 
 | Resource | Type | Notes |
 |---|---|---|
-| `google_compute_network.vpc` | VPC network | Custom subnet mode, global |
-| `google_compute_subnetwork.primary` | Regional subnet | Flow logging on, Private Google Access on |
+| `google_compute_network.vpc` | VPC network | Custom subnet mode; GCP does not auto-create subnets in other regions |
+| `google_compute_subnetwork.primary` | Regional subnet | Flow logging on (0.5 sampling), Private Google Access on |
 | `google_compute_firewall.deny_all_ingress` | Firewall rule | Deny all ingress at priority 65534 |
 
-## Artifacts Consumed (Connections)
+## Connections
 
 | Connection | Artifact Type | How It Is Used |
 |---|---|---|
-| `gcp_authentication` | `gcp-service-account` | Deploy credential — project ID and service account key used for the Google provider |
+| `gcp_authentication` | `gcp-service-account` | Deploy credential — project ID and service account key for the Google provider |
 
-## Artifacts Produced
+## Artifact Produced
 
-The bundle publishes a `gcp-network` artifact with the following fields:
+**Artifact type:** `gcp-network`
 
 | Field | Description |
 |---|---|
 | `project_id` | GCP project the VPC belongs to |
 | `network_name` | Name of the VPC network resource |
-| `network_self_link` | Full self-link URI for the VPC (used by resource references) |
+| `network_self_link` | Full self-link URI for the VPC |
 | `region` | Region of the primary subnet |
 | `primary_subnet.name` | Subnet resource name |
 | `primary_subnet.cidr` | Primary IP range of the subnet |
 | `primary_subnet.self_link` | Full self-link URI for the subnet |
 
-Downstream bundles (e.g., `gcp-landing-zone`) pass this artifact through their own artifact, so further-downstream bundles only need one connection.
+This artifact is consumed by `gcp-landing-zone`, which passes it through into its own artifact so downstream bundles (Cloud Run, Vertex Workbench) only need to connect to the landing zone.
 
 ## Compliance
 
@@ -47,14 +44,12 @@ Downstream bundles (e.g., `gcp-landing-zone`) pass this artifact through their o
 
 | Control | Mechanism | Reason |
 |---|---|---|
-| Deny-all ingress | `google_compute_firewall.deny_all_ingress` at priority 65534 | Satisfies CKV2_GCP_18; forces explicit allowlisting per workload |
+| Deny-all ingress | `google_compute_firewall.deny_all_ingress` at priority 65534 | Enforces explicit allowlisting per workload (Checkov CKV2_GCP_18) |
 | Custom subnet mode | `auto_create_subnetworks = false` | Prevents GCP from auto-creating subnets in every region |
-| Private Google Access | `private_ip_google_access = true` | Lets VMs reach Google APIs over internal IPs without egress |
-| Flow logging | `log_config` block with 0.5 sampling | Network audit trail; enables traffic troubleshooting |
+| Private Google Access | `private_ip_google_access = true` | VMs reach GCP APIs over internal IPs without egress or NAT |
+| Flow logging | `log_config` block, 0.5 sampling | Network audit trail for traffic troubleshooting |
 
-### Checkov posture
-
-There is no `.checkov.yml` skip list for this bundle — all findings are either satisfied by the hardcoded controls above or blocked in production via `halt_on_failure`.
+No Checkov skips — all findings are satisfied by the hardcoded controls above or blocked in production via `halt_on_failure`.
 
 The `halt_on_failure` expression in `massdriver.yaml` blocks deployments with remaining high-severity findings when the environment target matches `prod`, `prd`, or `production`.
 

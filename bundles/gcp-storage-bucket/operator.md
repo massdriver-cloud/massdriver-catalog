@@ -6,22 +6,21 @@ templating: mustache
 
 ## Non-obvious constraints
 
-**Bucket name is globally unique and immutable.** The name is derived from the Massdriver name prefix and is set at creation. A rename requires decommissioning and recreating the package with a new name prefix, then migrating all objects.
+**Bucket name is globally unique and immutable.** The name is derived from the Massdriver name prefix. Renaming requires decommissioning and recreating the package, then migrating all objects.
 
-**Location is immutable.** Bucket location cannot be changed after creation. To move a bucket: export all objects to a new bucket in the target location, update consumers to point to the new bucket, then decommission this package. Use `gcloud storage cp -r` or a Dataflow job for large datasets.
+**Location is immutable.** Bucket location cannot be changed after creation. To move: copy all objects to a new bucket in the target location, update consumers, then decommission this package. Use `gcloud storage cp -r` or a Dataflow job for large datasets.
 
-**Public access prevention is enforced and cannot be loosened via params.** `public_access_prevention = "enforced"` is hardcoded. Any attempt to grant `allUsers` or `allAuthenticatedUsers` via IAM is rejected by GCP even if the IAM call appears to succeed. Objects are never publicly readable. This is intentional — it cannot be overridden through bundle configuration.
+**Public access prevention is hardcoded.** `public_access_prevention = "enforced"` cannot be overridden through bundle configuration. Any attempt to grant `allUsers` or `allAuthenticatedUsers` via IAM is rejected by GCP even if the IAM call appears to succeed.
 
-**Uniform bucket-level access is enabled.** Object-level ACLs are disabled. All access is controlled via bucket-level IAM only. Granting access to specific objects via ACLs is not possible.
+**Uniform bucket-level access is enabled.** Object-level ACLs are disabled. All access is IAM-only. Granting access to specific objects via ACLs is not possible.
+
+**This bundle creates no IAM bindings.** Consumer bundles bind their own service accounts to this bucket. If a service can't read or write objects, the IAM binding is missing from the consumer bundle — not from here.
 
 **Turning versioning off does not delete existing non-current versions.** GCS stops creating new versions, but existing non-current versions are retained and continue to incur storage charges. Add a lifecycle rule targeting `with_state: ARCHIVED` to clean them up.
 
-**Lifecycle rules evaluate once daily, not in real time.** A rule set to delete objects after 30 days may not take effect until the next evaluation window. This is a GCP platform constraint.
+**Lifecycle rules evaluate once daily, not in real time.** A rule set to delete objects after 30 days may not take effect until the next evaluation window.
 
-**`Delete` action on a versioned bucket sets a delete marker, it does not immediately remove storage.** Add a second lifecycle rule targeting `with_state: ARCHIVED` with a shorter `age_days` to purge non-current versions and reclaim storage.
-
-**Deploy fails with "storage.googleapis.com has not been used in project."**
-Add `storage.googleapis.com` to `enabled_apis` in the `gcp-landing-zone` package, redeploy the landing zone, wait ~60 seconds, then retry.
+**`Delete` action on a versioned bucket sets a delete marker — it does not immediately remove storage.** Add a second lifecycle rule targeting `with_state: ARCHIVED` with a shorter `age_days` to purge non-current versions and reclaim storage.
 
 ## Troubleshooting
 
@@ -30,10 +29,10 @@ Uniform bucket-level access is on — check bucket IAM, not object ACLs:
 ```bash
 gcloud storage buckets get-iam-policy {{artifacts.storage_bucket.bucket_url}}
 ```
-The workload SA needs `roles/storage.objectUser` to read and write, or `roles/storage.objectViewer` for read-only.
+The workload SA needs `roles/storage.objectUser` to read and write, or `roles/storage.objectViewer` for read-only. If the binding is absent, redeploy the consumer bundle with the bucket wired on the canvas.
 
 **Objects not being deleted by lifecycle rules.**
-Lifecycle rules evaluate once daily. Wait up to 24 hours after a rule change takes effect. To inspect current lifecycle config:
+Lifecycle rules evaluate once daily. Wait up to 24 hours after a rule change. Inspect current lifecycle config:
 ```bash
 gcloud storage buckets describe {{artifacts.storage_bucket.bucket_url}} \
   --format="yaml(lifecycle)"
@@ -46,6 +45,9 @@ gcloud storage ls -a {{artifacts.storage_bucket.bucket_url}}
 ```
 Add a lifecycle rule with `with_state: ARCHIVED` to purge them.
 
+**Deploy fails with "storage.googleapis.com has not been used in project."**
+Add `storage.googleapis.com` to `enabled_apis` in the `gcp-landing-zone` package, redeploy, wait ~60 seconds, then retry.
+
 ## Day-2 operations
 
 **Changing storage class:** Update `storage_class` param and redeploy. The bucket updates in-place. Existing objects retain their current storage class — only new writes use the new class. Use a lifecycle `SetStorageClass` rule to migrate existing objects.
@@ -54,15 +56,15 @@ Add a lifecycle rule with `with_state: ARCHIVED` to purge them.
 
 **Disabling versioning:** In-place change, but existing non-current versions are retained. Add a lifecycle rule targeting `with_state: ARCHIVED` to clean up.
 
-**Granting read-only access to another service account** (outside Terraform — will be overwritten on next apply):
+**Granting access to another service account** (outside Terraform — will be overwritten on next apply):
 ```bash
 gcloud storage buckets add-iam-policy-binding {{artifacts.storage_bucket.bucket_url}} \
   --member="serviceAccount:<sa-email>" \
   --role="roles/storage.objectViewer"
 ```
-For permanent bindings, add a `google_storage_bucket_iam_member` resource to the bundle source.
+For permanent bindings, add a `google_storage_bucket_iam_member` resource to the consumer bundle source.
 
-**Migrating objects to a new bucket location:**
+**Migrating objects to a new bucket:**
 ```bash
 gcloud storage cp -r {{artifacts.storage_bucket.bucket_url}}/* gs://<new-bucket-name>/
 ```
@@ -82,11 +84,6 @@ gcloud storage buckets get-iam-policy {{artifacts.storage_bucket.bucket_url}}
 # Inspect lifecycle rules
 gcloud storage buckets describe {{artifacts.storage_bucket.bucket_url}} \
   --format="yaml(lifecycle)"
-
-# Get a signed URL for a specific object (valid 1 hour)
-gcloud storage sign-url {{artifacts.storage_bucket.bucket_url}}/<object-path> \
-  --duration=1h \
-  --private-key-file=<key.json>
 
 # Copy a local file into the bucket
 gcloud storage cp ./myfile.txt {{artifacts.storage_bucket.bucket_url}}/myfile.txt

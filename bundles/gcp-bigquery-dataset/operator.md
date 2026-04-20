@@ -8,36 +8,36 @@ templating: mustache
 
 **Dataset ID is immutable.** `dataset_id` cannot be changed in-place. To rename: export all tables, destroy the package, reprovision with the new ID, reload from GCS. Treat the dataset ID as permanent.
 
-**Location is immutable.** Datasets cannot be moved between regions or multi-regions after creation. To change location: export all tables (`bq extract` to GCS), destroy the package, reprovision in the new location, reload. Budget for data transfer costs and downtime.
+**Location is immutable.** Datasets cannot be moved between regions after creation. To change location: export all tables (`bq extract` to GCS), destroy the package, reprovision in the new location, reload. Budget for data transfer costs and downtime.
 
 **`default_table_expiration_ms` applies to NEW tables only.** Changing this on an existing dataset does not expire or modify existing tables. To set expiration on an existing table, update it directly via `bq update`.
 
-**Delete protection requires a two-step destroy.** When `delete_protection = true`, the destroy will fail because `delete_contents_on_destroy = false` is enforced. To decommission:
+**Delete protection requires a two-step destroy.** When `delete_protection = true`, the destroy will fail. To decommission:
 1. Set `delete_protection = false` in the package config and deploy.
 2. Then run the destroy.
 
 **Dataset-level IAM propagates to all tables, current and future.** For row-level or table-level isolation, use BigQuery row-level security policies or bind IAM at the table level separately.
 
-**IAM bindings added outside Terraform are overwritten on the next apply.** For permanent bindings, add a `google_bigquery_dataset_iam_member` resource to the bundle source.
+**This bundle creates no IAM bindings.** Consumer bundles bind their own service accounts to this dataset. If a service can't query or load data, the IAM binding is missing from the consumer bundle — not from here.
 
 **Cross-region queries are not supported.** BigQuery cannot join tables in different regions in a single query. Use Storage Transfer Service or BigQuery Data Transfer Service to replicate data first.
 
-**Deploy fails with "bigquery.googleapis.com has not been used in project."**
-Add `bigquery.googleapis.com` to `enabled_apis` in the `gcp-landing-zone` package, redeploy the landing zone, wait ~60 seconds, then retry.
-
 ## Troubleshooting
-
-**Quota exceeded on concurrent jobs or daily bytes scanned.**
-BigQuery per-project quotas are not manageable via this bundle. Check the BigQuery quota dashboard in the GCP console and request increases if needed.
-
-**Streaming insert rows not expiring as expected.**
-Rows inserted via the streaming API have a delay before table expiration recalculation applies. Batch loads have no such lag.
 
 **Permission denied on dataset access.**
 ```bash
 bq get-iam-policy {{artifacts.bigquery_dataset.dataset_full_name}}
 ```
-The workload SA needs `roles/bigquery.dataEditor` for read/write or `roles/bigquery.dataViewer` for read-only.
+The required member should have `roles/bigquery.dataEditor` for read/write or `roles/bigquery.dataViewer` for read-only. If the binding is absent, redeploy the consumer bundle with the dataset wired on the canvas.
+
+**Quota exceeded on concurrent jobs or daily bytes scanned.**
+BigQuery per-project quotas are not manageable through this bundle. Check the BigQuery quota dashboard in the GCP console and request increases if needed.
+
+**Streaming insert rows not expiring as expected.**
+Rows inserted via the streaming API have a delay before table expiration recalculation applies. Batch loads have no such lag.
+
+**Deploy fails with "bigquery.googleapis.com has not been used in project."**
+Add `bigquery.googleapis.com` to `enabled_apis` in the `gcp-landing-zone` package, redeploy the landing zone, wait ~60 seconds, then retry.
 
 **Table schema mismatch or load failure.**
 ```bash
