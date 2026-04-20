@@ -1,0 +1,20 @@
+skip-check:
+  # CKV_GCP_102: Ensure Cloud Run service is not publicly accessible
+  # This check flags any Cloud Run service that has ingress=all or is not restricted
+  # to internal traffic. This bundle intentionally exposes the ingress setting as a
+  # configurable parameter because Cloud Run services legitimately need to be public
+  # (Public API preset) or internal (Internal / Worker presets). The allow_unauthenticated
+  # param further controls IAM-level access. Blanket-skipping is appropriate here because
+  # the check does not distinguish between the three valid ingress modes — it fires on
+  # all non-internal services regardless of IAM controls. Operators requiring internal-only
+  # can set ingress=internal, which makes this check pass without the skip.
+  - CKV_GCP_102
+
+  # CKV_GCP_103: Ensure Cloud Run service requires Binary Authorization
+  # Binary Authorization enforces a deploy-time policy that container images must be
+  # attested (signed) before they can run. This is a valid control for strict supply-chain
+  # environments but requires a separate Binary Authorization policy infrastructure that
+  # is out of scope for this bundle. Enabling it without a configured attestor causes
+  # all deployments to fail. Teams that require binary authorization should implement
+  # it at the project level via google_binary_authorization_policy, not per-service.
+  - CKV_GCP_103

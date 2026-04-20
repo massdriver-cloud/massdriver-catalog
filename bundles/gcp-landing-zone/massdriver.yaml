@@ -1,0 +1,209 @@
+name: gcp-landing-zone
+description: Environment-foundational construct for a GCP data platform. Enables required
+  service APIs, provisions the workload runtime service account, configures a billing
+  budget with threshold alerts, and emits a single landing-zone artifact so downstream
+  bundles only need one connection.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-landing-zone
+version: 0.1.0
+
+params:
+  required:
+    - service_account_name
+    - enabled_apis
+    - budget
+  examples:
+    - __name: Standard (no budget)
+      service_account_name: workload
+      enabled_apis:
+        - compute.googleapis.com
+        - iam.googleapis.com
+        - cloudresourcemanager.googleapis.com
+        - serviceusage.googleapis.com
+        - run.googleapis.com
+        - bigquery.googleapis.com
+        - storage.googleapis.com
+        - aiplatform.googleapis.com
+        - notebooks.googleapis.com
+        - logging.googleapis.com
+        - monitoring.googleapis.com
+      budget:
+        enabled: false
+    - __name: Standard (with budget)
+      service_account_name: workload
+      enabled_apis:
+        - compute.googleapis.com
+        - iam.googleapis.com
+        - cloudresourcemanager.googleapis.com
+        - serviceusage.googleapis.com
+        - billingbudgets.googleapis.com
+        - run.googleapis.com
+        - bigquery.googleapis.com
+        - storage.googleapis.com
+        - aiplatform.googleapis.com
+        - notebooks.googleapis.com
+        - logging.googleapis.com
+        - monitoring.googleapis.com
+      budget:
+        enabled: true
+        billing_account_id: "012345-ABCDEF-012345"
+        amount: 500
+        threshold_percentages:
+          - 50
+          - 90
+          - 100
+        notification_emails:
+          - platform-alerts@example.com
+  properties:
+    service_account_name:
+      type: string
+      title: Workload Service Account Name
+      description: Identity that workloads in this environment will run as. Cannot
+        be changed after creation — renaming the service account destroys the existing
+        SA and breaks any downstream IAM bindings referencing the old email.
+      $md.immutable: true
+      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+      default: workload
+
+    enabled_apis:
+      title: Enabled APIs
+      description: GCP service APIs to enable in this project. Select from the list.
+        Add billingbudgets.googleapis.com if you enable a budget below.
+      type: array
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - compute.googleapis.com
+          - iam.googleapis.com
+          - cloudresourcemanager.googleapis.com
+          - serviceusage.googleapis.com
+          - billingbudgets.googleapis.com
+          - run.googleapis.com
+          - bigquery.googleapis.com
+          - storage.googleapis.com
+          - pubsub.googleapis.com
+          - aiplatform.googleapis.com
+          - notebooks.googleapis.com
+          - logging.googleapis.com
+          - monitoring.googleapis.com
+      default:
+        - compute.googleapis.com
+        - iam.googleapis.com
+        - cloudresourcemanager.googleapis.com
+        - serviceusage.googleapis.com
+
+    budget:
+      title: Billing Budget
+      description: Optionally configure a GCP billing budget with spend alerts for this environment.
+        Enable billingbudgets.googleapis.com in the API list above when using this feature.
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          title: Enable Budget
+          description: Create a GCP billing budget with threshold email alerts
+          default: false
+      dependencies:
+        enabled:
+          oneOf:
+            - properties:
+                enabled:
+                  const: true
+                billing_account_id:
+                  title: Billing Account ID
+                  description: GCP billing account to attach the budget to. Find it in
+                    Cloud Console under Billing > Account management (format XXXXXX-XXXXXX-XXXXXX).
+                    Cloud Billing must be enabled on the account.
+                  type: string
+                  pattern: "^[0-9A-Fa-f]{6}-[0-9A-Za-z]{6}-[0-9A-Za-z]{6}$"
+                  examples:
+                    - 015537-E00AAA-3F7EDD
+                amount:
+                  title: Budget Amount (USD)
+                  description: Monthly spend limit in US dollars
+                  type: number
+                  minimum: 1
+                  default: 500
+                threshold_percentages:
+                  title: Alert Thresholds (%)
+                  description: Percentage spend thresholds at which email alerts are triggered.
+                    E.g. 50 = 50%, 90 = 90%, 100 = 100%.
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  default:
+                    - 50
+                    - 90
+                    - 100
+                  items:
+                    type: number
+                    minimum: 1
+                    maximum: 150
+                notification_emails:
+                  title: Notification Emails
+                  description: Email addresses to notify when spend thresholds are crossed (optional)
+                  type: array
+                  items:
+                    type: string
+                    format: email
+              required:
+                - billing_account_id
+                - amount
+                - threshold_percentages
+            - properties:
+                enabled:
+                  const: false
+
+connections:
+  required:
+    - gcp_authentication
+    - network
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    network:
+      $ref: catalog-demo/gcp-network
+      title: GCP Network
+
+artifacts:
+  required:
+    - landing_zone
+  properties:
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - service_account_name
+    - enabled_apis
+    - budget
+    - "*"
+  properties:
+    budget:
+      ui:order:
+        - enabled
+        - billing_account_id
+        - amount
+        - threshold_percentages
+        - notification_emails
+        - "*"
+      properties:
+        enabled:
+          ui:widget: checkbox
+        threshold_percentages:
+          ui:options:
+            orderable: false
+          items:
+            ui:title: "Threshold (%)"

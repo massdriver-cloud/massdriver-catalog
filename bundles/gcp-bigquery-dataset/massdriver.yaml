@@ -1,0 +1,139 @@
+name: gcp-bigquery-dataset
+description: Google Cloud BigQuery dataset with configurable location, default table
+  expiration, and delete protection. Enforces dataset-level IAM access control as
+  a non-negotiable baseline. Grants the landing zone's workload service account dataEditor
+  access on the dataset. Emits a gcp-bigquery-dataset artifact for downstream Cloud
+  Run, Vertex Workbench, and query workloads.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-bigquery-dataset
+version: 0.1.0
+
+params:
+  required:
+    - dataset_id
+    - location
+    - delete_protection
+  examples:
+    - __name: Dev
+      dataset_id: dev_dataset
+      location: US
+      default_table_expiration_days: 30
+      delete_protection: false
+    - __name: Staging
+      dataset_id: staging_dataset
+      location: US
+      default_table_expiration_days: 90
+      delete_protection: false
+    - __name: Production
+      dataset_id: prod_dataset
+      location: US
+      delete_protection: true
+
+  properties:
+    dataset_id:
+      title: Dataset ID
+      description: BigQuery dataset identifier. Must contain only letters, digits, and
+        underscores — no hyphens or spaces. Maximum 1024 characters. Cannot be changed
+        after creation without destroying and recreating the dataset.
+      type: string
+      $md.immutable: true
+      pattern: "^[a-zA-Z0-9_]+$"
+
+    friendly_name:
+      title: Friendly Name
+      description: Optional human-readable display name shown in the BigQuery UI. Does
+        not affect queries or API access — the dataset_id is always the identifier.
+      type: string
+
+    description:
+      title: Description
+      description: Optional free-text description of the dataset's purpose, data classification,
+        or owner team. Stored in BigQuery metadata and visible in the console.
+      type: string
+
+    location:
+      title: Location
+      description: BigQuery location where the dataset and its tables are stored. Multi-regions
+        (US, EU) provide highest availability. Single regions co-locate data with compute
+        for lower query latency. Location is immutable — changing it requires destroying
+        and recreating the dataset (you will lose all data unless exported first).
+      type: string
+      $md.immutable: true
+      default: US
+      enum:
+        - US
+        - EU
+        - us-central1
+        - us-east1
+        - us-east4
+        - us-west1
+        - us-west2
+        - europe-west1
+        - europe-west2
+        - europe-west3
+        - europe-west4
+        - asia-east1
+        - asia-northeast1
+        - asia-south1
+        - asia-southeast1
+        - australia-southeast1
+        - southamerica-east1
+
+    default_table_expiration_days:
+      title: Default Table Expiration (days)
+      description: Number of days after creation that new tables in this dataset will
+        be automatically deleted. Applies only to tables created after this setting
+        is applied — existing tables are not affected. Set to 0 or omit for no automatic
+        expiration. Recommended for dev and staging to prevent unbounded cost growth.
+      type: integer
+      minimum: 0
+      default: 0
+
+    delete_protection:
+      title: Enable Delete Protection
+      description: When enabled, the dataset cannot be destroyed until delete protection
+        is first disabled (a two-step destroy). Prevents accidental data loss in production.
+        Strongly recommended for production datasets. Disable only immediately before
+        a planned decommission.
+      type: boolean
+      default: false
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+artifacts:
+  required:
+    - bigquery_dataset
+  properties:
+    bigquery_dataset:
+      $ref: catalog-demo/gcp-bigquery-dataset
+      title: GCP BigQuery Dataset
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - dataset_id
+    - friendly_name
+    - description
+    - location
+    - default_table_expiration_days
+    - delete_protection
+    - "*"
+  properties:
+    delete_protection:
+      ui:widget: checkbox
