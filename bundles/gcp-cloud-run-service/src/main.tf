@@ -22,10 +22,31 @@ locals {
   name_prefix = var.md_metadata.name_prefix
   region      = var.landing_zone.network.region
 
-  # The workload SA is defined once in the landing zone; all upstream IAM
-  # bindings in iam.tf reference this local so the principal is never duplicated.
-  workload_sa_email  = var.landing_zone.workload_identity.service_account_email
-  workload_sa_member = "serviceAccount:${local.workload_sa_email}"
+  # Runtime SA is created by THIS bundle — not inherited from the landing zone.
+  # The SA email and member string are sourced from the google_service_account resource below.
+  # Use these locals anywhere an SA principal is needed (iam.tf, artifacts.tf).
+  runtime_sa_email  = google_service_account.runtime.email
+  runtime_sa_member = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+# ─── Runtime Service Account ──────────────────────────────────────────────────
+# Each Cloud Run service instance creates its own SA. This is the identity the
+# service runs as and the principal that IAM bindings in iam.tf grant access to.
+#
+# account_id is derived from name_prefix and capped at 30 chars (GCP limit is 30).
+# The SA is created in the landing zone's project — the project that owns the
+# Cloud Run service and the upstream data resources.
+#
+# IMPORTANT: This SA is destroyed and recreated if the name_prefix changes (e.g.,
+# if the package is renamed). That is a destructive operation — downstream IAM
+# bindings referencing the old email are invalidated. Plan SA naming carefully
+# before first deploy; treat it as immutable after that.
+
+resource "google_service_account" "runtime" {
+  project      = local.project_id
+  account_id   = substr(local.name_prefix, 0, 30)
+  display_name = "Cloud Run Runtime — ${local.name_prefix}"
+  description  = "Runtime identity for Cloud Run service ${local.name_prefix}. Managed by Massdriver."
 }
 
 # ─── Cloud Run v2 Service ──────────────────────────────────────────────────────
@@ -47,11 +68,9 @@ resource "google_cloud_run_v2_service" "main" {
 
   template {
     # ── Runtime identity ──────────────────────────────────────────────────────
-    # Run every revision as the landing zone's shared workload service account.
-    # This is the identity that upstream IAM bindings (iam.tf) grant access to.
-    # Per-service SAs are out of scope; use a separate landing-zone-style bundle
-    # if your workload requires a dedicated SA with narrower permissions.
-    service_account = local.workload_sa_email
+    # Run every revision as this bundle's own runtime service account (created above).
+    # iam.tf grants this SA the minimum required roles on any connected upstream artifact.
+    service_account = local.runtime_sa_email
 
     # ── Scaling ───────────────────────────────────────────────────────────────
     # min_instance_count > 0 disables scale-to-zero. You pay for idle capacity.

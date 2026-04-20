@@ -6,7 +6,11 @@ templating: mustache
 
 ## Non-obvious constraints
 
-**Service account name is immutable.** Changing it destroys the existing SA and creates a new one. Any downstream IAM bindings referencing the old SA email break immediately. Treat the workload SA name as permanent after first deploy.
+**This bundle manages project-level IAM for humans and groups, NOT workload service accounts.** Do not add workload SAs here. Consumer bundles (Cloud Run, etc.) own their own runtime SAs. If you see unexpected workload SAs here, they are from an older version of this bundle that has since been refactored.
+
+**IAM bindings are additive — they are never removed except when removed from params.** `google_project_iam_member` does not reconcile the full project IAM policy. Removing a binding from params and redeploying will destroy that specific binding resource; all other project-level bindings (from GCP defaults, other automation, or the Console) remain untouched.
+
+**Org policies are project-scoped, not org-wide.** The `google_project_organization_policy` resource applies constraints at the project level only. Org-wide enforcement requires setting the policy at the org node, which is out of scope for this bundle.
 
 **Removing an API from `enabled_apis` does not disable it in GCP.** The `disable_on_destroy = false` flag means Terraform removes the state entry but never calls the GCP disable API. The API stays enabled. To actually disable it, run `gcloud services disable <api> --project={{artifacts.landing_zone.project_id}}` manually after confirming no resources depend on it.
 
@@ -39,20 +43,26 @@ gcloud services list --enabled --project={{artifacts.landing_zone.project_id}} |
 ```
 If nothing returns, add `billingbudgets.googleapis.com` to `enabled_apis` and redeploy before enabling the budget.
 
-**Workload SA has unexpected project-level IAM bindings.**
-The workload SA should have no project-level bindings after deploy — downstream bundles add per-resource bindings. If you see unexpected bindings:
+**Org policy apply fails with "403 PERMISSION_DENIED".**
+The deploy credential (`gcp_authentication`) needs `orgpolicy.policy.set` at the project level. Grant it:
 ```bash
-gcloud projects get-iam-policy {{artifacts.landing_zone.project_id}} \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:{{artifacts.landing_zone.workload_identity.service_account_email}}" \
-  --format="table(bindings.role)"
+gcloud projects add-iam-policy-binding {{artifacts.landing_zone.project_id}} \
+  --member="serviceAccount:<deploy-sa-email>" \
+  --role="roles/orgpolicy.policyAdmin"
 ```
-An empty result is expected and correct.
 
-**IAM binding changes outside Terraform get overwritten.**
-Any bindings added manually (console or gcloud) will be removed on the next Massdriver deploy. Add permanent bindings via the bundle source.
+**An IAM binding appears in GCP but is not in params.**
+If the binding is a GCP default or was added outside Terraform, it will not be touched by Massdriver. If it needs to be removed, use `gcloud` or the Console — Terraform only manages the specific bindings in `iam_bindings`.
 
 ## Day-2 operations
+
+**Adding a human operator binding:** Add `{role, member}` to `iam_bindings` and redeploy. The new `google_project_iam_member` resource is additive — no existing bindings are touched.
+
+**Removing a human operator binding:** Remove the entry from `iam_bindings` and redeploy. Only that specific binding resource is destroyed. No other project IAM is affected.
+
+**Adding an org policy constraint:** Add `{constraint, enforced}` to `org_policies` and redeploy. Each constraint is an independent resource.
+
+**Removing an org policy constraint:** Remove the entry from `org_policies` and redeploy. The constraint is removed from the project — the org's inherited policy (if any) applies after removal.
 
 **Adding APIs after initial deploy:** Update `enabled_apis` in the package config and redeploy. Adding an API adds a new `google_project_service` resource without touching existing ones.
 
@@ -70,16 +80,18 @@ Any bindings added manually (console or gcloud) will be removed on the next Mass
 # List enabled APIs in the project
 gcloud services list --enabled --project={{artifacts.landing_zone.project_id}}
 
-# Check IAM bindings for the workload service account
+# Check all project-level IAM bindings
 gcloud projects get-iam-policy {{artifacts.landing_zone.project_id}} \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:{{artifacts.landing_zone.workload_identity.service_account_email}}" \
-  --format="table(bindings.role)"
+  --format="table(bindings.role,bindings.members)"
 
-# Describe the workload service account
-gcloud iam service-accounts describe {{artifacts.landing_zone.workload_identity.service_account_email}} \
+# List active org policy constraints on the project
+gcloud resource-manager org-policies list \
   --project={{artifacts.landing_zone.project_id}}
 
-# List all service accounts in the project
+# Describe a specific org policy constraint
+gcloud resource-manager org-policies describe constraints/iam.disableServiceAccountKeyCreation \
+  --project={{artifacts.landing_zone.project_id}}
+
+# List all service accounts in the project (workload SAs are owned by consumer bundles, not this one)
 gcloud iam service-accounts list --project={{artifacts.landing_zone.project_id}}
 ```

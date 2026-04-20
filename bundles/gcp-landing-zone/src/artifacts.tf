@@ -1,6 +1,7 @@
-# Single landing-zone artifact — combines network, workload identity, enabled APIs,
-# and budget reference. Downstream bundles connect to this one artifact instead of
-# wiring network and identity connections separately.
+# Single landing-zone artifact — combines network, enabled APIs, budget reference,
+# and an informational summary of the IAM bindings applied at project level.
+# Downstream bundles connect to this one artifact to get project_id, network, and
+# the list of enabled APIs. Each consumer bundle creates its own workload SA.
 
 resource "massdriver_artifact" "landing_zone" {
   field = "landing_zone"
@@ -15,13 +16,16 @@ resource "massdriver_artifact" "landing_zone" {
       primary_subnet    = var.network.primary_subnet
     }
 
-    workload_identity = {
-      service_account_email = google_service_account.workload.email
-      service_account_id    = google_service_account.workload.unique_id
-      service_account_name  = google_service_account.workload.name
-    }
-
     enabled_apis = var.enabled_apis
+
+    # iam_bindings carries an informational summary of what project-level IAM was applied.
+    # Downstream bundles do not consume this — it is an audit trail for operators.
+    iam_bindings = [
+      for binding in var.iam_bindings : {
+        role   = binding.role
+        member = binding.member
+      }
+    ]
 
     # budget is always present in the artifact for schema conformance.
     # When disabled, fields carry null/empty sentinel values so downstream

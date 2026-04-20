@@ -6,6 +6,10 @@ templating: mustache
 
 ## Non-obvious constraints
 
+**Each bundle instance creates its own service account.** Unlike the previous pattern where all services shared the landing zone's workload SA, this bundle provisions `google_service_account.runtime` scoped to this specific service. If you redeploy after the old landing-zone SA is gone from state, the Cloud Run service will be updated to run as the new per-service SA. Cold start on the first revision after a SA switch is expected.
+
+**Rotating the runtime SA is destructive — expect cold start.** The SA `account_id` is derived from the bundle's `name_prefix`. Changing the package name or name_prefix recreates the SA with a new email. Any out-of-band IAM bindings referencing the old SA email (e.g., manually granted Artifact Registry reader) must be reapplied. Canvas-wired bindings (Pub/Sub, BigQuery, GCS) are recreated automatically on the next deploy.
+
 **New deployments route 100% of traffic to the latest revision immediately.** Blue/green splits must be configured before deploying the new revision. You cannot retroactively split traffic between an old and new revision once the new one is live at 100%.
 
 **Changing `ingress` triggers a new revision and a cold start.** Even if `min_instances > 0`, an ingress change forces revision replacement. Expect a brief cold start.
@@ -14,14 +18,14 @@ templating: mustache
 
 **Container port must match what the image listens on.** If the image doesn't listen on the configured port, the revision fails health checks and Cloud Run rolls back. Error in logs: `Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.` Check application logs before the platform logs.
 
-**Image pull from Artifact Registry: the workload SA needs `roles/artifactregistry.reader`.** This bundle does not grant that role. If a revision fails with `image not found` or `permission denied` at startup, check this IAM binding first:
+**Image pull from Artifact Registry: the runtime SA needs `roles/artifactregistry.reader`.** This bundle does not grant that role. If a revision fails with `image not found` or `permission denied` at startup, grant the role manually or add it to the bundle:
 ```bash
-gcloud artifacts repositories get-iam-policy <REPO> \
+gcloud artifacts repositories add-iam-policy-binding <REPO> \
   --location={{artifacts.cloud_run_service.location}} \
-  --project={{artifacts.cloud_run_service.project_id}}
+  --project={{artifacts.cloud_run_service.project_id}} \
+  --member="{{artifacts.cloud_run_service.runtime_service_account_member}}" \
+  --role="roles/artifactregistry.reader"
 ```
-
-**CPU-to-memory minimums are enforced at the API level.** 2 vCPU requires at least 512Mi; 4 vCPU requires at least 2Gi. A mismatched deploy fails before any revision is created.
 
 **Connecting or disconnecting canvas wires requires a Massdriver deploy to take effect.** Wiring an artifact on the canvas does not grant IAM access. The Terraform apply must run to create or destroy the IAM binding.
 
@@ -49,8 +53,21 @@ gcloud logging read \
 **IAM binding not applied after connecting a canvas wire.**
 Connect the wire on the canvas AND redeploy this package. The binding does not exist until Terraform applies it.
 
-**Image pull failure.**
-Check the workload SA's Artifact Registry permission (see Non-obvious constraints above). Also confirm the image tag or digest exists in the registry.
+**Service can't access a resource it's connected to.**
+Confirm the canvas wire is connected AND the package has been deployed since the wire was added. Check the specific IAM binding:
+```bash
+# Pub/Sub
+gcloud pubsub topics get-iam-policy <TOPIC_NAME> \
+  --project={{artifacts.cloud_run_service.project_id}} \
+  --format="table(bindings.role,bindings.members)"
+
+# BigQuery
+bq get-iam-policy {{artifacts.cloud_run_service.project_id}}:<DATASET_ID>
+
+# GCS
+gcloud storage buckets get-iam-policy gs://<BUCKET_NAME>
+```
+The member should be `{{artifacts.cloud_run_service.runtime_service_account_member}}`.
 
 ## Day-2 operations
 
@@ -80,7 +97,7 @@ gcloud container images describe <IMAGE>:<TAG> \
 
 **Scaling changes:** Update `min_instances` or `max_instances` params and redeploy. In-place safe.
 
-**Rotating the runtime service account:** This requires a bundle code change (the SA is created by the landing zone). Changing the connected landing zone artifact and redeploying will update the SA reference.
+**Rotating the runtime service account:** The SA is derived from the bundle's name_prefix. Rotating requires renaming, which is destructive — the old SA is deleted, a new one is created, and all canvas-wired IAM bindings are recreated on next deploy. Any out-of-band bindings (e.g., Artifact Registry reader) must be reapplied manually.
 
 ## Useful commands
 
@@ -112,6 +129,10 @@ curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
 # Check IAM on the service
 gcloud run services get-iam-policy {{artifacts.cloud_run_service.service_name}} \
   --region={{artifacts.cloud_run_service.location}} \
+  --project={{artifacts.cloud_run_service.project_id}}
+
+# Describe the runtime service account
+gcloud iam service-accounts describe {{artifacts.cloud_run_service.runtime_service_account_email}} \
   --project={{artifacts.cloud_run_service.project_id}}
 
 # Check runtime SA's IAM bindings on a connected Pub/Sub topic

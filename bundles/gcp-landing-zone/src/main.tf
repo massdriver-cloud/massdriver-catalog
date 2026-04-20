@@ -43,17 +43,49 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
-# ─── Workload Service Account ─────────────────────────────────────────────────
-# Runtime identity that data platform workloads (Cloud Run, Vertex Workbench,
-# etc.) will run as. This is NOT the Terraform deploy credential.
-# Downstream bundles read landing_zone.workload_identity.service_account_email
-# and bind IAM roles to it on their own resources.
+# ─── Project IAM Bindings (human operators / groups) ─────────────────────────
+# Non-authoritative (google_project_iam_member) — one resource per binding.
+# This will NOT remove any bindings set outside of Terraform.
+# Intended for humans and groups who need project-level access (e.g., viewers,
+# billing admins). Workload service accounts are NOT managed here — each consumer
+# bundle creates its own runtime SA.
 
-resource "google_service_account" "workload" {
-  project      = local.project_id
-  account_id   = var.service_account_name
-  display_name = "Data Platform Workload Identity — ${local.name_prefix}"
-  description  = "Runtime service account for data platform workloads. Managed by Massdriver landing zone ${local.name_prefix}."
+resource "google_project_iam_member" "operators" {
+  for_each = {
+    for binding in var.iam_bindings :
+    "${binding.role}/${binding.member}" => binding
+  }
+
+  project = local.project_id
+  role    = each.value.role
+  member  = each.value.member
+
+  depends_on = [google_project_service.apis]
+}
+
+# ─── Org Policy Guardrails (project-scoped) ───────────────────────────────────
+# Applied at the project level — does not affect other projects in the org.
+# Boolean constraints: enforce = true/false as configured.
+# List constraints (e.g. vmExternalIpAccess): enforced=true → deny_all policy.
+#
+# Common useful constraints:
+#   constraints/iam.disableServiceAccountKeyCreation  — prevents user-managed SA keys
+#   constraints/storage.publicAccessPrevention        — blocks public GCS bucket access
+#   constraints/compute.requireOsLogin                — enforces OS Login on all VMs
+#   constraints/compute.vmExternalIpAccess            — deny all external IPs on VMs
+
+resource "google_project_organization_policy" "guardrails" {
+  for_each = {
+    for policy in var.org_policies :
+    policy.constraint => policy
+  }
+
+  project    = local.project_id
+  constraint = each.value.constraint
+
+  boolean_policy {
+    enforced = each.value.enforced
+  }
 
   depends_on = [google_project_service.apis]
 }

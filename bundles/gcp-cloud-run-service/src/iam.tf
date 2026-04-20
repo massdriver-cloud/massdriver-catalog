@@ -2,8 +2,12 @@
 #
 # This file implements the "auto-binding" pattern for Cloud Run services that
 # consume upstream data artifacts. For each optional connection that IS wired on
-# the canvas, Terraform grants the workload service account the minimum-privilege
-# role required to use that resource.
+# the canvas, Terraform grants THIS bundle's runtime service account the minimum-
+# privilege role required to use that resource.
+#
+# The runtime SA (google_service_account.runtime in main.tf) is created by this
+# bundle — not inherited from the landing zone. This means each Cloud Run service
+# gets its own identity with bindings only to the resources it actually connects to.
 #
 # HOW IT WORKS
 # ────────────
@@ -29,50 +33,43 @@
 #   Allows reading and writing objects (get, list, create, delete). Does NOT
 #   grant bucket-level admin (lifecycle, IAM, metadata changes). For read-only
 #   access, use roles/storage.objectViewer instead.
-#
-# REFERENCE EXAMPLE
-# ─────────────────
-# This is the canonical artifact-policy-style auto-binding pattern for the
-# GCP Data Platform demo series. When building downstream bundles that consume
-# multiple optional artifacts, copy this pattern: one conditional count block
-# per artifact type, one role per binding, all referencing local.workload_sa_member.
 
 # ── Pub/Sub Topic ─────────────────────────────────────────────────────────────
-# Grant the workload SA publisher access to the connected Pub/Sub topic.
+# Grant this service's runtime SA publisher access to the connected Pub/Sub topic.
 # Binding is topic-scoped — does not grant access to other topics.
 
-resource "google_pubsub_topic_iam_member" "workload_publisher" {
+resource "google_pubsub_topic_iam_member" "runtime_publisher" {
   count = var.pubsub_topic != null ? 1 : 0
 
   project = var.pubsub_topic.project_id
   topic   = var.pubsub_topic.topic_name
   role    = "roles/pubsub.publisher"
-  member  = local.workload_sa_member
+  member  = local.runtime_sa_member
 }
 
 # ── BigQuery Dataset ───────────────────────────────────────────────────────────
-# Grant the workload SA dataEditor on the connected BigQuery dataset.
+# Grant this service's runtime SA dataEditor on the connected BigQuery dataset.
 # Binding is dataset-scoped — propagates to all current and future tables in
 # the dataset. For table-level isolation, use google_bigquery_table_iam_member.
 
-resource "google_bigquery_dataset_iam_member" "workload_data_editor" {
+resource "google_bigquery_dataset_iam_member" "runtime_data_editor" {
   count = var.bigquery_dataset != null ? 1 : 0
 
   project    = var.bigquery_dataset.project_id
   dataset_id = var.bigquery_dataset.dataset_id
   role       = "roles/bigquery.dataEditor"
-  member     = local.workload_sa_member
+  member     = local.runtime_sa_member
 }
 
 # ── Storage Bucket ─────────────────────────────────────────────────────────────
-# Grant the workload SA objectUser on the connected GCS bucket.
+# Grant this service's runtime SA objectUser on the connected GCS bucket.
 # Binding is bucket-scoped — allows read/write of all objects in the bucket.
 # For read-only access, use roles/storage.objectViewer.
 
-resource "google_storage_bucket_iam_member" "workload_object_user" {
+resource "google_storage_bucket_iam_member" "runtime_object_user" {
   count = var.storage_bucket != null ? 1 : 0
 
   bucket = var.storage_bucket.bucket_name
   role   = "roles/storage.objectUser"
-  member = local.workload_sa_member
+  member = local.runtime_sa_member
 }

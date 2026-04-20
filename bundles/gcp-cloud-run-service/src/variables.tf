@@ -34,11 +34,6 @@ variable "landing_zone" {
         self_link = string
       })
     })
-    workload_identity = object({
-      service_account_email = string
-      service_account_id    = string
-      service_account_name  = string
-    })
     enabled_apis = list(string)
     budget = object({
       enabled            = bool
@@ -56,7 +51,7 @@ variable "landing_zone" {
 # bindings, and references fields directly (e.g., var.pubsub_topic.topic_name).
 
 variable "pubsub_topic" {
-  description = "Optional Pub/Sub topic connection. When provided, the workload SA is granted roles/pubsub.publisher on the topic."
+  description = "Optional Pub/Sub topic connection. When provided, the runtime SA is granted roles/pubsub.publisher on the topic."
   type = object({
     project_id     = string
     topic_name     = string
@@ -68,7 +63,7 @@ variable "pubsub_topic" {
 }
 
 variable "bigquery_dataset" {
-  description = "Optional BigQuery dataset connection. When provided, the workload SA is granted roles/bigquery.dataEditor on the dataset."
+  description = "Optional BigQuery dataset connection. When provided, the runtime SA is granted roles/bigquery.dataEditor on the dataset."
   type = object({
     project_id        = string
     dataset_id        = string
@@ -80,7 +75,7 @@ variable "bigquery_dataset" {
 }
 
 variable "storage_bucket" {
-  description = "Optional GCS bucket connection. When provided, the workload SA is granted roles/storage.objectUser on the bucket."
+  description = "Optional GCS bucket connection. When provided, the runtime SA is granted roles/storage.objectUser on the bucket."
   type = object({
     project_id       = string
     bucket_name      = string

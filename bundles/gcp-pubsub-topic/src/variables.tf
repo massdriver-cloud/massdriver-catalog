@@ -34,11 +34,6 @@ variable "landing_zone" {
         self_link = string
       })
     })
-    workload_identity = object({
-      service_account_email = string
-      service_account_id    = string
-      service_account_name  = string
-    })
     enabled_apis = list(string)
     budget = object({
       enabled            = bool

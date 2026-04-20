@@ -1,19 +1,20 @@
 name: gcp-landing-zone
-description: Environment-foundational construct for a GCP data platform. Enables required
-  service APIs, provisions the workload runtime service account, configures a billing
-  budget with threshold alerts, and emits a single landing-zone artifact so downstream
-  bundles only need one connection.
+description: Project-level governance construct for a GCP data platform. Enables required
+  service APIs, applies project-level IAM bindings for human operators and groups, enforces
+  org-policy guardrails, configures a billing budget with threshold alerts, and emits a
+  single landing-zone artifact so downstream bundles only need one connection. Does NOT
+  provision workload service accounts — each consumer bundle creates its own.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-landing-zone
 version: 0.1.0
 
 params:
   required:
-    - service_account_name
     - enabled_apis
     - budget
+    - iam_bindings
+    - org_policies
   examples:
     - __name: Standard (no budget)
-      service_account_name: workload
       enabled_apis:
         - compute.googleapis.com
         - iam.googleapis.com
@@ -22,14 +23,16 @@ params:
         - run.googleapis.com
         - bigquery.googleapis.com
         - storage.googleapis.com
+        - pubsub.googleapis.com
         - aiplatform.googleapis.com
         - notebooks.googleapis.com
         - logging.googleapis.com
         - monitoring.googleapis.com
       budget:
         enabled: false
+      iam_bindings: []
+      org_policies: []
     - __name: Standard (with budget)
-      service_account_name: workload
       enabled_apis:
         - compute.googleapis.com
         - iam.googleapis.com
@@ -39,6 +42,7 @@ params:
         - run.googleapis.com
         - bigquery.googleapis.com
         - storage.googleapis.com
+        - pubsub.googleapis.com
         - aiplatform.googleapis.com
         - notebooks.googleapis.com
         - logging.googleapis.com
@@ -53,17 +57,15 @@ params:
           - 100
         notification_emails:
           - platform-alerts@example.com
+      iam_bindings: []
+      org_policies:
+        - constraint: constraints/iam.disableServiceAccountKeyCreation
+          enforced: true
+        - constraint: constraints/storage.publicAccessPrevention
+          enforced: true
+        - constraint: constraints/compute.requireOsLogin
+          enforced: true
   properties:
-    service_account_name:
-      type: string
-      title: Workload Service Account Name
-      description: Identity that workloads in this environment will run as. Cannot
-        be changed after creation — renaming the service account destroys the existing
-        SA and breaks any downstream IAM bindings referencing the old email.
-      $md.immutable: true
-      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
-      default: workload
-
     enabled_apis:
       title: Enabled APIs
       description: GCP service APIs to enable in this project. Select from the list.
@@ -91,6 +93,67 @@ params:
         - iam.googleapis.com
         - cloudresourcemanager.googleapis.com
         - serviceusage.googleapis.com
+
+    iam_bindings:
+      title: Project IAM Bindings
+      description: Project-level IAM bindings for human operators and groups. Each entry
+        grants a single member a role on this project. Uses google_project_iam_member
+        (additive) — will not clobber bindings set outside Terraform. Intended for
+        humans and groups, not workload service accounts (those are created by consumer bundles).
+        Empty array is valid; bindings are optional.
+      type: array
+      default: []
+      items:
+        type: object
+        required:
+          - role
+          - member
+        properties:
+          role:
+            title: IAM Role
+            description: GCP role identifier, e.g. roles/viewer or roles/bigquery.dataViewer
+            type: string
+            examples:
+              - roles/viewer
+              - roles/bigquery.dataViewer
+              - roles/storage.objectViewer
+          member:
+            title: Member
+            description: IAM member string. Prefix with user:, group:, or serviceAccount:.
+            type: string
+            examples:
+              - user:alice@example.com
+              - group:data-analysts@example.com
+
+    org_policies:
+      title: Org Policy Guardrails
+      description: Project-scoped org-policy constraints to enforce security posture.
+        Uses google_project_organization_policy applied at the project level (not org-wide).
+        Each entry enforces or denies a named constraint. Empty array is valid.
+        Common constraints are listed in the preset above.
+      type: array
+      default: []
+      items:
+        type: object
+        required:
+          - constraint
+          - enforced
+        properties:
+          constraint:
+            title: Constraint
+            description: Org policy constraint name, e.g. constraints/iam.disableServiceAccountKeyCreation
+            type: string
+            examples:
+              - constraints/iam.disableServiceAccountKeyCreation
+              - constraints/storage.publicAccessPrevention
+              - constraints/compute.requireOsLogin
+              - constraints/compute.vmExternalIpAccess
+          enforced:
+            title: Enforced
+            description: When true, the boolean constraint is enforced. For list constraints
+              (e.g. vmExternalIpAccess), use enforced=true to deny all values.
+            type: boolean
+            default: true
 
     budget:
       title: Billing Budget
@@ -186,8 +249,9 @@ steps:
 
 ui:
   ui:order:
-    - service_account_name
     - enabled_apis
+    - iam_bindings
+    - org_policies
     - budget
     - "*"
   properties:
@@ -207,3 +271,18 @@ ui:
             orderable: false
           items:
             ui:title: "Threshold (%)"
+    iam_bindings:
+      items:
+        ui:order:
+          - role
+          - member
+          - "*"
+    org_policies:
+      items:
+        ui:order:
+          - constraint
+          - enforced
+          - "*"
+        properties:
+          enforced:
+            ui:widget: checkbox

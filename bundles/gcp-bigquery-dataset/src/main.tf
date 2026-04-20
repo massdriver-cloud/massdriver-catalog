@@ -58,27 +58,16 @@ resource "google_bigquery_dataset" "main" {
   labels = var.md_metadata.default_tags
 }
 
-# ─── Workload IAM Binding ──────────────────────────────────────────────────────
-# Grant the landing zone's workload service account roles/bigquery.dataEditor on
-# this dataset. dataEditor allows reading, writing, and deleting table data, as
-# well as creating and deleting tables within the dataset — without granting
-# dataset-level admin (which would allow dropping the dataset itself).
+# ─── No workload IAM binding here ────────────────────────────────────────────
+# BigQuery datasets do not own a runtime identity. The landing zone no longer
+# provides a shared workload SA. Consumer bundles (e.g. gcp-cloud-run-service)
+# create their OWN service account and the Cloud Run bundle grants dataEditor
+# access on this dataset when connected on the canvas.
 #
-# IAM role binding pattern for this series:
-#   member = "serviceAccount:<workload_sa_email>"
-#   role   = "roles/bigquery.dataEditor"
-#   resource = google_bigquery_dataset.main.dataset_id (dataset-level binding)
-#
-# Note: This is a DATASET-level binding — it propagates to all current and future
-# tables in the dataset. For table-level isolation, use google_bigquery_table_iam_member
-# instead. For read-only access, bind roles/bigquery.dataViewer.
-#
-# Downstream bundles that need read-only access should bind roles/bigquery.dataViewer
-# on this dataset using the bigquery_dataset artifact's dataset_id and project_id.
-
-resource "google_bigquery_dataset_iam_member" "workload_data_editor" {
-  project    = local.project_id
-  dataset_id = google_bigquery_dataset.main.dataset_id
-  role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${var.landing_zone.workload_identity.service_account_email}"
-}
+# Artifact policy pattern — grant a consumer's SA data editor access:
+#   resource "google_bigquery_dataset_iam_member" "runtime_editor" {
+#     project    = var.bigquery_dataset.project_id
+#     dataset_id = var.bigquery_dataset.dataset_id
+#     role       = "roles/bigquery.dataEditor"
+#     member     = "serviceAccount:<consumer-sa-email>"
+#   }

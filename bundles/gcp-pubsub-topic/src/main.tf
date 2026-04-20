@@ -61,20 +61,16 @@ resource "google_pubsub_topic" "dlq" {
   labels = var.md_metadata.default_tags
 }
 
-# ─── Workload Publisher IAM ───────────────────────────────────────────────────
-# Grant the landing zone's workload service account roles/pubsub.publisher on
-# the main topic. This is the IAM role binding example pattern for this series:
+# ─── No workload IAM binding here ────────────────────────────────────────────
+# Pub/Sub topics do not own a runtime identity. The landing zone no longer
+# provides a shared workload SA. Consumer bundles (e.g. gcp-cloud-run-service)
+# create their OWN service account and the Cloud Run bundle grants publisher/
+# subscriber access on this topic's artifact fields when connected on the canvas.
 #
-#   member  = "serviceAccount:<workload_sa_email>"
-#   role    = "roles/pubsub.publisher"
-#   topic   = google_pubsub_topic.main.name
-#
-# Downstream bundles that need subscriber access should bind roles/pubsub.subscriber
-# on this topic (or on their subscription) to the service account that reads messages.
-
-resource "google_pubsub_topic_iam_member" "workload_publisher" {
-  project = local.project_id
-  topic   = google_pubsub_topic.main.name
-  role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:${var.landing_zone.workload_identity.service_account_email}"
-}
+# Artifact policy pattern — grant a consumer's SA publisher access:
+#   resource "google_pubsub_topic_iam_member" "publisher" {
+#     project = var.pubsub_topic.project_id
+#     topic   = var.pubsub_topic.topic_name
+#     role    = "roles/pubsub.publisher"
+#     member  = "serviceAccount:<consumer-sa-email>"
+#   }

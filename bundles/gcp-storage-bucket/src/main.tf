@@ -70,23 +70,15 @@ resource "google_storage_bucket" "main" {
   labels = var.md_metadata.default_tags
 }
 
-# ─── Workload IAM Binding ─────────────────────────────────────────────────────
-# Grant the landing zone's workload service account roles/storage.objectUser on
-# this bucket. objectUser covers read and write of objects without granting
-# delete or bucket-level admin operations. This follows the principle of least
-# privilege — workloads that need to delete objects should bind objectAdmin
-# explicitly in their own bundle.
+# ─── No workload IAM binding here ────────────────────────────────────────────
+# GCS buckets do not own a runtime identity. The landing zone no longer provides
+# a shared workload SA. Consumer bundles (e.g. gcp-cloud-run-service) create their
+# OWN service account and the Cloud Run bundle grants objectUser access on this
+# bucket when connected on the canvas.
 #
-# IAM role binding pattern for this series:
-#   member = "serviceAccount:<workload_sa_email>"
-#   role   = "roles/storage.objectUser"
-#   bucket = google_storage_bucket.main.name
-#
-# Downstream bundles that need read-only access should bind roles/storage.objectViewer
-# on this bucket using the storage_bucket artifact's bucket_name field.
-
-resource "google_storage_bucket_iam_member" "workload_object_user" {
-  bucket = google_storage_bucket.main.name
-  role   = "roles/storage.objectUser"
-  member = "serviceAccount:${var.landing_zone.workload_identity.service_account_email}"
-}
+# Artifact policy pattern — grant a consumer's SA object access:
+#   resource "google_storage_bucket_iam_member" "runtime_object_user" {
+#     bucket = var.storage_bucket.bucket_name
+#     role   = "roles/storage.objectUser"
+#     member = "serviceAccount:<consumer-sa-email>"
+#   }

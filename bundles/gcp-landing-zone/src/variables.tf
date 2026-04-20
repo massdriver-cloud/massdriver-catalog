@@ -35,12 +35,26 @@ variable "network" {
   })
 }
 
-variable "service_account_name" {
-  type = string
-}
-
 variable "enabled_apis" {
   type = list(string)
+}
+
+variable "iam_bindings" {
+  description = "Project-level IAM bindings for human operators/groups. Non-authoritative (additive) — will not remove bindings set outside Terraform."
+  type = list(object({
+    role   = string
+    member = string
+  }))
+  default = []
+}
+
+variable "org_policies" {
+  description = "Project-scoped org-policy constraints. Boolean constraints are set to enforce=true/false. List constraints with enforced=true deny all values."
+  type = list(object({
+    constraint = string
+    enforced   = bool
+  }))
+  default = []
 }
 
 variable "budget" {
