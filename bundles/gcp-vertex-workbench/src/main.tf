@@ -152,4 +152,17 @@ resource "google_workbench_instance" "main" {
   }
 
   labels = var.md_metadata.default_tags
+
+  # Google adds auto-managed keys to metadata post-creation (for example
+  # enable-jupyterlab4, proxy-mode). Terraform sees those as drift and wants to
+  # prune them, which triggers a gce_setup update. The Workbench API then
+  # rejects the apply because updates to gce_setup require the instance to be
+  # stopped first — even when no restricted field (machine_type, shielded
+  # config, etc.) is actually changing. Ignoring metadata drift keeps
+  # redeploys no-op when only the user-managed keys are stable.
+  lifecycle {
+    ignore_changes = [
+      gce_setup[0].metadata,
+    ]
+  }
 }
