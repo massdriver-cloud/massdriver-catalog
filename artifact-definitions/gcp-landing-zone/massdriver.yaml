@@ -1,0 +1,146 @@
+name: gcp-landing-zone
+label: GCP Landing Zone
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# Downstream bundle IAM binding pattern:
+# This artifact carries the workload service account email. Downstream bundles
+# (BigQuery, GCS, Pub/Sub, Cloud Run, Vertex) bind roles to it on their resources.
+#
+# Terraform example — grant BigQuery data editor to the workload SA:
+#   resource "google_bigquery_dataset_iam_member" "workload" {
+#     dataset_id = google_bigquery_dataset.main.dataset_id
+#     role       = "roles/bigquery.dataEditor"
+#     member     = "serviceAccount:${var.landing_zone.workload_identity.service_account_email}"
+#   }
+#
+# The network fields allow downstream bundles to place resources in the shared VPC
+# without needing a separate network connection:
+#   subnet_self_link = var.landing_zone.network.primary_subnet.self_link
+exports: []
+
+schema:
+  title: GCP Landing Zone
+  description: Environment foundation artifact — carries the shared VPC network,
+    workload runtime service account, enabled API list, and billing budget reference.
+    Downstream bundles connect to this instead of wiring network and identity separately.
+  type: object
+  required:
+    - project_id
+    - network
+    - workload_identity
+    - enabled_apis
+    - budget
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier for this environment
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    network:
+      title: Network
+      description: Shared VPC network for this environment
+      type: object
+      required:
+        - network_name
+        - network_self_link
+        - region
+        - primary_subnet
+      properties:
+        network_name:
+          title: Network Name
+          type: string
+          examples:
+            - data-platform-vpc
+        network_self_link:
+          title: Network Self Link
+          type: string
+          examples:
+            - https://www.googleapis.com/compute/v1/projects/my-project/global/networks/my-vpc
+        region:
+          title: Region
+          type: string
+          examples:
+            - us-central1
+        primary_subnet:
+          title: Primary Subnet
+          type: object
+          required:
+            - name
+            - cidr
+            - self_link
+          properties:
+            name:
+              title: Name
+              type: string
+            cidr:
+              title: CIDR
+              type: string
+            self_link:
+              title: Self Link
+              type: string
+
+    workload_identity:
+      title: Workload Identity
+      description: Runtime service account that environment workloads run as.
+        Downstream bundles bind IAM roles to service_account_email.
+      type: object
+      required:
+        - service_account_email
+        - service_account_id
+        - service_account_name
+      properties:
+        service_account_email:
+          title: Service Account Email
+          description: Use as IAM member string — serviceAccount:<email>
+          type: string
+          examples:
+            - data-workload@my-project.iam.gserviceaccount.com
+        service_account_id:
+          title: Service Account Unique ID
+          type: string
+          examples:
+            - "123456789012345678901"
+        service_account_name:
+          title: Service Account Resource Name
+          type: string
+          examples:
+            - projects/my-project/serviceAccounts/data-workload@my-project.iam.gserviceaccount.com
+
+    enabled_apis:
+      title: Enabled APIs
+      description: GCP service APIs enabled in this project by the landing zone
+      type: array
+      items:
+        type: string
+      examples:
+        - - compute.googleapis.com
+          - bigquery.googleapis.com
+          - run.googleapis.com
+
+    budget:
+      title: Budget
+      description: Billing budget reference for this environment. enabled=false when no budget was configured.
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          title: Budget Enabled
+          type: boolean
+        budget_name:
+          title: Budget Display Name
+          type:
+            - string
+            - "null"
+        billing_account_id:
+          title: Billing Account ID
+          type:
+            - string
+            - "null"
+        amount_usd:
+          title: Budget Amount (USD)
+          type:
+            - number
+            - "null"
