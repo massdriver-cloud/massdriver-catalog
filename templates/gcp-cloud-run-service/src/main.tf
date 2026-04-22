@@ -24,6 +24,15 @@ resource "google_cloud_run_v2_service" "main" {
   template {
     service_account = local.runtime_sa_email
 
+    # Optional: route egress through a Serverless VPC Access connector.
+    # Uncomment if you picked a gcp-vpc-connector connection named `vpc_connector`
+    # at scaffold time.
+    #
+    # vpc_access {
+    #   connector = var.vpc_connector.connector_id
+    #   egress    = "PRIVATE_RANGES_ONLY"  # or ALL_TRAFFIC to force all egress through VPC
+    # }
+
     containers {
       image = var.image
 

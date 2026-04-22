@@ -27,9 +27,12 @@ Typical workflow:
 | `google_service_account.runtime` | Per-service runtime SA | This service's workload identity — one per bundle instance |
 | `google_cloud_run_v2_service.main` | Cloud Run v2 service | Runs containers as the runtime SA |
 | `google_cloud_run_v2_service_iam_member` (allUsers) | Public invoker IAM | Created only when `allow_unauthenticated = true` |
-| `google_pubsub_topic_iam_member` | Pub/Sub publisher IAM | Created only when Pub/Sub topic is connected |
-| `google_bigquery_dataset_iam_member` | BigQuery data editor IAM | Created only when BigQuery dataset is connected |
-| `google_storage_bucket_iam_member` | GCS object user IAM | Created only when Storage bucket is connected |
+| `google_pubsub_topic_iam_member` | Pub/Sub publisher IAM | Created only when `pubsub_topic` is connected |
+| `google_bigquery_dataset_iam_member` | BigQuery data editor IAM | Created only when `bigquery_dataset` is connected |
+| `google_storage_bucket_iam_member` | GCS object user IAM | Created only when `storage_bucket` is connected |
+| `google_service_account.push_invoker` | Push invoker SA | Created only when `incoming_topic` is connected — used by Pub/Sub for OIDC, separate from the runtime SA |
+| `google_cloud_run_v2_service_iam_member` (push_invoker) | Push invoker IAM | Created only when `incoming_topic` is connected — grants `roles/run.invoker` to the push invoker SA |
+| `google_pubsub_subscription.push` | Pub/Sub push subscription | Created only when `incoming_topic` is connected — delivers messages to this service's URL |
 
 ## Connections
 
@@ -42,7 +45,9 @@ Typical workflow:
 
 ### Optional
 
-When connected on the canvas, the bundle automatically grants this service's runtime SA the listed IAM role. When absent, no binding is created.
+Connecting or disconnecting a canvas wire does not take effect until a Terraform apply runs.
+
+**Outgoing data connections** — grant this service's runtime SA the listed IAM role on the upstream resource:
 
 | Connection | Artifact Type | IAM Role Granted |
 |---|---|---|
@@ -50,7 +55,21 @@ When connected on the canvas, the bundle automatically grants this service's run
 | `bigquery_dataset` | `catalog-demo/gcp-bigquery-dataset` | `roles/bigquery.dataEditor` on the dataset |
 | `storage_bucket` | `catalog-demo/gcp-storage-bucket` | `roles/storage.objectUser` on the bucket |
 
-Connecting or disconnecting a canvas wire does not take effect until a Terraform apply runs.
+**Incoming message delivery** — creates a Pub/Sub push subscription that calls this service's URL:
+
+| Connection | Artifact Type | What Gets Created |
+|---|---|---|
+| `incoming_topic` | `catalog-demo/gcp-pubsub-topic` | Push subscription on the topic + a dedicated `push_invoker` SA granted `roles/run.invoker` on this service |
+
+The push subscription uses a separate `push_invoker` service account (not the runtime SA) for OIDC authentication. Pub/Sub attaches a signed OIDC token for that SA to every HTTP request. Cloud Run validates the token and the `roles/run.invoker` binding before routing the request to the container. The `push_ack_deadline_seconds` param (default 60, max 600) controls how long Pub/Sub waits for a 2xx before redelivering.
+
+**Private egress** — routes outbound traffic through a VPC for access to private endpoints:
+
+| Connection | Artifact Type | What Gets Created |
+|---|---|---|
+| `vpc_connector` | `catalog-demo/gcp-vpc-connector` | Attaches the connector to the Cloud Run service's `vpc_access` block |
+
+The `vpc_egress` param controls whether only RFC1918 traffic (`PRIVATE_RANGES_ONLY`) or all outbound traffic (`ALL_TRAFFIC`) goes through the connector. Use `ALL_TRAFFIC` when downstream services such as Kafka brokers are on private IPs reachable only through the VPC. The connector must be in the same GCP region as this Cloud Run service.
 
 ## Artifact Produced
 
@@ -90,7 +109,7 @@ The `halt_on_failure` expression in `massdriver.yaml` blocks deployments with un
 
 - The landing zone provides `project_id` and `network.region`. It does NOT provide a workload SA — this bundle creates its own.
 - The runtime SA does not automatically have `roles/artifactregistry.reader`. If your image is in Artifact Registry, grant that role manually or add it to the bundle source.
-- VPC connector or direct VPC egress is not provisioned by this bundle. If you need to reach VPC-private resources (e.g., Cloud SQL without public IP), add a `google_vpc_access_connector` resource to the bundle source.
+- The VPC connector is consumed by this bundle (via the `vpc_connector` optional connection) but not provisioned here. Deploy a VPC connector bundle separately and wire it on the canvas.
 - The default image (`gcr.io/cloudrun/hello`) is the Google-managed hello-world container. Replace it with your application image before a real deployment.
 
 ## Presets

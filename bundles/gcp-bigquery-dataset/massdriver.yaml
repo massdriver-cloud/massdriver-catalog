@@ -5,7 +5,7 @@ description: Google Cloud BigQuery dataset with configurable location, default t
   access on the dataset. Emits a gcp-bigquery-dataset artifact for downstream Cloud
   Run, Vertex Workbench, and query workloads.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-bigquery-dataset
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:
@@ -97,6 +97,59 @@ params:
       type: boolean
       default: false
 
+    bigquery_subscription:
+      title: BigQuery Subscription Settings
+      description: Settings for the Pub/Sub BigQuery subscription. Only used when
+        a Pub/Sub topic is wired to this bundle. The target table must already exist
+        in this dataset — Pub/Sub does not create it.
+      type: object
+      properties:
+        table_name:
+          title: Target Table Name
+          description: Name of an existing table in this dataset where Pub/Sub will
+            deliver messages. The table must exist before the subscription is created.
+            Pub/Sub does not create tables automatically. Letters, digits, and underscores
+            only; maximum 1024 characters.
+          type: string
+          pattern: "^[a-zA-Z0-9_]+$"
+
+        use_topic_schema:
+          title: Use Topic Schema
+          description: When enabled, BigQuery uses the Pub/Sub topic's schema to
+            parse messages and map fields to table columns. When disabled, messages
+            are written as raw bytes in a single `data` column. Requires the topic
+            to have a schema attached.
+          type: boolean
+          default: false
+
+        write_metadata:
+          title: Write Subscription Metadata
+          description: When enabled, BigQuery adds extra columns to each row —
+            `subscription_name`, `message_id`, `publish_time`, and `attributes`.
+            Useful for auditing and deduplication. The table schema must include
+            these columns when this is enabled.
+          type: boolean
+          default: false
+
+        drop_unknown_fields:
+          title: Drop Unknown Fields
+          description: When enabled and use_topic_schema is also enabled, fields
+            in the message that do not exist in the table schema are silently dropped.
+            When disabled, unknown fields cause the message to be sent to the dead
+            letter topic (if configured) or dropped.
+          type: boolean
+          default: false
+
+        ack_deadline_seconds:
+          title: Acknowledgement Deadline (seconds)
+          description: How long Pub/Sub waits for BigQuery to acknowledge a message
+            before re-delivering it. Increase if BigQuery write latency exceeds the
+            default. Range 10–600 seconds.
+          type: integer
+          default: 60
+          minimum: 10
+          maximum: 600
+
 connections:
   required:
     - gcp_authentication
@@ -109,6 +162,10 @@ connections:
     landing_zone:
       $ref: catalog-demo/gcp-landing-zone
       title: GCP Landing Zone
+
+    pubsub_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: Pub/Sub Topic (optional — wire to enable BigQuery subscription delivery)
 
 artifacts:
   required:
@@ -133,7 +190,23 @@ ui:
     - location
     - default_table_expiration_days
     - delete_protection
+    - bigquery_subscription
     - "*"
   properties:
     delete_protection:
       ui:widget: checkbox
+    bigquery_subscription:
+      ui:order:
+        - table_name
+        - use_topic_schema
+        - write_metadata
+        - drop_unknown_fields
+        - ack_deadline_seconds
+        - "*"
+      properties:
+        use_topic_schema:
+          ui:widget: checkbox
+        write_metadata:
+          ui:widget: checkbox
+        drop_unknown_fields:
+          ui:widget: checkbox

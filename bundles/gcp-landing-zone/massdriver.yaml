@@ -5,7 +5,7 @@ description: Project-level governance construct for a GCP data platform. Enables
   single landing-zone artifact so downstream bundles only need one connection. Does NOT
   provision workload service accounts — each consumer bundle creates its own.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-landing-zone
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:

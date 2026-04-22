@@ -5,7 +5,7 @@ description: Vertex AI Workbench instance for interactive data science. Provisio
   BigQuery dataset when wired. Emits a gcp-vertex-workbench artifact carrying the
   instance name, zone, JupyterLab proxy URL, and SA identity.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-vertex-workbench
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:

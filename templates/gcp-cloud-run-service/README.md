@@ -17,7 +17,9 @@ The CLI will prompt for:
 - Cloud Run v2 service running as its own per-service service account
 - Sensible defaults baked in: 1 vCPU, 512Mi memory, internal ingress, port 8080
 - Artifact output so downstream bundles can discover the service URL and runtime SA
-- Example IAM bindings in `src/iam.tf` for common upstream data resources, commented out — uncomment and adapt based on which connections you picked
+- Example IAM bindings in `src/iam.tf` for common upstream data resources (Pub/Sub publisher, BigQuery writer, GCS object user) — commented out, ready to uncomment based on which connections you picked
+- Example push subscription in `src/push_subscription.tf` — uncomment if you want this service to receive messages from a Pub/Sub topic. Uses a dedicated push-invoker SA and OIDC for authenticated delivery.
+- Example VPC connector wiring in `src/main.tf` — uncomment if you want egress to flow through a Serverless VPC Access connector (required for reaching private endpoints like on-prem Kafka via peered networks).
 
 ## What to customize
 

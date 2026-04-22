@@ -6,7 +6,7 @@ description: Google Cloud Run v2 service with auto-binding IAM for upstream data
   GCS objectUser). Emits a gcp-cloud-run-service artifact for downstream event sources
   (Scheduler, Pub/Sub push) to use for invoking the service.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-cloud-run-service
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:
@@ -148,6 +148,33 @@ params:
       type: boolean
       default: false
 
+    push_ack_deadline_seconds:
+      title: Push Subscription Ack Deadline (seconds)
+      description: Maximum time Pub/Sub waits for the service to acknowledge a push
+        message before redelivering it. Range is 10–600 seconds. Only used when
+        `incoming_topic` is connected. Set this to at least as long as your handler's
+        maximum processing time. If your handler cannot finish within 600 seconds,
+        acknowledge early and process asynchronously.
+      type: integer
+      minimum: 10
+      maximum: 600
+      default: 60
+
+    vpc_egress:
+      title: VPC Egress
+      description: Controls which traffic is routed through the VPC connector. Only
+        used when `vpc_connector` is connected. `PRIVATE_RANGES_ONLY` routes RFC1918
+        traffic (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) through the connector;
+        public destinations still egress directly. `ALL_TRAFFIC` forces all outbound
+        traffic — including public API calls — through the connector and VPC. Use
+        `ALL_TRAFFIC` when the downstream endpoint (e.g., a Kafka broker) is on a
+        private IP behind the connector.
+      type: string
+      default: PRIVATE_RANGES_ONLY
+      enum:
+        - PRIVATE_RANGES_ONLY
+        - ALL_TRAFFIC
+
 connections:
   required:
     - gcp_authentication
@@ -176,6 +203,20 @@ connections:
       $ref: catalog-demo/gcp-storage-bucket
       title: Storage Bucket (optional)
 
+    # incoming_topic: when wired, this bundle creates a Pub/Sub push subscription
+    # that delivers messages FROM this topic INTO this Cloud Run service's URL.
+    # The subscription uses a dedicated push_invoker SA for OIDC authentication —
+    # separate from the runtime SA that runs the container.
+    incoming_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: Incoming Pub/Sub Topic (optional — creates push subscription)
+
+    # vpc_connector: when wired, attaches the connector to this Cloud Run service
+    # for private VPC egress. The connector must be in the same region as the service.
+    vpc_connector:
+      $ref: catalog-demo/gcp-vpc-connector
+      title: VPC Connector (optional — private egress)
+
 artifacts:
   required:
     - cloud_run_service
@@ -201,6 +242,8 @@ ui:
     - max_instances
     - ingress
     - allow_unauthenticated
+    - vpc_egress
+    - push_ack_deadline_seconds
     - "*"
   properties:
     allow_unauthenticated:

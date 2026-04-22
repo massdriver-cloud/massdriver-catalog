@@ -72,3 +72,28 @@ variable "delete_protection" {
   type    = bool
   default = false
 }
+
+# Optional — only present when a Pub/Sub topic is wired on the canvas.
+variable "pubsub_topic" {
+  description = "Pub/Sub topic artifact. When wired, a BigQuery subscription is created to deliver messages into this dataset."
+  type = object({
+    project_id     = string
+    topic_name     = string
+    topic_id       = string
+    dlq_topic_id   = optional(string)
+    dlq_topic_name = optional(string)
+  })
+  default = null
+}
+
+variable "bigquery_subscription" {
+  description = "Settings for the Pub/Sub BigQuery subscription. Consumed only when pubsub_topic is non-null."
+  type = object({
+    table_name           = optional(string)
+    use_topic_schema     = optional(bool, false)
+    write_metadata       = optional(bool, false)
+    drop_unknown_fields  = optional(bool, false)
+    ack_deadline_seconds = optional(number, 60)
+  })
+  default = {}
+}

@@ -8,6 +8,14 @@ templating: mustache
 
 **Each bundle instance creates its own service account.** The SA email is derived from the bundle's `name_prefix`. If the package is renamed, the SA is destroyed and recreated. Any out-of-band IAM bindings referencing the old SA email (e.g., manually granted Artifact Registry reader) must be reapplied. Canvas-wired bindings (Pub/Sub, BigQuery, GCS) are recreated automatically on the next deploy.
 
+**The push subscription uses a SEPARATE service account from the runtime SA.** When `incoming_topic` is connected, this bundle creates two SAs: the runtime SA (which the container runs as and which holds data-access IAM bindings) and a `push_invoker` SA (which Pub/Sub uses exclusively to OIDC-authenticate HTTP push deliveries). Do not confuse them — they have different emails, different roles, and different lifecycles. The push invoker SA is named `<name_prefix>-p` in GCP.
+
+**The VPC connector must be in the same region as this Cloud Run service.** The connector region is taken from the `catalog-demo/gcp-vpc-connector` artifact (`connector.region`). If the connector is in a different region than the landing zone's `network.region`, the Cloud Run deploy will fail with a region mismatch error. Deploy the connector bundle in the correct region before wiring.
+
+**`vpc_egress = PRIVATE_RANGES_ONLY` does NOT route all traffic through the VPC.** Only RFC1918 destinations (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) are routed through the connector. Public API calls (e.g., Google APIs, external HTTP endpoints) still egress directly to the internet. If your downstream endpoint — such as a Kafka broker — is on a private IP behind the connector, use `ALL_TRAFFIC` to force all egress through the VPC. If using `ALL_TRAFFIC`, ensure the VPC has a Cloud NAT gateway configured, otherwise internet-bound traffic will have no route.
+
+**Push subscription ack deadline is capped at 600 seconds.** If a handler cannot complete within 600 seconds, it must acknowledge the message early (return HTTP 2xx immediately) and process asynchronously using a background task, Cloud Tasks, or another mechanism. Returning a non-2xx after the deadline causes Pub/Sub to redeliver the message, which leads to duplicate processing.
+
 **New deployments route 100% of traffic to the latest revision immediately.** Blue/green splits must be configured before deploying the new revision. You cannot retroactively split traffic between revisions once the new one is live at 100%.
 
 **Changing `ingress` triggers a new revision and a cold start.** Even if `min_instances > 0`, an ingress change forces revision replacement.

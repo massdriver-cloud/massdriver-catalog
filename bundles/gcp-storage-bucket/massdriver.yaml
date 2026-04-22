@@ -5,7 +5,7 @@ description: Google Cloud Storage bucket with configurable storage class, option
   workload service account objectAdmin access. Emits a gcp-storage-bucket artifact
   for downstream Cloud Run, BigQuery, and Vertex Workbench bundles.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-storage-bucket
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:

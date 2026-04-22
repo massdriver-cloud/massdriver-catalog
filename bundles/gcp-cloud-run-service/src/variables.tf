@@ -87,6 +87,32 @@ variable "storage_bucket" {
   default = null
 }
 
+variable "incoming_topic" {
+  description = "Optional Pub/Sub topic connection. When provided, a push subscription is created that delivers messages from this topic to this Cloud Run service's URL. Uses a dedicated push_invoker SA for OIDC authentication."
+  type = object({
+    project_id     = string
+    topic_name     = string
+    topic_id       = string
+    dlq_topic_name = optional(string)
+    dlq_topic_id   = optional(string)
+  })
+  default = null
+}
+
+variable "vpc_connector" {
+  description = "Optional VPC connector connection. When provided, the Cloud Run service's vpc_access block is configured with the connector for private VPC egress."
+  type = object({
+    project_id      = string
+    region          = string
+    name            = string
+    connector_id    = string
+    network         = optional(string)
+    ip_cidr_range   = optional(string)
+    egress_settings = optional(string)
+  })
+  default = null
+}
+
 # ─── Service params ────────────────────────────────────────────────────────────
 
 variable "image" {
@@ -127,4 +153,14 @@ variable "ingress" {
 variable "allow_unauthenticated" {
   type    = bool
   default = false
+}
+
+variable "push_ack_deadline_seconds" {
+  type    = number
+  default = 60
+}
+
+variable "vpc_egress" {
+  type    = string
+  default = "PRIVATE_RANGES_ONLY"
 }

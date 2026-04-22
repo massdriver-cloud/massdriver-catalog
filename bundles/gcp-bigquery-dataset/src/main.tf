@@ -20,6 +20,7 @@ provider "google" {
 locals {
   project_id  = var.landing_zone.project_id
   name_prefix = var.md_metadata.name_prefix
+  dataset_id  = var.dataset_id
 
   # Convert days → milliseconds for the BigQuery API. BigQuery requires ms.
   # 0 or null input means "no expiration" → pass null to terraform resource.

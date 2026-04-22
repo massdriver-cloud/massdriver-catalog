@@ -3,7 +3,7 @@ description: Minimal GCP VPC network with a single regional subnet. Produces a
   gcp-network artifact consumed by landing-zone, Cloud Run, Vertex Workbench, and
   other data-platform bundles.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-network
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:

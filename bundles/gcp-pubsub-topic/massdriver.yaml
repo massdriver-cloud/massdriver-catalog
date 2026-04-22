@@ -4,7 +4,7 @@ description: Google Cloud Pub/Sub topic with optional dead-letter queue. Provisi
   service account publisher access. Emits a gcp-pubsub-topic artifact for downstream
   Cloud Run, Dataflow, and BigQuery bundles to consume.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-pubsub-topic
-version: 0.1.0
+version: 0.1.1
 
 params:
   required:

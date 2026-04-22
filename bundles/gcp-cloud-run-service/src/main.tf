@@ -93,6 +93,20 @@ resource "google_cloud_run_v2_service" "main" {
         }
       }
     }
+
+    # ── VPC Connector ─────────────────────────────────────────────────────────
+    # Only configured when vpc_connector is wired on the canvas.
+    # connector_id is the fully-qualified resource name provided by the
+    # catalog-demo/gcp-vpc-connector artifact. egress is controlled by the
+    # vpc_egress param — use ALL_TRAFFIC to force all outbound traffic (including
+    # public destinations) through the VPC, e.g. for Kafka on a private endpoint.
+    dynamic "vpc_access" {
+      for_each = var.vpc_connector != null ? [1] : []
+      content {
+        connector = var.vpc_connector.connector_id
+        egress    = var.vpc_egress
+      }
+    }
   }
 
   labels = var.md_metadata.default_tags
