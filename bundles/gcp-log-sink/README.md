@@ -34,26 +34,17 @@ If neither or both destinations are wired, `tofu plan` will fail with a clear er
 
 `catalog-demo/gcp-log-sink` — carries `project_id`, `sink_name`, `destination`, `writer_identity`, and `destination_type`. Downstream bundles rarely need to consume this artifact directly; it is published for observability and chaining.
 
-## Parameters
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `filter` | string | `""` | Cloud Logging query filter. Empty = all logs. |
-| `use_partitioned_tables` | boolean | `true` | BigQuery only — write to date-partitioned tables. |
-| `exclusions` | array | `[]` | Per-exclusion drop rules applied after the sink filter. |
-
-### Filter Examples
-
-```
-severity >= ERROR
-resource.type = "cloud_run_revision"
-logName = "projects/PROJECT/logs/cloudaudit.googleapis.com%2Factivity"
-resource.type = "gce_instance" AND severity >= WARNING
-```
-
 ## Compliance
 
 Log sinks are low-risk infrastructure. No Checkov skips are expected. `halt_on_failure` is set to block deployments to `prod`, `prd`, and `production` environments on any compliance failure.
+
+## Presets
+
+| Preset | Filter | Partitioned Tables | Notes |
+|---|---|---|---|
+| Error Logs to BigQuery | `severity >= ERROR` | Yes | Recommended starting point for BigQuery destinations |
+| Audit Logs to GCS | `logName = "projects/PROJECT/logs/cloudaudit.googleapis.com%2Factivity"` | No | Update PROJECT to your GCP project ID before deploying |
+| All Logs (no filter) | (empty) | Yes | Routes every log entry — can generate significant storage costs |
 
 ## Assumptions
 

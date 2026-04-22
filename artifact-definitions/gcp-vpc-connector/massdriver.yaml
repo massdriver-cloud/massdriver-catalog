@@ -85,4 +85,3 @@ schema:
       enum:
         - ALL_TRAFFIC
         - PRIVATE_RANGES_ONLY
-      default: PRIVATE_RANGES_ONLY

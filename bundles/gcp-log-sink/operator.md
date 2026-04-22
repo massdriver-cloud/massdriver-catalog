@@ -1,6 +1,6 @@
 # gcp-log-sink — Operator Runbook
 
-## Non-obvious Constraints
+## Non-obvious constraints
 
 **Project scope only.** This sink captures logs from the project specified in the landing zone connection. Logs from other projects, child folders, or the organization are not captured. Folder-level and org-level sinks require a different Terraform resource (`google_logging_folder_sink` / `google_logging_organization_sink`) and are out of scope for this bundle.
 
@@ -30,7 +30,7 @@
 
 **"ALREADY_EXISTS" error on sink creation** — A sink with the same name (derived from `md_metadata.name_prefix`) already exists in the project. This happens if a previous deployment left a sink that Terraform state does not track. Import the existing sink: `tofu import google_logging_project_sink.main projects/PROJECT/sinks/SINK_NAME`.
 
-## Day-2 Operations
+## Day-2 operations
 
 **Updating the filter** — Change the `filter` param in the package config and deploy. The sink is updated in place. Filter changes are immediate for new log entries. No restart or recreate needed.
 
