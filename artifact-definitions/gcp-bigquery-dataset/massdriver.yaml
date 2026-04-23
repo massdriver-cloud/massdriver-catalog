@@ -1,0 +1,78 @@
+name: gcp-bigquery-dataset
+label: GCP BigQuery Dataset
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (examples — adapt to your actual consumer):
+# Downstream bundles that need read-only access bind roles/bigquery.dataViewer.
+# Downstream bundles that need read+write access bind roles/bigquery.dataEditor.
+# Downstream bundles that need full control bind roles/bigquery.dataOwner.
+#
+# Terraform example — grant data viewer access to a workload service account:
+#   resource "google_bigquery_dataset_iam_member" "reader" {
+#     dataset_id = var.bigquery_dataset.dataset_id
+#     role       = "roles/bigquery.dataViewer"
+#     member     = "serviceAccount:${var.bigquery_dataset.workload_sa_email}"
+#   }
+#
+# Note: BigQuery IAM operates at dataset level by default. For table-level access,
+# use google_bigquery_table_iam_member instead. Dataset-level bindings propagate to
+# all tables within the dataset; table-level bindings do not propagate up.
+#
+# Policy examples below (reader / writer / admin) follow this same pattern. They are
+# illustrative — the actual IAM member string comes from the consumer bundle's
+# service account, not from this artifact.
+exports: []
+
+schema:
+  title: GCP BigQuery Dataset
+  description: A Google Cloud BigQuery dataset. Carries the project ID, dataset ID,
+    fully-qualified name (<project>.<dataset>), and location so downstream bundles
+    can reference the dataset for querying, loading, and exporting without hard-coding
+    project or dataset identifiers.
+  type: object
+  required:
+    - project_id
+    - dataset_id
+    - dataset_full_name
+    - location
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this BigQuery dataset
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    dataset_id:
+      title: Dataset ID
+      description: BigQuery dataset identifier (letters, digits, underscores — no hyphens)
+      type: string
+      examples:
+        - my_analytics_dataset
+
+    dataset_full_name:
+      title: Dataset Full Name
+      description: Fully-qualified BigQuery dataset name in <project>.<dataset> form.
+        Use this in SQL FROM clauses and bq CLI commands.
+      type: string
+      examples:
+        - my-gcp-project-123.my_analytics_dataset
+
+    location:
+      title: Location
+      description: BigQuery location where the dataset is stored (region or multi-region).
+        Location is immutable after creation.
+      type: string
+      examples:
+        - US
+        - us-central1
+        - EU
+
+    friendly_name:
+      title: Friendly Name
+      description: Human-readable display name for the dataset (optional)
+      type:
+        - string
+        - "null"
+      examples:
+        - My Analytics Dataset

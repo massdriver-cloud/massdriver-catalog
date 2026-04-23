@@ -1,0 +1,8 @@
+skip-check:
+  # CKV_GCP_81: Ensure Big Query Datasets are encrypted with Customer Supplied Encryption Keys (CSEK)
+  # CMEK is intentionally out of scope for this bundle. All datasets use Google-managed
+  # encryption, which is appropriate for the workloads this bundle targets. Checkov
+  # fires this check whenever a default_encryption_configuration block is absent,
+  # making it a false positive here. If CMEK is required for a specific workload,
+  # a separate bundle with a KMS connection should be used.
+  - CKV_GCP_81

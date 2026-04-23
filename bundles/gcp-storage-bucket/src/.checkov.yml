@@ -1,0 +1,27 @@
+skip-check:
+  # CKV_GCP_62: Bucket should log access requests
+  # Access logging writes log objects to a separate GCS bucket. For this demo data
+  # platform series the log sink bucket is not provisioned, so enabling logging here
+  # would cause a plan-time error (the target bucket does not exist). Operators who
+  # need access logs should provision a dedicated log bucket and set the
+  # logging.log_bucket field on this resource. This skip is appropriate because the
+  # check requires an out-of-band dependency that is not part of this bundle's scope.
+  - CKV_GCP_62
+
+  # CKV_GCP_63: Bucket should not log to itself
+  # This check verifies a bucket is not configured to log access requests to itself
+  # (which would cause infinite log growth). Because we have no logging block at all
+  # (access logging is skipped per CKV_GCP_62 — no log-sink bucket is in scope),
+  # Checkov incorrectly fails this check. The bucket cannot log to itself if logging
+  # is not configured. Both CKV_GCP_62 and CKV_GCP_63 require a log-sink bucket as
+  # an out-of-band dependency not provided by this bundle.
+  - CKV_GCP_63
+
+  # CKV_GCP_78: Ensure Cloud storage has lock retention policy enabled
+  # Retention lock makes a bucket's objects immutable for a specified duration.
+  # While valuable for compliance/WORM use cases, it is not universally appropriate:
+  # it prevents deletion of any object (including accidental uploads) and cannot be
+  # shortened or removed once set. Exposing it as a param is the right approach for
+  # workloads that need it. This skip applies across all environments in this series;
+  # add a retention_policy param if your workload requires WORM guarantees.
+  - CKV_GCP_78

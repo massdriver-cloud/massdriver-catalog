@@ -1,0 +1,68 @@
+name: gcp-log-sink
+label: GCP Log Sink
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# Log sinks do not expose a useful IAM surface downstream. The writer_identity
+# SA is Google-managed and grants are made ON the destination resource at sink
+# creation time. Consumers of this artifact read sink metadata only — no IAM
+# binding pattern is needed.
+exports: []
+
+schema:
+  title: GCP Log Sink
+  description: A Google Cloud Logging project sink. Carries the sink name, the
+    fully-qualified destination string, the Google-managed writer service account
+    identity, destination type (bigquery or gcs), and the owning project ID.
+    Downstream bundles can use writer_identity to grant additional access on the
+    destination resource if needed.
+  type: object
+  required:
+    - project_id
+    - sink_name
+    - destination
+    - writer_identity
+    - destination_type
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this log sink
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    sink_name:
+      title: Sink Name
+      description: Cloud Logging sink resource name
+      type: string
+      examples:
+        - dataplat-dev-log-sink
+
+    destination:
+      title: Destination
+      description: >-
+        Fully-qualified logging destination URI. For BigQuery:
+        bigquery.googleapis.com/projects/PROJECT/datasets/DATASET. For GCS:
+        storage.googleapis.com/BUCKET_NAME.
+      type: string
+      examples:
+        - bigquery.googleapis.com/projects/my-project/datasets/my_dataset
+        - storage.googleapis.com/my-logs-bucket
+
+    writer_identity:
+      title: Writer Identity
+      description: Google-managed service account email that Cloud Logging uses to
+        write log entries to the destination. This SA must be granted the
+        destination-appropriate role (bigquery.dataEditor for BigQuery,
+        storage.objectCreator for GCS). The bundle grants this automatically at
+        creation time.
+      type: string
+      examples:
+        - serviceAccount:p123456789-123456@gcp-sa-logging.iam.gserviceaccount.com
+
+    destination_type:
+      title: Destination Type
+      description: Whether logs are routed to BigQuery or GCS
+      type: string
+      enum:
+        - bigquery
+        - gcs

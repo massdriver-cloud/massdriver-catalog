@@ -1,0 +1,87 @@
+name: gcp-vpc-connector
+label: GCP Serverless VPC Access Connector
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (for bundles that consume this artifact):
+#
+# VPC Access connectors do not have their own IAM surface — access is governed by
+# the VPC and subnet IAM. Consumers reference the connector by its fully-qualified
+# name on the Cloud Run / Cloud Functions service. Example Terraform:
+#
+#   resource "google_cloud_run_v2_service" "main" {
+#     template {
+#       vpc_access {
+#         connector = var.vpc_connector.connector_id
+#         egress    = var.vpc_connector.egress_settings
+#       }
+#     }
+#   }
+#
+# To let a service account use a connector in another project, that SA needs
+# `roles/vpcaccess.user` on the connector's project.
+exports: []
+
+schema:
+  title: GCP Serverless VPC Access Connector
+  description: An existing or provisioned Serverless VPC Access connector. Consumer
+    bundles (Cloud Run, Cloud Functions) reference connector_id to route egress
+    traffic through the VPC.
+  type: object
+  required:
+    - project_id
+    - region
+    - name
+    - connector_id
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project that owns the connector
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    region:
+      title: Region
+      description: GCP region where the connector is deployed. Must match the region
+        of the consuming service.
+      type: string
+      examples:
+        - us-central1
+
+    name:
+      title: Connector Name
+      description: Short name of the connector
+      type: string
+      examples:
+        - my-vpc-connector
+
+    connector_id:
+      title: Connector Resource ID
+      description: Fully-qualified connector resource name used on the consuming
+        service's vpc_access.connector field
+      type: string
+      examples:
+        - projects/my-gcp-project-123/locations/us-central1/connectors/my-vpc-connector
+
+    network:
+      title: VPC Network
+      description: Name of the VPC network the connector is attached to
+      type: string
+      examples:
+        - default
+
+    ip_cidr_range:
+      title: IP CIDR Range
+      description: /28 CIDR range reserved for the connector's internal addresses
+      type: string
+      examples:
+        - 10.8.0.0/28
+
+    egress_settings:
+      title: Default Egress Settings
+      description: Suggested egress setting for services using this connector.
+        Consumers may override.
+      type: string
+      enum:
+        - ALL_TRAFFIC
+        - PRIVATE_RANGES_ONLY
