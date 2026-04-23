@@ -38,27 +38,48 @@ Each bundle produces an artifact that downstream bundles consume. Artifact defin
 
 ## How the bundles compose
 
-```
-             gcp-network  ─►  gcp-landing-zone
-                                    │
-                    ┌───────────────┼───────────────────────────┐
-                    ▼               ▼                           ▼
-          gcp-pubsub-topic   gcp-storage-bucket          gcp-bigquery-dataset
-                    │                                           │
-                    │                                           ▼
-                    │                                 gcp-bigquery-table
-                    │        (optional topic wired to table → BQ subscription)
-                    │
-                    ▼
-          gcp-cloud-run-service / gcp-vertex-workbench
-          (incoming topic → push subscription,
-           outgoing topic → publisher role,
-           optional vpc-connector → private egress,
-           creates its own SA)
+```mermaid
+flowchart TB
+    net[gcp-network]
+    lz[gcp-landing-zone]
 
-                    ▼
-              gcp-log-sink  ─►  (gcp-bigquery-dataset or gcp-storage-bucket)
+    subgraph data[Data layer]
+        topic[gcp-pubsub-topic]
+        bucket[gcp-storage-bucket]
+        ds[gcp-bigquery-dataset]
+        tbl[gcp-bigquery-table]
+    end
+
+    subgraph runtime[Runtimes]
+        cr[gcp-cloud-run-service]
+        wb[gcp-vertex-workbench]
+    end
+
+    sink[gcp-log-sink]
+    vpc[(gcp-vpc-connector<br/>imported)]
+
+    net --> lz
+    lz --> topic
+    lz --> bucket
+    lz --> ds
+    lz --> cr
+    lz --> wb
+    lz --> sink
+
+    ds --> tbl
+    topic -.->|creates BQ subscription| tbl
+    topic -.->|incoming_topic: push sub| cr
+    topic -.->|pubsub_topic: publisher role| cr
+    bucket -.->|objectUser IAM| cr
+    ds -.->|dataViewer IAM| wb
+
+    vpc -.->|optional private egress| cr
+
+    ds -->|destination| sink
+    bucket -.->|destination alt| sink
 ```
+
+Solid arrows are required wires. Dashed arrows are optional — wire them when your use case needs them.
 
 ### Topology notes
 
