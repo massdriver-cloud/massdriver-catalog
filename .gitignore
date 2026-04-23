@@ -29,6 +29,7 @@ schema-ui.json
 # Build artifacts
 _dist/
 .claude/settings.local.json
+.claude/massdriver.local.md
 node_modules/
 *.zip
 TODO.md
