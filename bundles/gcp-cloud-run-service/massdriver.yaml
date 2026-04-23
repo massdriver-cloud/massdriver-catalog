@@ -175,6 +175,16 @@ params:
         - PRIVATE_RANGES_ONLY
         - ALL_TRAFFIC
 
+    deletion_protection:
+      title: Enable Deletion Protection
+      description: When enabled, the Cloud Run service cannot be destroyed until
+        deletion protection is first disabled in a prior apply (two-step destroy).
+        Default is false — Cloud Run services are stateless compute, so destroying
+        one does not lose data. Set to true in production to prevent accidental
+        tear-down.
+      type: boolean
+      default: false
+
 connections:
   required:
     - gcp_authentication

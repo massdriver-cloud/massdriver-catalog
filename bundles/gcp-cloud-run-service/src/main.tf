@@ -59,6 +59,14 @@ resource "google_cloud_run_v2_service" "main" {
   name     = local.name_prefix
   location = local.region
 
+  # ── Deletion protection ─────────────────────────────────────────────────────
+  # google provider v6+ defaults deletion_protection = true, which blocks tofu
+  # destroy until a prior apply sets it to false. That's fine for production but
+  # friction for dev/test. Expose as a param, default false — Cloud Run services
+  # are stateless compute, destroy does not lose data. Operators can flip to true
+  # in production to require a two-step destroy.
+  deletion_protection = var.deletion_protection
+
   # ── Ingress ─────────────────────────────────────────────────────────────────
   # Controls which traffic sources can reach this service.
   # Changing ingress triggers a full revision replacement (cold start expected).

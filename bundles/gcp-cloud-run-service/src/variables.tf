@@ -164,3 +164,8 @@ variable "vpc_egress" {
   type    = string
   default = "PRIVATE_RANGES_ONLY"
 }
+
+variable "deletion_protection" {
+  type    = bool
+  default = false
+}
