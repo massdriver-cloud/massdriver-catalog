@@ -1,0 +1,139 @@
+name: gcp-pubsub-topic
+description: Google Cloud Pub/Sub topic with optional dead-letter queue. Provisions
+  the main topic, an optional DLQ topic, and grants the landing zone's workload
+  service account publisher access. Emits a gcp-pubsub-topic artifact for downstream
+  Cloud Run, Dataflow, and BigQuery bundles to consume.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-pubsub-topic
+version: 0.1.0
+
+params:
+  required:
+    - message_retention_duration
+    - dlq
+    - message_ordering_enabled
+  examples:
+    - __name: Low-volume
+      message_retention_duration: 604800
+      message_ordering_enabled: false
+      dlq:
+        enabled: false
+    - __name: Standard
+      message_retention_duration: 604800
+      message_ordering_enabled: false
+      dlq:
+        enabled: true
+        max_delivery_attempts: 5
+        dlq_retention_duration: 604800
+    - __name: High-throughput
+      message_retention_duration: 86400
+      message_ordering_enabled: false
+      dlq:
+        enabled: true
+        max_delivery_attempts: 10
+        dlq_retention_duration: 86400
+  properties:
+    message_retention_duration:
+      title: Message Retention (seconds)
+      description: How long unacknowledged messages are retained on the topic, in
+        seconds. Minimum 600 (10 min), maximum 604800 (7 days).
+      type: integer
+      minimum: 600
+      maximum: 604800
+      default: 604800
+
+    message_ordering_enabled:
+      title: Enable Message Ordering
+      description: When enabled, messages with the same ordering key are delivered
+        to subscribers in the order they were published. Disabling improves throughput
+        at the cost of ordering guarantees.
+      type: boolean
+      default: false
+
+    dlq:
+      title: Dead-Letter Queue
+      description: Configure a dead-letter queue to capture messages that cannot be
+        delivered after the maximum number of delivery attempts.
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          title: Enable DLQ
+          description: Provision a separate dead-letter topic and configure max delivery
+            attempts on the main topic's default subscription.
+          type: boolean
+          default: true
+      dependencies:
+        enabled:
+          oneOf:
+            - properties:
+                enabled:
+                  const: true
+                max_delivery_attempts:
+                  title: Max Delivery Attempts
+                  description: Number of delivery attempts before a message is forwarded
+                    to the dead-letter topic. Must be between 5 and 100.
+                  type: integer
+                  minimum: 5
+                  maximum: 100
+                  default: 5
+                dlq_retention_duration:
+                  title: DLQ Retention (seconds)
+                  description: How long messages are retained on the dead-letter topic,
+                    in seconds. Minimum 600, maximum 604800 (7 days).
+                  type: integer
+                  minimum: 600
+                  maximum: 604800
+                  default: 604800
+              required:
+                - max_delivery_attempts
+            - properties:
+                enabled:
+                  const: false
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+artifacts:
+  required:
+    - pubsub_topic
+  properties:
+    pubsub_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: GCP Pub/Sub Topic
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - message_retention_duration
+    - message_ordering_enabled
+    - dlq
+    - "*"
+  properties:
+    message_ordering_enabled:
+      ui:widget: checkbox
+    dlq:
+      ui:order:
+        - enabled
+        - max_delivery_attempts
+        - dlq_retention_duration
+        - "*"
+      properties:
+        enabled:
+          ui:widget: checkbox

@@ -1,0 +1,63 @@
+name: gcp-workload-identity
+label: GCP Workload Identity
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (for downstream bundles that consume this artifact):
+# Grant this service account access to your resource by binding an IAM role.
+# Example: grant BigQuery Data Viewer on a dataset:
+#   gcloud projects add-iam-policy-binding $PROJECT_ID \
+#     --member="serviceAccount:${data.service_account_email}" \
+#     --role="roles/bigquery.dataViewer"
+#
+# For resource-scoped bindings (preferred — least privilege):
+#   gcloud bigquery datasets add-iam-policy-binding $DATASET \
+#     --member="serviceAccount:${data.service_account_email}" \
+#     --role="roles/bigquery.dataEditor"
+#
+# In Terraform use google_project_iam_member or google_<resource>_iam_member:
+#   resource "google_project_iam_member" "workload" {
+#     project = var.workload_identity.project_id
+#     role    = "roles/run.invoker"
+#     member  = "serviceAccount:${var.workload_identity.service_account_email}"
+#   }
+exports: []
+
+schema:
+  title: GCP Workload Identity
+  description: Runtime service account identity for workloads in this environment.
+    Downstream bundles (Cloud Run, Vertex Workbench, etc.) bind IAM roles to this
+    service account to grant it access to their resources (BigQuery, GCS, Pub/Sub, etc.).
+  type: object
+  required:
+    - project_id
+    - service_account_email
+    - service_account_id
+    - service_account_name
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this service account
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    service_account_email:
+      title: Service Account Email
+      description: Email address of the service account; use this as the IAM member string
+      type: string
+      examples:
+        - data-platform-sa@my-project.iam.gserviceaccount.com
+
+    service_account_id:
+      title: Service Account ID
+      description: Unique numeric ID of the service account
+      type: string
+      examples:
+        - "123456789012345678901"
+
+    service_account_name:
+      title: Service Account Name
+      description: Fully-qualified resource name (projects/{project}/serviceAccounts/{email})
+      type: string
+      examples:
+        - projects/my-project/serviceAccounts/data-platform-sa@my-project.iam.gserviceaccount.com
