@@ -1,0 +1,10 @@
+# Checkov skip configuration for azure-virtual-network bundle
+# Only skipping checks that are truly irrelevant across ALL environments.
+# Compliance findings that are configurable (e.g., DDoS protection) are
+# handled via params — not skipped.
+skip-check:
+  # CKV_AZURE_183: Flow logs are a Network Watcher feature — we provision
+  # Network Watcher but flow log storage requires a separate Storage Account
+  # dependency that is out of scope for the foundational VNet bundle.
+  # Flow logs should be enabled at the workload level or via Azure Policy.
+  - CKV_AZURE_183
