@@ -149,6 +149,9 @@ For more details, see the [Bundle Templates](https://docs.massdriver.cloud/guide
 
 **Platform integrations** are resource types that model the credentials Massdriver uses to connect to your cloud providers and infrastructure platforms. They live in their own directory (rather than under `resource-types/`) for discoverability — operationally they're published with `mass resource-type publish`, just like everything in `resource-types/`. Each platform directory contains everything needed to authenticate and interact with that platform.
 
+> [!TIP]
+> **Customize these to match how *you* authenticate.** The platform schemas shipped here are a starting point, not a prescription. If your team authenticates AWS with static access keys instead of an assumed IAM role, replace `aws/massdriver.yaml`'s schema with the fields your `aws` provider block actually consumes. If you front Azure with a managed identity, GCP with workload identity federation, or Kubernetes with an OIDC token, model that here. The fields in `schema:` should mirror the inputs to your IaC tool's provider configuration (Terraform/OpenTofu provider blocks, Helm `kubeconfig`, etc.) — Massdriver collects those values and hands them to your bundles at deploy time. Update `instructions/` with your team's onboarding steps so developers know what to paste where.
+
 Massdriver can orchestrate any platform your IaC tooling supports. Adding a new platform (Snowflake, Datadog, Confluent Cloud, etc.) is as simple as defining its credential schema.
 
 **Structure**:
