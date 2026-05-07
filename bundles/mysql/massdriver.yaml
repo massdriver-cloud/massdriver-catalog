@@ -33,6 +33,8 @@ params:
       default: "admin"
       pattern: ^[a-z][a-z0-9_]*$
 
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
 connections:
   required:
     - network
@@ -41,6 +43,8 @@ connections:
       $ref: network
       title: Network
 
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required:
     - database

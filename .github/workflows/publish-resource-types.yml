@@ -1,12 +1,12 @@
-name: Publish Artifact Definitions
+name: Publish Resource Types
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'artifact-definitions/**'
-      - '.github/workflows/publish-artifact-definitions.yml'
+      - 'resource-types/**'
+      - '.github/workflows/publish-resource-types.yml'
 
 jobs:
   publish:
@@ -18,11 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Massdriver CLI
-        uses: massdriver-cloud/actions/setup@v5
-      - name: Publish All Artifact Definitions
+        uses: massdriver-cloud/actions/setup@v6
+      - name: Publish All Resource Types
         run: |
-          for dir in artifact-definitions/*/; do
+          for dir in resource-types/*/; do
             name=$(basename "$dir")
-            echo "Publishing artifact definition $name..."
-            mass definition publish "$dir/massdriver.yaml"
+            echo "Publishing resource type $name..."
+            mass resource-type publish "${dir}massdriver.yaml"
           done

@@ -1,8 +1,17 @@
 # Massdriver Catalog
 
-A bootstrap catalog for self-hosted Massdriver instances containing artifact definitions, infrastructure bundles, and cloud credentials. This catalog helps you quickly model your platform architecture and developer experience before implementing infrastructure code.
+A bootstrap catalog for self-hosted Massdriver instances containing resource types, infrastructure bundles, and cloud credentials. This catalog helps you quickly model your platform architecture and developer experience before implementing infrastructure code.
 
-**This is your platform foundation.** While this guide walks you through the concepts, you're not just following a tutorial—you're building your actual platform. This repository will serve as your platform team's source of truth for artifact definitions and bundles. Design your infrastructure architecture, iterate on the developer experience, and refine your abstractions here—then fill in your OpenTofu/Terraform implementation when you're ready.
+**This is your platform foundation.** While this guide walks you through the concepts, you're not just following a tutorial—you're building your actual platform. This repository will serve as your platform team's source of truth for resource types and bundles. Design your infrastructure architecture, iterate on the developer experience, and refine your abstractions here—then fill in your OpenTofu/Terraform implementation when you're ready.
+
+> [!NOTE]
+> **Massdriver v2:** This catalog targets Massdriver v2 (Mass CLI ≥ `2.0.0`, GraphQL `/v2/`). v2 renamed several core concepts:
+> - `targets` → **environments**
+> - `packages` → **instances**
+> - `artifact definitions` → **resource types**
+> - `artifacts` → **resources**
+>
+> The keys `connections:` and `artifacts:` inside `massdriver.yaml` are **unchanged** — backward-compatible renames to `dependencies:` and `resources:` are coming in a future release. Until then this repo continues to use `connections:` and `artifacts:` in every `massdriver.yaml`, with a comment pointing to the new names.
 
 **tl;dr:** [Jump to Quick Start](#customizing-your-catalog)
 
@@ -15,7 +24,7 @@ This catalog is yours to customize and extend. Here's the recommended workflow:
 3. **Start experimenting** with bundles in your editor—edit schemas, add parameters, define connections
 4. **Watch the developer experience get built** in real-time in Massdriver as you iterate on your abstractions
 
-The beauty of this approach: you can refine the entire developer experience—what parameters developers see, how bundles connect, what artifacts are produced—all before writing a single line of infrastructure code.
+The beauty of this approach: you can refine the entire developer experience—what parameters developers see, how bundles connect, what resources are produced—all before writing a single line of infrastructure code.
 
 ## Key Concepts
 
@@ -23,32 +32,32 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 - **Bundle**: A reusable, versioned definition of infrastructure or application components. Bundles encapsulate your IaC code (Terraform/OpenTofu/Helm), configuration schemas, dependencies, and policies into a single deployable unit. Think of them as "infrastructure packages" with built-in guardrails.
 
-- **Artifact Definition**: A JSON Schema contract that defines how infrastructure components can connect to each other. Artifact definitions ensure type safety—you can't connect incompatible components.
--
-- **Artifact**: The actual instance of an artifact definition produced by a deployed bundle. For example, when you deploy a PostgreSQL bundle, it emits a PostgreSQL artifact containing connection details that other bundles can consume.
+- **Resource Type** (formerly *artifact definition*): A JSON Schema contract that defines how infrastructure components can connect to each other. Resource types ensure type safety—you can't connect incompatible components.
+
+- **Resource** (formerly *artifact*): A live, materialized resource type emitted by a deployed bundle. For example, when you deploy a PostgreSQL bundle, it emits a PostgreSQL resource containing connection details that other bundles can consume.
 
 - **Parameters (params)**: User-configurable inputs for a bundle, like instance sizes, database names, or feature flags. These define what developers can customize when deploying infrastructure.
 
-- **Connections**: Dependencies between bundles. When a bundle declares it needs a connection to a "network" artifact, you must link it to another bundle that produces a network artifact. This is how you compose infrastructure components.
+- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `network` resource, you must link it to a bundle that produces a network resource.
 
 - **Project**: A logical grouping of related infrastructure, like "ecommerce-platform" or "data-pipeline". Projects contain one or more environments.
 
-- **Environment**: A deployment target within a project, like "development", "staging", or "production". Each environment has its own canvas where you design and deploy infrastructure.
+- **Environment** (formerly *target*): A deployment context within a project, like "development", "staging", or "production". Each environment has its own canvas where you design and deploy infrastructure.
 
 - **Canvas**: The visual diagram in the Massdriver UI where you add bundles, connect them together, and configure parameters. It's your infrastructure design board.
 
-- **Package**: An instance of a bundle configured and deployed to a specific environment. When you add a bundle to your canvas and configure it, you're creating a package. Think of it like the relationship between a class and an object in programming—bundles are the reusable definitions, packages are the deployed instances.
+- **Instance** (formerly *package*): A configured deployment of a bundle in a specific environment. When you add a bundle to your canvas and configure it, you're creating an instance. Think of it like the relationship between a class and an object in programming—bundles are the reusable definitions, instances are the deployed objects.
 
 ## What's Inside
 
-### 📁 `artifact-definitions/`
+### 📁 `resource-types/`
 
-**Artifact definitions** are schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
+**Resource types** (formerly called *artifact definitions*) are schema-based contracts that define how infrastructure components can interact with each other in Massdriver. Think of them as type definitions for your infrastructure—they ensure that when you connect a database to an application, both sides speak the same language.
 
-Each artifact definition is a directory containing a `massdriver.yaml` file:
+Each resource type is a directory containing a `massdriver.yaml` file:
 
 ```
-artifact-definitions/
+resource-types/
 ├── network/
 │   └── massdriver.yaml    # Network/VPC contract
 ├── postgres/
@@ -61,13 +70,13 @@ artifact-definitions/
     └── massdriver.yaml    # Application metadata contract
 ```
 
-> **💡 Note on Sensitive Fields**: Artifact definitions support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All artifact data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
+> **💡 Note on Sensitive Fields**: Resource types support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All resource data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
 
 **⚠️ These are examples to get you started.** Edit these schemas to match your organization's infrastructure patterns and the data your bundles need to exchange. The field names, structure, and validation rules should reflect what your actual OpenTofu/Terraform code produces and consumes.
 
-**Why they matter**: Artifact definitions enable type-safe infrastructure composition. You can't accidentally connect a PostgreSQL artifact to a bundle expecting MySQL—the system validates compatibility at design time, before any infrastructure is deployed.
+**Why they matter**: Resource types enable type-safe infrastructure composition. You can't accidentally connect a PostgreSQL resource to a bundle expecting MySQL—the system validates compatibility at design time, before any infrastructure is deployed.
 
-Use these example artifact definitions to:
+Use these example resource types to:
 
 - Define the contract between your IaC modules (what data gets passed from one to another)
 - Model how services connect together in your architecture
@@ -93,10 +102,13 @@ Each bundle includes:
 
 - ✅ Complete `massdriver.yaml` configuration
 - ✅ **Parameter schemas** - Define your IaC variables (tfvars, Helm values) and customize the UI form for user configuration (instance sizes, database names, etc.)
-- ✅ **Connection schemas** - Define cloud service dependencies on artifacts from other bundles, enabling secure access to their details during automation.
-- ✅ **Artifact schemas** - Define what infrastructure this bundle produces for others to consume
+- ✅ **Connection schemas** (the `connections:` key — the product surfaces these as **dependencies**) - Define resources from other bundles this one needs, enabling secure access to their details during automation.
+- ✅ **Artifact schemas** (the `artifacts:` key — the product surfaces these as **resources**) - Define what infrastructure this bundle produces for others to consume.
 - ✅ **UI schemas** - Control how the configuration form looks and behaves
 - 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
+
+> [!NOTE]
+> The `connections:` and `artifacts:` keys keep their v1 names inside `massdriver.yaml`. Backward-compatible renames to `dependencies:` and `resources:` are coming — until then, prefer the v1 keys here.
 
 These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
 
@@ -135,7 +147,7 @@ For more details, see the [Bundle Templates](https://docs.massdriver.cloud/guide
 
 ### 📁 `platforms/`
 
-**Platform integrations** define how Massdriver connects to your cloud providers and infrastructure platforms. Each platform directory contains everything needed to authenticate and interact with that platform.
+**Platform integrations** are resource types that model the credentials Massdriver uses to connect to your cloud providers and infrastructure platforms. They live in their own directory (rather than under `resource-types/`) for discoverability — operationally they're published with `mass resource-type publish`, just like everything in `resource-types/`. Each platform directory contains everything needed to authenticate and interact with that platform.
 
 Massdriver can orchestrate any platform your IaC tooling supports. Adding a new platform (Snowflake, Datadog, Confluent Cloud, etc.) is as simple as defining its credential schema.
 
@@ -157,7 +169,7 @@ platforms/aws/
 Each platform has a declarative `massdriver.yaml` that drives the build process:
 
 ```yaml
-name: aws-iam-role               # Artifact definition name
+name: aws-iam-role               # Resource type name
 label: AWS IAM Role              # Display name in UI
 icon: https://...                # Icon URL
 
@@ -232,12 +244,12 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
 
 ### Prerequisites
 
-- Self-hosted Massdriver instance configured
-- [Massdriver CLI (`mass`)](https://docs.massdriver.cloud/cli) installed and authenticated
+- Self-hosted Massdriver instance running **server v2.0.0 or higher**
+- [Massdriver CLI (`mass`)](https://docs.massdriver.cloud/cli) **v2.0.0 or higher**, installed and authenticated
 - OpenTofu or Terraform installed (for implementing bundles)
 
 > [!IMPORTANT]
-> This catalog requires Massdriver CLI version 1.13.7 or higher. Check your version with `mass version` and upgrade if needed: [Download latest release](https://github.com/massdriver-cloud/mass/releases/tag/1.13.7)
+> This catalog targets Massdriver v2 (CLI v2 + GraphQL `/v2/`). Check your CLI with `mass version`; the same command also reports the connected server version. If you're still on v1, upgrade both server and CLI before publishing — v2 changed how OCI repositories are managed and v1 publish flows will not work.
 
 > [!TIP]
 > **Claude Code Users**: Install the Massdriver Claude Code Plugin for AI-assisted bundle development with built-in guardrails, patterns, and validation rules:
@@ -261,10 +273,10 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
 
 3. **Configure GitHub Secrets and Variables**
 
-   This repository includes GitHub Actions workflows that automatically publish artifact definitions and bundles to your Massdriver instance on push to `main`. To enable this, configure the following in your GitHub repository:
+   This repository includes GitHub Actions workflows that automatically publish resource types and bundles to your Massdriver instance on push to `main`. To enable this, configure the following in your GitHub repository:
 
    **Required Secrets** (Settings → Secrets and variables → Actions → Secrets):
-   - `MASSDRIVER_API_KEY` - Your Massdriver API key. Generate one in your Massdriver instance under Settings → API Keys.
+   - `MASSDRIVER_API_KEY` - Your Massdriver service-account API key. See [Service account permissions](#service-account-permissions) below for the privileges this account needs.
 
    **Required Variables** (Settings → Secrets and variables → Actions → Variables):
    - `MASSDRIVER_ORG_ID` - Your Massdriver organization ID. You can find this in your Massdriver instance URL or in the organization settings.
@@ -273,11 +285,37 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
    - `MASSDRIVER_URL` - The API URL of your self-hosted Massdriver instance (e.g., `https://api.massdriver.yourdomain.com`). If not set, defaults to `https://api.massdriver.cloud`.
 
    Once configured, any push to the `main` branch will automatically:
-   - Publish all artifact definitions in `artifact-definitions/`
-   - Build and publish all bundles in `bundles/`
+   - Publish all resource types in `resource-types/` (and any enabled platforms in `platforms/`)
+   - Ensure each bundle's OCI repository exists, then build and publish all bundles in `bundles/`
 
    > [!TIP]
-   > The bundle publish action automatically skips publishing if no changes are detected in a bundle directory, optimizing CI/CD performance. For development workflows, you can modify the workflows to use the `development: true` flag for auto-generated version suffixes.
+   > To publish snapshot/dev versions on every PR push, enable [`publish-bundles-dev.yml.example`](./.github/workflows/publish-bundles-dev.yml.example) by renaming it. It runs `mass bundle publish --development` against any bundles changed in the PR.
+
+#### Bundle OCI repositories
+
+In Massdriver v2, every bundle is published into its own OCI repository, and **the repository must exist before `mass bundle publish` will succeed**. The CI workflow handles this automatically — it calls `mass bundle create <name>` for each bundle on every run and ignores the "already exists" error. Locally, `make create-bundle-repos` does the same thing.
+
+If a bundle needs custom attributes (for example, `-a owner=data,service=database`), the workflow can't infer them. Create those repositories once by hand:
+
+```bash
+mass bundle create my-bundle -a owner=data,service=database
+```
+
+After that, normal pushes will keep publishing into the same repo.
+
+#### Service account permissions
+
+The service account behind `MASSDRIVER_API_KEY` needs to be able to:
+
+- **Create OCI repositories** — required for the idempotent `mass bundle create` step.
+- **Publish to OCI repositories** — required for `mass bundle publish`.
+- **Publish resource types** — required for `mass resource-type publish` (used for both `resource-types/` and `platforms/`).
+
+In your Massdriver instance, grant the service account the role(s) that include these permissions before pointing CI at it. If the workflow fails on first run with an authorization error, this is almost always the cause.
+
+#### Publish order on first run
+
+`mass bundle build` resolves every `$ref:` in `connections:` / `artifacts:` against your Massdriver server, so resource types must already be published before any bundle that references them will build. The default GitHub Actions workflows are split by file path — pushing only `bundles/**` will not trigger the resource-types workflow. On a fresh catalog, run `make publish-resource-types` (or push a change under `resource-types/`) once before publishing bundles, or run `make all` locally to do both in order.
 
 4. **Set up pre-commit hooks (optional but recommended)**
 
@@ -289,7 +327,7 @@ This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for p
    This will automatically format JSON/YAML, validate Terraform, and check for common issues before each commit.
 
 5. **Explore and customize**
-   - Review artifact definitions in `artifact-definitions/`
+   - Review resource types in `resource-types/`
    - Explore bundle schemas in `bundles/*/massdriver.yaml`
 
 6. **Model your platform**
@@ -303,8 +341,8 @@ make all
 - Open the Massdriver UI
 - Create **projects** - Logical groupings of infrastructure that can reproduce environments. Examples include application domains ("ecommerce", "api", "billing") or platform infrastructure ("network", "compute platform", "data platform")
 - Create **environments** within projects - Named environments ("dev", "staging", "production"), [preview environments](https://docs.massdriver.cloud/preview_environments/overview) ("PR 123"), or regional deployments ("Production US East 1", "US West 2")
-- Add bundles to your **canvas** (the visual diagram where you design your architecture)
-- **Connect** bundles together—linking outputs (artifacts) from one bundle to inputs (connections) of another passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
+- Add bundles to your **canvas** (the visual diagram where you design your architecture) — each placement creates an **instance** of that bundle
+- **Connect** instances together—linking resources produced by one bundle to dependencies of another, passing configuration between provisioning pipelines (no copypasta! no brittle scripts!)
 - Configure **parameters** to test what the developer experience feels like
 
 7. **Implement infrastructure code**
@@ -318,7 +356,7 @@ make all
 
 8. **Publish to Massdriver**
 
-   **Automatic Publishing (Recommended)**: If you've configured GitHub Secrets and Variables (step 3), artifact definitions and bundles are automatically published on push to `main`. Simply push your changes:
+   **Automatic Publishing (Recommended)**: If you've configured GitHub Secrets and Variables (step 3), resource types and bundles are automatically published on push to `main`. Simply push your changes:
 
    ```bash
    git push origin main
@@ -332,12 +370,13 @@ make all
 
    This command will:
    - Clean up any previous build artifacts
-   - Publish artifact definitions to your Massdriver instance
+   - Publish resource types to your Massdriver instance
+   - Ensure an OCI repository exists for each bundle (`make create-bundle-repos`)
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
    - Validate all bundles with OpenTofu, Helm, etc.
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
 
-   **Publishing** makes your artifact definitions and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
+   **Publishing** makes your resource types and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
 
 ## Workflow
 
@@ -345,38 +384,38 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 ### Phase 1: Architecture Modeling (Now)
 
-1. Use the provided artifact definitions and bundle schemas as-is (no infrastructure code needed yet)
+1. Use the provided resource types and bundle schemas as-is (no infrastructure code needed yet)
 2. Create projects and environments in the Massdriver UI
-3. Add bundles to your canvas (creating packages)
-4. Connect them by linking artifact outputs to connection inputs
+3. Add bundles to your canvas (creating instances)
+4. Connect them by linking resources produced by one bundle to the dependencies of another
 5. Configure parameters to test what the developer experience feels like
-6. Iterate on artifact definitions and bundle scopes until they feel right
+6. Iterate on resource types and bundle scopes until they feel right
 
 **Goal**: Understand what services you want to offer, how they connect, and what the developer experience should be. You're designing the self-service platform interface _before_ writing any infrastructure code.
 
-**Key insight**: This phase is about discovering the right abstractions. Does it make sense to have separate `postgres` and `mysql` bundles? Should your network bundle produce separate "public subnet" and "private subnet" artifacts, or one combined "network" artifact? The schemas let you explore these questions quickly without committing to implementation details.
+**Key insight**: This phase is about discovering the right abstractions. Does it make sense to have separate `postgres` and `mysql` bundles? Should your network bundle produce separate "public subnet" and "private subnet" resources, or one combined "network" resource? The schemas let you explore these questions quickly without committing to implementation details.
 
-**Don't aim for perfection—aim for feedback.** Get a working version in front of your developers and iterate based on their input. The abstractions that make sense on paper often need refinement once developers actually use them. You can always add more bundles, refine parameters, or adjust artifact definitions later. Real developer feedback is more valuable than theoretical perfection.
+**Don't aim for perfection—aim for feedback.** Get a working version in front of your developers and iterate based on their input. The abstractions that make sense on paper often need refinement once developers actually use them. You can always add more bundles, refine parameters, or adjust resource types later. Real developer feedback is more valuable than theoretical perfection.
 
 ### Phase 2: Implementation (When Ready)
 
 > [!TIP]
-> Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed documentation on bundle and artifact definition development.
+> Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed documentation on bundle and resource type development.
 
 1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
 2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
 4. Push to `main` to automatically publish bundles via GitHub Actions, or use `make all` for manual publishing
-5. Deploy packages to test environments and validate everything works
+5. Deploy instances to test environments and validate everything works
 
 **Goal**: Fill in the infrastructure code that matches your architectural model.
 
-**Key benefit**: Because you already validated the architecture and developer experience in Phase 1, you're implementing against a proven design. You know what parameters developers need, what connections make sense, and what artifacts to produce.
+**Key benefit**: Because you already validated the architecture and developer experience in Phase 1, you're implementing against a proven design. You know what parameters developers need, what connections make sense, and what resources to produce.
 
 ### Phase 3: Continuous Improvement
 
 1. Add more bundles as needed
-2. Create custom artifact definitions for your organization
+2. Create custom resource types for your organization
 3. Refine parameter validation and UI schemas
 4. Use [release channels and strategies](https://docs.massdriver.cloud/concepts/versions#release-channels) to automate version distribution and upgrades across environments
 5. 👋 Say farewell to ticket ops
@@ -387,7 +426,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 .
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
-├── artifact-definitions/               # Infrastructure artifact contracts
+├── resource-types/                     # Resource type contracts (formerly artifact definitions)
 │   ├── application/
 │   │   └── massdriver.yaml
 │   ├── bucket/
@@ -412,7 +451,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── terraform/                      # Terraform module template
 │   ├── bicep/                          # Azure Bicep template
 │   └── helm-chart/                     # External Helm chart template
-└── platforms/                          # Supported cloud platforms & default auth methods
+└── platforms/                          # Cloud-credential resource types (split out for discoverability)
     ├── aws/                            # IAM Role
     ├── azure/                          # Service Principal
     ├── gcp/                            # Service Account
@@ -422,18 +461,18 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 ## Customization Guide
 
-### Artifact Definitions
+### Resource Types
 
-[Artifact definitions](https://docs.massdriver.cloud/concepts/artifact-definitions) in `artifact-definitions/` define the contracts between bundles—what data gets passed from one to another. See the [Artifact Definition YAML Spec](https://docs.massdriver.cloud/guides/artifact-definition-yaml-spec) for the complete schema reference.
+[Resource types](https://docs.massdriver.cloud/concepts/resource-types) in `resource-types/` define the contracts between bundles—what data gets passed from one to another. (Massdriver's docs may still link these as "artifact definitions"; that's the v1 name.) See the docs for the complete schema reference.
 
-[Customize artifact definitions](https://docs.massdriver.cloud/guides/custom-artifact-definition) to:
+Customize resource types to:
 
 - **Pass connection info between bundles** - A database bundle outputs hostname, port, credentials. An application bundle receives those as inputs and can connect immediately.
 - **Validate data before it's used** - Ensure CIDR blocks are valid IP ranges, database names match naming rules, or ports are in valid ranges. Catch config errors before provisioning.
 - **Mark sensitive fields** - Use `$md.sensitive: true` on passwords, API keys, certificates. They get masked in UIs and logs but are available to bundles that need them.
 
 > [!TIP]
-> When you standardize what your bundles produce—defining consistent artifact schemas—you can automate compliance and security policies across all resources of that type. This eliminates the brittle copy-paste scripts and custom glue code typically needed to wire infrastructure together, replacing them with validated, reusable contracts.
+> When you standardize what your bundles produce—defining consistent resource type schemas—you can automate compliance and security policies across all resources of that type. This eliminates the brittle copy-paste scripts and custom glue code typically needed to wire infrastructure together, replacing them with validated, reusable contracts.
 
 ### Bundle Schemas
 
@@ -441,11 +480,14 @@ Each bundle's `massdriver.yaml` defines the complete contract for that infrastru
 
 - **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code. They provide extra UI controls and validations not available in most IaC tools.
 
-- **connections**: Input artifacts that this bundle depends on. For example, a database bundle might require a connection to a network artifact. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible artifacts can be connected.
+- **connections** (the v1 key, surfaced in the v2 product as **dependencies**): Input resources that this bundle depends on. For example, a database bundle might require a connection to a network resource. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible resources can be connected.
 
-- **artifacts**: Output artifacts that this bundle produces for other bundles to consume. For example, a database bundle produces a database artifact containing connection details. You populate these in your IaC code's outputs.
+- **artifacts** (the v1 key, surfaced in the v2 product as **resources**): Output resources that this bundle produces for other bundles to consume. For example, a database bundle produces a database resource containing connection details. You populate these in your IaC code's outputs.
 
 - **ui**: UI schema that controls how the configuration form is rendered—field ordering, help text, conditional visibility, custom widgets, etc. This follows the React JSON Schema Form specification.
+
+> [!NOTE]
+> The keys `connections:` and `artifacts:` keep their v1 names inside `massdriver.yaml`. Backward-compatible renames to `dependencies:` and `resources:` are coming in a future release; for now, every bundle and template in this repo uses the v1 keys.
 
 > [!WARNING]
 > Params and connections share the same namespace in your IaC code. If you have a param named "database" and a connection named "database", they will conflict as the same variable (e.g., `variable "database"` in Terraform). Use distinct names to avoid collisions.
@@ -464,10 +506,10 @@ To implement a bundle:
 2. **Replace** `main.tf` with your infrastructure code
 3. **Add** additional `.tf` files as needed (variables.tf, outputs.tf, etc.)
 4. **Use** Massdriver-provided variables:
-   - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name, package ID, environment)
-5. **Output** artifact data that matches your artifacts schema (connection details, resource IDs, etc.)
+   - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name prefix, instance ID, environment, default tags, etc.)
+5. **Output** resource data that matches your `artifacts:` schema (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your connections schema requires a `network` artifact named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
 
 ## What's Next?
 
@@ -490,7 +532,7 @@ These resources complement this catalog by showing you how to work with bundles 
 
 ### Automation
 
-- 🚀 **[GitHub Actions](https://github.com/massdriver-cloud/actions)** - This repository includes pre-configured workflows that automatically publish artifact definitions and bundles on push to `main`. See the [Quick Start](#quick-start) section for setup instructions.
+- 🚀 **[GitHub Actions](https://github.com/massdriver-cloud/actions)** - This repository includes pre-configured workflows (using `actions/setup@v6`, the v2-compatible release) that automatically publish resource types and bundles on push to `main`. See the [Quick Start](#quick-start) section for setup instructions.
 
 ## Best Practices
 
@@ -498,7 +540,7 @@ These resources complement this catalog by showing you how to work with bundles 
 
 - **Start with modeling**: Use the schemas to plan before implementing
 - **Single-purpose bundles**: Keep bundles focused (e.g., `postgres`, not `rds`)
-- **Iterate on abstractions**: Refine artifact definitions based on usage
+- **Iterate on abstractions**: Refine resource types based on usage
 - **Test the developer experience**: Configure bundles in the UI before implementing
 - **Version your bundles**: Use semantic versioning for stable releases
 
@@ -539,7 +581,7 @@ The zip is gitignored — rebuild it locally before publishing the bundle. See `
 - 🌐 **[Massdriver Documentation](https://docs.massdriver.cloud)** - Official documentation
 - 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Getting started with bundle development
 - 💻 **[Getting Started Repository](https://github.com/massdriver-cloud/getting-started)** - Accompanying code
-- 🎯 **[Core Artifact Definitions](https://github.com/massdriver-cloud/artifact-definitions)** - Standard artifact types in the Massdriver SaaS Platform. They're great to use as inspiration or a foundation.
+- 🎯 **[Core Resource Types](https://github.com/massdriver-cloud/artifact-definitions)** - Standard resource types in the Massdriver SaaS Platform (the upstream repo is still named `artifact-definitions`). Great to use as inspiration or a foundation.
 - 💬 **[Massdriver Slack](https://massdriver.cloud/slack)** - Community support
 
 ## Support

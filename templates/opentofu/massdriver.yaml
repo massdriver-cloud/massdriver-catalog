@@ -65,6 +65,8 @@ params:
           description: Number of retries on failure
           default: 3
 
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
 connections:
 {%- if connections.size > 0 %}
   required:
@@ -81,6 +83,8 @@ connections:
   properties: {}
 {%- endif %}
 
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   properties: {}
   # required:

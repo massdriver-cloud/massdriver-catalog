@@ -21,14 +21,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Massdriver CLI
-        uses: massdriver-cloud/actions/setup@v5
+        uses: massdriver-cloud/actions/setup@v6
       - name: Publish Enabled Platforms
+        # Platforms are resource types that model cloud-provider credentials.
+        # We split them out from `resource-types/` for discoverability.
         run: |
           for platform in $ENABLED_PLATFORMS; do
             platform_file="platforms/${platform}/massdriver.yaml"
             if [ -f "$platform_file" ]; then
               echo "Publishing platform: $platform..."
-              mass definition publish "$platform_file"
+              mass resource-type publish "$platform_file"
             else
               echo "Warning: Platform $platform not found at $platform_file"
             fi
