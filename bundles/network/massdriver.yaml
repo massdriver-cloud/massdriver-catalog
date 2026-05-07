@@ -35,10 +35,14 @@ params:
             title: Subnet CIDR
             pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
 
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
 connections:
   required: []
   properties: {}
 
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required:
     - network

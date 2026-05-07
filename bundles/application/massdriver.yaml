@@ -62,6 +62,8 @@ params:
         options: .policies
         value: .name
 
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
 connections:
   required:
     - network
@@ -75,6 +77,8 @@ connections:
     bucket:
       $ref: bucket
 
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required:
     - application

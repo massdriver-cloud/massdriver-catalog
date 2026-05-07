@@ -18,11 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Massdriver CLI
-        uses: massdriver-cloud/actions/setup@v5
+        uses: massdriver-cloud/actions/setup@v6
       - name: Publish All Bundles
+        # Massdriver v2 requires an OCI repository to exist before publishing.
+        # `mass bundle create` is idempotent against the API on a name match,
+        # so we attempt creation first and continue if it already exists.
+        # We keep stderr on stdout so auth/permission failures stay visible in
+        # CI logs — `mass bundle publish` will then surface the real failure.
+        # Bundles that need custom attributes (e.g. -a owner=data) should be
+        # created out-of-band once; see the README for guidance.
         run: |
           for bundle_dir in bundles/*/; do
             bundle_name=$(basename "$bundle_dir")
+            echo "Ensuring bundle repository exists for $bundle_name..."
+            mass bundle create "$bundle_name" 2>&1 || true
             echo "Publishing bundle: $bundle_name..."
-            mass bundle publish --build-directory "$bundle_dir"
+            mass bundle publish --bundle-directory "$bundle_dir"
           done

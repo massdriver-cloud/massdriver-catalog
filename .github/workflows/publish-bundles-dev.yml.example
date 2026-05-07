@@ -1,0 +1,56 @@
+# Example: Publish bundle dev releases on pull request
+#
+# Rename this file to `publish-bundles-dev.yml` to enable.
+#
+# When a PR is opened against main, every changed bundle is published with
+# `mass bundle publish --development`. v2's CLI auto-suffixes a snapshot
+# version, so each push to the PR can be tested against an environment
+# without bumping `version:` in massdriver.yaml.
+#
+# Pair this with a comment-based UI hint in your PR template so reviewers
+# know how to consume the snapshot version.
+
+name: Publish Bundle Dev Releases
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'bundles/**'
+
+jobs:
+  publish-dev:
+    runs-on: ubuntu-latest
+    env:
+      MASSDRIVER_API_KEY: ${{ secrets.MASSDRIVER_API_KEY }}
+      MASSDRIVER_ORG_ID: ${{ vars.MASSDRIVER_ORG_ID }}
+      MASSDRIVER_URL: ${{ vars.MASSDRIVER_URL || 'https://api.massdriver.cloud' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Massdriver CLI
+        uses: massdriver-cloud/actions/setup@v6
+      - name: Determine changed bundles
+        id: changed
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$base" "$head" -- 'bundles/' \
+            | awk -F/ '/^bundles\/[^/]+\//{print $2}' \
+            | sort -u \
+            | tr '\n' ' ')
+          echo "bundles=$changed" >> "$GITHUB_OUTPUT"
+      - name: Publish dev releases for changed bundles
+        if: steps.changed.outputs.bundles != ''
+        env:
+          CHANGED_BUNDLES: ${{ steps.changed.outputs.bundles }}
+        run: |
+          for bundle_name in $CHANGED_BUNDLES; do
+            bundle_dir="bundles/$bundle_name"
+            echo "Ensuring bundle repository exists for $bundle_name..."
+            mass bundle create "$bundle_name" 2>&1 || true
+            echo "Publishing dev release for: $bundle_name..."
+            mass bundle publish --development --bundle-directory "$bundle_dir"
+          done
