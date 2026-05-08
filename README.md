@@ -178,7 +178,6 @@ icon: https://...                # Icon URL
 
 ui:
   connectionOrientation: environmentDefault
-  environmentDefaultGroup: credentials
   instructions:                  # References to markdown files
     - label: AWS CLI
       path: ./instructions/AWS CLI.md

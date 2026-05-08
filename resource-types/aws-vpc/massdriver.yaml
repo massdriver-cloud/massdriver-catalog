@@ -1,0 +1,79 @@
+name: aws-vpc
+label: AWS VPC
+
+schema:
+  title: AWS VPC
+  description: AWS Virtual Private Cloud with subnets and routing
+  type: object
+  required:
+    - id
+    - cidr
+    - region
+    - subnets
+  properties:
+    id:
+      title: VPC ID
+      description: VPC resource identifier (vpc-xxxxxxxx)
+      type: string
+      pattern: ^vpc-[a-f0-9]+$
+    arn:
+      title: VPC ARN
+      description: Amazon Resource Name for the VPC
+      type: string
+    cidr:
+      title: CIDR
+      description: Primary IPv4 CIDR block for the VPC
+      type: string
+    region:
+      title: Region
+      description: AWS region the VPC lives in
+      type: string
+    account_id:
+      title: Account ID
+      description: AWS account ID owning the VPC
+      type: string
+    subnets:
+      title: Subnets
+      description: Subnets belonging to the VPC
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - cidr
+          - availability_zone
+          - type
+        properties:
+          id:
+            title: Subnet ID
+            description: Subnet resource identifier (subnet-xxxxxxxx)
+            type: string
+          cidr:
+            title: CIDR
+            description: IPv4 CIDR block of the subnet
+            type: string
+          availability_zone:
+            title: Availability Zone
+            description: AZ the subnet is provisioned in
+            type: string
+          type:
+            title: Type
+            description: Whether the subnet is internet-routable (public) or private
+            type: string
+            enum:
+              - public
+              - private
+              - intra
+    security_group_ids:
+      title: Default Security Groups
+      description: Security groups created for shared workloads in the VPC
+      type: object
+      properties:
+        default:
+          title: Default
+          description: VPC default security group
+          type: string
+        endpoints:
+          title: VPC Endpoints
+          description: Security group for AWS PrivateLink endpoints
+          type: string

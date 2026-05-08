@@ -3,7 +3,6 @@ label: OVH API Credentials
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/ovh/icon.svg
 
 ui:
-  environmentDefaultGroup: credentials
   instructions:
     - label: OVH Control Panel
       path: ./instructions/OVH Control Panel.md

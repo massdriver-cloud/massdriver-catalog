@@ -1,0 +1,36 @@
+name: aws-application
+label: AWS Application
+
+schema:
+  title: AWS Application
+  description: Workload deployed to AWS infrastructure (EKS, ECS, Lambda, etc.)
+  type: object
+  required:
+    - name
+  properties:
+    deployment_id:
+      title: Deployment ID
+      description: Massdriver deployment identifier
+      type: string
+    name:
+      title: Name
+      description: Application name
+      type: string
+    namespace:
+      title: Namespace
+      description: Kubernetes namespace (when deployed to EKS)
+      type: string
+    service_url:
+      title: Service URL
+      description: Externally reachable URL for the workload
+      type: string
+    iam_role_arn:
+      title: IAM Role ARN
+      description: IAM role bound to the workload (e.g. via IRSA) — bind data resource policies to this role
+      type: string
+    tags:
+      title: Tags
+      description: AWS resource tags applied to the workload
+      type: object
+      additionalProperties:
+        type: string

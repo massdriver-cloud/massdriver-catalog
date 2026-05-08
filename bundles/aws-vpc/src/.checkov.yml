@@ -1,0 +1,25 @@
+skip-check:
+  # CKV2_AWS_5: Ensure that Security Groups are attached to another resource
+  # The endpoints SG is published as an artifact for downstream bundles (RDS,
+  # EKS, app) to attach to. It is intentionally unattached at the time this
+  # bundle deploys — Checkov can't see the future attachers.
+  - CKV2_AWS_5
+
+  # CKV2_AWS_11: Ensure VPC flow logging is enabled in all VPCs
+  # When `enable_flow_logs=true` (default), terraform-aws-modules/vpc creates
+  # an aws_flow_log resource referencing the VPC, but Checkov 2.x can't trace
+  # the cross-resource link through the module boundary. The actual flow log
+  # is verifiable with `aws ec2 describe-flow-logs`.
+  - CKV2_AWS_11
+
+  # CKV2_AWS_19: Ensure that all EIP addresses allocated to a VPC are attached
+  # to EC2 instances
+  # NAT Gateway EIPs are attached to NAT gateways, not EC2 instances. Checkov
+  # has no concept of NAT gateways and false-positives on every NAT-using VPC.
+  - CKV2_AWS_19
+
+  # CKV_AWS_158: Ensure that CloudWatch Log Group is encrypted by KMS
+  # By project policy, this catalog does not provision customer-managed KMS
+  # keys (cost, key-rotation surface). The flow log CloudWatch log group uses
+  # the AWS-managed default key.
+  - CKV_AWS_158

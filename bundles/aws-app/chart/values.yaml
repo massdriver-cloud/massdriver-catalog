@@ -1,0 +1,28 @@
+replicaCount: 1
+
+# ECR Public — anonymous pulls, no rate limits.
+image:
+  repository: public.ecr.aws/nginx/nginx
+  tag: "1.27"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Environment variables wired from connection data at deploy time. NOT for
+# secrets — DB password lives in Secrets Manager and is fetched at runtime
+# via IRSA (the pod's IAM role), never injected as plaintext env.
+appEnv:
+  DB_HOST: ""
+  DB_READER_HOST: ""
+  DB_PORT: ""
+  DB_NAME: ""
+  DB_USER: ""
+  DB_SECRET_ARN: ""
+  S3_BUCKET: ""
+  S3_REGION: ""
+  S3_ENDPOINT: ""
+  EKS_CLUSTER_NAME: ""
+  EKS_CLUSTER_REGION: ""

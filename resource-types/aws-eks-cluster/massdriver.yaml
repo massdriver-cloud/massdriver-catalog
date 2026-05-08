@@ -1,0 +1,66 @@
+name: aws-eks-cluster
+label: AWS EKS Cluster
+
+schema:
+  title: AWS EKS Cluster
+  description: Amazon EKS cluster with API endpoint, CA, Fargate profile inventory, and a long-lived bearer token bound to a cluster-admin ServiceAccount
+  type: object
+  required:
+    - id
+    - name
+    - endpoint
+    - certificate_authority
+    - region
+    - token
+  properties:
+    id:
+      title: Cluster ID
+      description: Cluster ARN
+      type: string
+    name:
+      title: Cluster Name
+      description: EKS cluster name
+      type: string
+    endpoint:
+      title: API Endpoint
+      description: Kubernetes API server URL
+      type: string
+    certificate_authority:
+      title: Certificate Authority
+      description: Base64-encoded cluster CA bundle
+      type: string
+    region:
+      title: Region
+      description: AWS region the cluster runs in
+      type: string
+    version:
+      title: Kubernetes Version
+      description: EKS Kubernetes minor version (e.g. 1.30)
+      type: string
+    vpc_id:
+      title: VPC ID
+      description: VPC the cluster is attached to
+      type: string
+    fargate_profiles:
+      title: Fargate Profiles
+      description: Namespaces and selectors that run on Fargate
+      type: array
+      items:
+        type: object
+        required:
+          - name
+          - namespace
+        properties:
+          name:
+            title: Name
+            description: Fargate profile name
+            type: string
+          namespace:
+            title: Namespace
+            description: Kubernetes namespace selector
+            type: string
+    token:
+      title: Bearer Token
+      description: Long-lived bearer token bound to the in-cluster `massdriver` ServiceAccount (cluster-admin). Use it for kubectl / helm authentication.
+      type: string
+      $md.sensitive: true

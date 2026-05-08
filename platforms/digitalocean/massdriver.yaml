@@ -3,7 +3,6 @@ label: DigitalOcean API Token
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/digitalocean/icon.svg
 
 ui:
-  environmentDefaultGroup: credentials
   instructions:
     - label: DigitalOcean Control Panel
       path: ./instructions/DigitalOcean Control Panel.md

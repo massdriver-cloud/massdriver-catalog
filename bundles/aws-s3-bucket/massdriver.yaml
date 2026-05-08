@@ -1,0 +1,219 @@
+name: aws-s3-bucket
+description: Amazon S3 bucket tuned for user-generated content. Browser uploads via presigned URLs, lifecycle archiving, and KMS encryption.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-s3-bucket
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      bucket_name_prefix: app-uploads-dev
+      cors_origins:
+        - http://localhost:3000
+      max_upload_size_mb: 50
+      versioning: enabled
+      lifecycle_archive_after_days: 0
+      lifecycle_expire_after_days: 0
+      block_public_access: true
+      object_ownership: bucket-owner-enforced
+    - __name: Production
+      bucket_name_prefix: app-uploads
+      cors_origins:
+        - https://app.example.com
+      max_upload_size_mb: 100
+      versioning: enabled
+      lifecycle_archive_after_days: 90
+      lifecycle_expire_after_days: 0
+      block_public_access: true
+      object_ownership: bucket-owner-enforced
+  required:
+    - bucket_name_prefix
+    - cors_origins
+    - max_upload_size_mb
+    - versioning
+    - block_public_access
+    - object_ownership
+  properties:
+    bucket_name_prefix:
+      type: string
+      title: Bucket Name Prefix
+      description: |
+        Prefix for the bucket name. A short random suffix is appended to keep
+        bucket names globally unique. Bucket names cannot be changed once
+        created.
+      pattern: ^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$
+      $md.immutable: true
+    cors_origins:
+      type: array
+      title: Allowed CORS Origins
+      description: Origins permitted to upload via browser PUT/POST. Use exact origins, not wildcards, in production.
+      minItems: 1
+      items:
+        type: string
+        pattern: ^https?:\/\/.+$
+    max_upload_size_mb:
+      type: integer
+      title: Max Upload Size (MB)
+      description: Cap on a single object size for browser uploads. Enforced at presigned URL generation time.
+      default: 100
+      minimum: 1
+      maximum: 5120
+    allowed_mime_types:
+      type: array
+      title: Allowed MIME Types
+      description: |
+        MIME types permitted at presigned URL generation. Restrict to image/video
+        types for image hosts; expand for general-purpose UGC.
+      default:
+        - image/jpeg
+        - image/png
+        - image/webp
+        - image/gif
+        - video/mp4
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - image/jpeg
+          - image/png
+          - image/webp
+          - image/gif
+          - image/avif
+          - image/heic
+          - video/mp4
+          - video/webm
+          - video/quicktime
+          - audio/mpeg
+          - audio/wav
+          - application/pdf
+          - application/zip
+          - text/plain
+          - text/csv
+    presigned_url_expiration_seconds:
+      type: integer
+      title: Presigned URL Lifetime (seconds)
+      description: How long browser-issued upload URLs remain valid. Shorter is safer.
+      default: 900
+      minimum: 60
+      maximum: 43200
+    versioning:
+      type: string
+      title: Versioning
+      description: |
+        Object versioning protects against accidental overwrites and deletes.
+        Once `enabled`, versioning can only be `suspended`, never disabled.
+      default: enabled
+      enum:
+        - enabled
+        - suspended
+    encryption:
+      type: string
+      title: Encryption
+      description: |
+        Server-side encryption mode.
+        - `sse-s3`: AES-256 with AWS-managed keys (default, free)
+        - `sse-kms`: KMS customer-managed key (auditable, costs per request)
+      default: sse-kms
+      enum:
+        - sse-s3
+        - sse-kms
+    block_public_access:
+      type: boolean
+      title: Block Public Access
+      description: Enforce all four S3 Block Public Access settings. Should be `true` unless serving content directly from S3.
+      default: true
+    object_ownership:
+      type: string
+      title: Object Ownership
+      description: |
+        - `bucket-owner-enforced`: ACLs disabled, bucket owns all objects (recommended)
+        - `bucket-owner-preferred`: ACLs allowed; bucket owns objects with `bucket-owner-full-control` ACL
+      default: bucket-owner-enforced
+      enum:
+        - bucket-owner-enforced
+        - bucket-owner-preferred
+      $md.immutable: true
+    lifecycle_archive_after_days:
+      type: integer
+      title: Archive to Glacier IR After (days)
+      description: |
+        Move objects to Glacier Instant Retrieval after N days. Set to 0 to
+        disable archival. Useful for keeping retrieval fast while cutting
+        storage costs on cold UGC.
+      default: 0
+      minimum: 0
+      maximum: 3650
+    lifecycle_expire_after_days:
+      type: integer
+      title: Expire After (days)
+      description: Permanently delete objects after N days. Set to 0 to keep forever. Use with care for UGC — read your retention policy first.
+      default: 0
+      minimum: 0
+      maximum: 3650
+    enable_access_logs:
+      type: boolean
+      title: Enable Access Logs
+      description: Log every request against the bucket to a sibling logs bucket. Useful for security audits.
+      default: false
+    enable_intelligent_tiering:
+      type: boolean
+      title: Intelligent Tiering
+      description: Let S3 automatically move objects between tiers based on access patterns. Pairs well with unpredictable UGC traffic.
+      default: false
+    enable_event_notifications:
+      type: boolean
+      title: Enable Event Notifications
+      description: |
+        Publish object-created events to an SNS topic. Useful for downstream
+        processing pipelines (image transcoding, AV scanning, etc.).
+      default: false
+    replication_destination_bucket_arn:
+      type: string
+      title: Replication Destination Bucket ARN
+      description: |
+        ARN of an S3 bucket in another region to replicate objects to. Leave
+        empty to disable cross-region replication. Replication runs continuously
+        for new objects and (when versioning is enabled) all object versions.
+      pattern: ^(|arn:aws:s3:::[a-z0-9][a-z0-9.-]*[a-z0-9])$
+      default: ""
+
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+artifacts:
+  required:
+    - bucket
+  properties:
+    bucket:
+      $ref: aws-s3-bucket
+      title: S3 Bucket
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - bucket_name_prefix
+    - cors_origins
+    - max_upload_size_mb
+    - allowed_mime_types
+    - presigned_url_expiration_seconds
+    - versioning
+    - encryption
+    - block_public_access
+    - object_ownership
+    - lifecycle_archive_after_days
+    - lifecycle_expire_after_days
+    - enable_access_logs
+    - enable_intelligent_tiering
+    - enable_event_notifications
+    - replication_destination_bucket_arn
+    - "*"

@@ -1,0 +1,63 @@
+name: aws-s3-bucket
+label: AWS S3 Bucket
+
+schema:
+  title: AWS S3 Bucket
+  description: Amazon S3 bucket with regional endpoints and IAM access policies
+  type: object
+  required:
+    - id
+    - name
+    - region
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Bucket ARN
+      type: string
+    name:
+      title: Bucket Name
+      description: S3 bucket name (DNS-compliant, globally unique)
+      type: string
+    region:
+      title: Region
+      description: AWS region hosting the bucket
+      type: string
+    endpoint:
+      title: Endpoint
+      description: Regional virtual-hosted-style endpoint
+      type: string
+    domain_name:
+      title: Domain Name
+      description: Bucket domain name for DNS aliasing or CloudFront origins
+      type: string
+    kms_key_arn:
+      title: KMS Key ARN
+      description: Customer-managed KMS key used for SSE-KMS (omitted when using SSE-S3)
+      type: string
+    cors_origins:
+      title: CORS Origins
+      description: Origins permitted to upload via browser PUT/POST
+      type: array
+      items:
+        type: string
+    policies:
+      title: Access Policies
+      description: |
+        IAM-bindable access policies. These are example policies — bind the
+        policy ID to a workload's IAM role to grant scoped bucket access.
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier (typically the IAM policy ARN)
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string

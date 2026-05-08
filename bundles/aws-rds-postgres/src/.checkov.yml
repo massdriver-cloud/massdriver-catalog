@@ -1,0 +1,19 @@
+skip-check:
+  # CKV_AWS_149: Ensure that Secrets Manager secret is encrypted using KMS CMK
+  # By project policy, no customer-managed KMS keys (cost, key-rotation
+  # surface). Secrets Manager secret uses the AWS-managed `aws/secretsmanager`
+  # key, which is still envelope-encrypted at rest.
+  - CKV_AWS_149
+
+  # CKV2_AWS_57: Ensure Secrets Manager secrets should have automatic rotation
+  # enabled
+  # Rotation requires a Lambda with VPC access to the database, out of scope
+  # for this baseline RDS bundle. Production environments needing rotation
+  # add a dedicated rotation Lambda bundle on top of this one.
+  - CKV2_AWS_57
+
+  # CKV_AWS_382: Ensure no security groups allow egress from 0.0.0.0:0 to port -1
+  # The DB SG egress rule is restricted to TCP 443 0.0.0.0/0 (managed-RDS
+  # plumbing reaching AWS APIs over HTTPS). Checkov 3.x sometimes
+  # false-positives on the 443-only rule when reading the OpenTofu plan.
+  - CKV_AWS_382

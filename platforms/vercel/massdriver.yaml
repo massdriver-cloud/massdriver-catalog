@@ -3,7 +3,6 @@ label: Vercel API Token
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/vercel/icon.svg
 
 ui:
-  environmentDefaultGroup: credentials
   instructions:
     - label: Vercel Dashboard
       path: ./instructions/Vercel Dashboard.md

@@ -1,0 +1,91 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Helm Provisioner: https://docs.massdriver.cloud/provisioners/helm
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: chart
+    provisioner: helm
+    config:
+      # The Massdriver helm provisioner reads
+      # `.kubernetes_cluster.data.authentication.cluster.server` and
+      # `.kubernetes_cluster.data.authentication.user.token`. The
+      # aws-eks-cluster artifact in this catalog is flat (endpoint /
+      # certificate_authority / token), so the v1 contract is shaped inline
+      # with jq rather than wrapping the artifact.
+      kubernetes_cluster: '{data: {authentication: {cluster: {server: .connections.eks.endpoint, "certificate-authority-data": .connections.eks.certificate_authority}, user: {token: .connections.eks.token}}}}'
+      namespace: '.params.namespace'
+      release_name: '.params.namespace'
+      timeout: '@text "5m0s"'
+      wait: false
+
+params:
+  examples:
+    - __name: Development
+      namespace: {{ name }}
+      replicas: 1
+    - __name: Production
+      namespace: {{ name }}
+      replicas: 3
+  required:
+    - namespace
+    - replicas
+  properties:
+    namespace:
+      type: string
+      title: Namespace
+      description: Kubernetes namespace for the release. Must be covered by a Fargate profile on the connected cluster.
+      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+      $md.immutable: true
+    replicas:
+      type: integer
+      title: Replicas
+      description: Number of pod replicas.
+      default: 2
+      minimum: 1
+      maximum: 50
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+{%- if connections.size > 0 %}
+  required:
+    - eks
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+  properties:
+    eks:
+      $ref: aws-eks-cluster
+      title: EKS Cluster
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+{%- else %}
+  required:
+    - eks
+  properties:
+    eks:
+      $ref: aws-eks-cluster
+      title: EKS Cluster
+{%- endif %}
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - application
+  properties:
+    application:
+      $ref: aws-application
+
+ui:
+  ui:order:
+    - namespace
+    - replicas
+    - "*"

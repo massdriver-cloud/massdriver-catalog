@@ -1,0 +1,86 @@
+name: aws-eks-fargate
+description: Amazon EKS cluster running entirely on Fargate. No node groups, no addons — just the cluster, Fargate profiles, and a long-lived bearer token.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-eks-fargate
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      cluster_name: dev
+      kubernetes_version: "1.30"
+      fargate_namespaces:
+        - default
+        - kube-system
+    - __name: Production
+      cluster_name: prod
+      kubernetes_version: "1.30"
+      fargate_namespaces:
+        - default
+        - kube-system
+        - app
+  required:
+    - cluster_name
+    - kubernetes_version
+    - fargate_namespaces
+  properties:
+    cluster_name:
+      type: string
+      title: Cluster Name
+      description: Name of the EKS cluster. Used in IAM trust policies and the kubeconfig context.
+      pattern: ^[a-z][a-z0-9-]{0,62}$
+      $md.immutable: true
+    kubernetes_version:
+      type: string
+      title: Kubernetes Version
+      description: EKS minor version. EKS supports in-place minor upgrades; downgrades are not allowed.
+      default: "1.30"
+      enum:
+        - "1.28"
+        - "1.29"
+        - "1.30"
+        - "1.31"
+    fargate_namespaces:
+      type: array
+      title: Fargate Namespaces
+      description: Namespaces whose pods will run on Fargate. Add any namespace you intend to schedule pods into.
+      default:
+        - default
+        - kube-system
+      minItems: 1
+      items:
+        type: string
+        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: VPC
+
+artifacts:
+  required:
+    - kubernetes_cluster
+  properties:
+    kubernetes_cluster:
+      $ref: aws-eks-cluster
+      title: EKS Cluster
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - cluster_name
+    - kubernetes_version
+    - fargate_namespaces
+    - "*"

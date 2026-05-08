@@ -1,9 +1,6 @@
 name: network
 label: Network
 
-ui:
-  environmentDefaultGroup: networks
-
 schema:
   title: Network
   description: Virtual network with subnet configuration
