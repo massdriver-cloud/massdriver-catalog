@@ -1,5 +1,5 @@
 name: aws-app
-description: Helm-deployed nginx demo on EKS Fargate. Bare-minimum proof that the cluster + helm chain works.
+description: Helm-deployed nginx demo on EKS Fargate. Wires connection metadata from a connected RDS Postgres database and S3 bucket into the pod as environment variables.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-app
 version: 0.0.0
 
@@ -9,10 +9,10 @@ steps:
     config:
       # The Massdriver helm provisioner reads
       # `.kubernetes_cluster.data.authentication.cluster.server` and
-      # `.kubernetes_cluster.data.authentication.user.token`. The aws-eks-cluster
-      # artifact is flat (endpoint / certificate_authority / token), so we shape
-      # the v1 contract inline rather than carrying a `data` block on every
-      # artifact in the catalog.
+      # `.kubernetes_cluster.data.authentication.user.token`. The
+      # aws-eks-cluster artifact is flat (endpoint / certificate_authority /
+      # token), so we shape the v1 contract inline rather than adding a
+      # `data` wrapper to the artifact.
       kubernetes_cluster: '{data: {authentication: {cluster: {server: .connections.eks.endpoint, "certificate-authority-data": .connections.eks.certificate_authority}, user: {token: .connections.eks.token}}}}'
       namespace: '.params.namespace'
       release_name: '.params.namespace'
@@ -51,10 +51,18 @@ params:
 connections:
   required:
     - eks
+    - database
+    - bucket
   properties:
     eks:
       $ref: aws-eks-cluster
       title: EKS Cluster
+    database:
+      $ref: aws-rds-postgres
+      title: PostgreSQL Database
+    bucket:
+      $ref: aws-s3-bucket
+      title: S3 Bucket
 
 artifacts:
   required:
