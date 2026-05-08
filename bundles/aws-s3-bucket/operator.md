@@ -1,39 +1,109 @@
-# AWS S3 Bucket Runbook
+---
+templating: mustache
+---
 
-It's 2am. Uploads are failing. Here's what to check.
+# AWS S3 — Operator Runbook
+
+- **Instance:** `{{id}}`
+- **Bucket name:** {{#artifacts.bucket}}`{{artifacts.bucket.name}}`{{/artifacts.bucket}}
+
+## List, upload, fetch
+
+```bash
+aws s3 ls s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/ \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}}
+
+aws s3 cp ./photo.jpg \
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}photo.jpg
+
+aws s3 cp \
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}photo.jpg \
+  ./photo.jpg
+```
+
+## Generate a presigned upload URL
+
+```bash
+aws s3 presign \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --expires-in {{params.presigned_url_expiration_seconds}} \
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}<key>
+```
+
+The browser must `PUT` to that URL with the same `Content-Type` it was signed against. Mismatched content types produce `SignatureDoesNotMatch`.
 
 ## Browser uploads return CORS errors
 
-1. Confirm the failing origin is in `cors_origins`. Adding it requires a redeploy — the bucket-level CORS config is rebuilt on every apply.
-2. The browser preflight must include `Origin`, `Access-Control-Request-Method`, and `Access-Control-Request-Headers`. If the client strips these, no S3 config will fix it.
+1. Confirm the failing origin is in the bundle's `cors_origins` param. Adding an origin requires a redeploy — bucket-level CORS is rebuilt on every apply.
+2. The browser preflight must include `Origin`, `Access-Control-Request-Method`, and `Access-Control-Request-Headers`. If the client strips these, no S3 configuration will fix it.
+3. Verify the live CORS rules:
 
-## Presigned URLs return `403 SignatureDoesNotMatch`
+```bash
+aws s3api get-bucket-cors \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --bucket {{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}
+```
 
-- The clock on the signing host is skewed. AWS rejects signatures > 5 minutes off.
-- The IAM identity that signed the URL doesn't have `s3:PutObject` on the bucket.
-- The presigned URL expired. Default lifetime is `presigned_url_expiration_seconds`.
+## SignatureDoesNotMatch on a presigned URL
 
-## Uploads succeed but the object is unreadable
-
-If `encryption` is `sse-kms`, the consuming role needs `kms:Decrypt` on the bucket's KMS key (`bucket.kms_key_arn`). Bind that into the workload's role.
+- The signing host's clock is skewed. AWS rejects signatures more than five minutes off.
+- The IAM identity that signed lacks `s3:PutObject` on the bucket prefix.
+- The URL has expired (`presigned_url_expiration_seconds` is `{{params.presigned_url_expiration_seconds}}`).
+- The `Content-Type` on the upload differs from the type signed.
 
 ## Recovering a deleted object
 
-If `versioning` is `enabled`, deletes are soft — the object becomes a delete marker. Remove the marker via:
+`versioning` is `{{params.versioning}}`. When `enabled`, deletes are soft and create a delete marker. Recovery removes the marker so the prior version becomes current again.
 
 ```bash
-aws s3api list-object-versions --bucket <bucket> --prefix <key>
-aws s3api delete-object --bucket <bucket> --key <key> --version-id <delete-marker-id>
+aws s3api list-object-versions \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --bucket {{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}} \
+  --prefix <key>
+
+aws s3api delete-object \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --bucket {{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}} \
+  --key <key> \
+  --version-id <delete-marker-id>
 ```
 
-If `versioning` is `suspended`, only versions created while it was enabled survive.
+## Uploads succeed but reads return AccessDenied
 
-## Storage bill is climbing
+When `encryption` is `sse-kms` (currently `{{params.encryption}}`), the consuming role needs `kms:Decrypt` on the bucket's KMS key in addition to S3 read permissions.
 
-- Check `lifecycle_archive_after_days`. Moving cold UGC to Glacier IR cuts storage cost ~70% with sub-millisecond retrieval.
-- Enable `enable_intelligent_tiering` if access patterns are unpredictable.
-- Audit incomplete multipart uploads — they accrue storage cost forever. Lifecycle abort rules should be added if your traffic is bursty.
+```bash
+aws kms get-key-policy \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --key-id {{#artifacts.bucket}}{{artifacts.bucket.kms_key_arn}}{{/artifacts.bucket}} \
+  --policy-name default
+```
+
+Add `kms:Decrypt` (and `kms:GenerateDataKey` for writers) on `{{#artifacts.bucket}}{{artifacts.bucket.kms_key_arn}}{{/artifacts.bucket}}` to the consuming role.
+
+## Storage usage and cost
+
+```bash
+aws s3 ls s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}} \
+  --recursive --human-readable --summarize | tail
+
+# List incomplete multipart uploads (these accrue cost indefinitely)
+aws s3api list-multipart-uploads \
+  --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
+  --bucket {{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}
+```
+
+Tune `lifecycle_archive_after_days` (currently `{{params.lifecycle_archive_after_days}}`) to move cold objects to Glacier Instant Retrieval. Set `lifecycle_expire_after_days` to delete objects that no longer need retention.
 
 ## Granting workloads access
 
-Each workload gets its own IAM role. Bind one of the policies in `bucket.policies` (read/write/presign/admin) to that role. The example policies are starting points — tighten them to specific prefixes if you can.
+The bundle publishes pre-built IAM policies (Read / Write / Presign Upload / Admin) on the artifact's `policies` array. Bind the appropriate policy ARN to the workload's IAM role.
+
+For browser-direct uploads, use the Presign Upload policy on the role that signs URLs. The browser itself does not need AWS credentials.
+
+## Known constraints
+
+- `bucket_name_prefix` is immutable. Renaming requires a new bucket and copy.
+- `block_public_access` should remain `true` unless the bucket explicitly serves public content. Public-read on a UGC bucket leaks every uploaded object.
+- Lifecycle rules apply asynchronously. Expect up to 24 hours between the rule firing and storage class changes appearing in inventory.
+- Cross-region replication only replicates objects written after replication is configured. Backfill must be done manually with `aws s3 sync`.

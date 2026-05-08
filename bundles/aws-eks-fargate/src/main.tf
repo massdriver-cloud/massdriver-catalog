@@ -1,34 +1,86 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
-    massdriver = {
-      source  = "massdriver-cloud/massdriver"
-      version = "~> 1.3"
-    }
-  }
-}
-
-resource "random_pet" "cluster" {
-  length = 2
-  keepers = {
-    cluster_name       = var.cluster_name
-    kubernetes_version = var.kubernetes_version
-    vpc_id             = var.vpc.id
-  }
-}
+data "aws_partition" "current" {}
 
 locals {
-  cluster_arn = "arn:aws:eks:${var.vpc.region}:${var.vpc.account_id}:cluster/${var.cluster_name}"
-  endpoint    = "https://${random_pet.cluster.id}.gr7.${var.vpc.region}.eks.amazonaws.com"
-  oidc_id     = substr(md5(random_pet.cluster.id), 0, 32)
-  oidc_issuer = "https://oidc.eks.${var.vpc.region}.amazonaws.com/id/${upper(local.oidc_id)}"
+  private_subnets = [for s in var.vpc.subnets : s.id if s.type == "private"]
+  public_subnets  = [for s in var.vpc.subnets : s.id if s.type == "public"]
+}
 
-  fargate_profiles = [for ns in var.fargate_namespaces : {
-    name      = "fp-${ns}"
-    namespace = ns
-  }]
+# --- Cluster IAM ---
+
+data "aws_iam_policy_document" "cluster_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "cluster" {
+  name_prefix        = "${var.cluster_name}-cluster-"
+  assume_role_policy = data.aws_iam_policy_document.cluster_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_policy" {
+  role       = aws_iam_role.cluster.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+# --- Cluster ---
+
+resource "aws_eks_cluster" "main" {
+  name     = var.cluster_name
+  role_arn = aws_iam_role.cluster.arn
+  version  = var.kubernetes_version
+
+  vpc_config {
+    subnet_ids              = concat(local.private_subnets, local.public_subnets)
+    endpoint_public_access  = true
+    endpoint_private_access = true
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.cluster_policy]
+}
+
+# --- Fargate pod-execution role ---
+
+data "aws_iam_policy_document" "fargate_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["eks-fargate-pods.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "fargate" {
+  name_prefix        = "${var.cluster_name}-fargate-"
+  assume_role_policy = data.aws_iam_policy_document.fargate_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "fargate_pod_execution" {
+  role       = aws_iam_role.fargate.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
+}
+
+# --- Fargate profiles, one per namespace ---
+
+resource "aws_eks_fargate_profile" "main" {
+  for_each = toset(var.fargate_namespaces)
+
+  cluster_name           = aws_eks_cluster.main.name
+  fargate_profile_name   = "fp-${each.value}"
+  pod_execution_role_arn = aws_iam_role.fargate.arn
+  subnet_ids             = local.private_subnets
+
+  selector {
+    namespace = each.value
+  }
+
+  timeouts {
+    create = "30m"
+    delete = "30m"
+  }
 }

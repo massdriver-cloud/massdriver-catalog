@@ -1,19 +1,20 @@
-resource "massdriver_artifact" "cluster" {
-  field = "cluster"
+resource "massdriver_artifact" "kubernetes_cluster" {
+  field = "kubernetes_cluster"
   name  = "AWS EKS ${var.md_metadata.name_prefix}"
   artifact = jsonencode({
-    id                        = local.cluster_arn
-    name                      = var.cluster_name
-    endpoint                  = local.endpoint
-    certificate_authority     = base64encode("FAKE-CA-DATA-${random_pet.cluster.id}")
-    region                    = var.vpc.region
-    version                   = var.kubernetes_version
-    vpc_id                    = var.vpc.id
-    cluster_security_group_id = "sg-${substr(md5("${random_pet.cluster.id}-cluster"), 0, 17)}"
-    fargate_profiles          = local.fargate_profiles
-    oidc = {
-      issuer       = local.oidc_issuer
-      provider_arn = "arn:aws:iam::${var.vpc.account_id}:oidc-provider/oidc.eks.${var.vpc.region}.amazonaws.com/id/${upper(local.oidc_id)}"
-    }
+    id                    = aws_eks_cluster.main.arn
+    name                  = aws_eks_cluster.main.name
+    endpoint              = aws_eks_cluster.main.endpoint
+    certificate_authority = aws_eks_cluster.main.certificate_authority[0].data
+    region                = var.vpc.region
+    version               = aws_eks_cluster.main.version
+    vpc_id                = var.vpc.id
+    fargate_profiles = [
+      for ns, fp in aws_eks_fargate_profile.main : {
+        name      = fp.fargate_profile_name
+        namespace = ns
+      }
+    ]
+    token = lookup(kubernetes_secret.massdriver_token.data, "token", "")
   })
 }

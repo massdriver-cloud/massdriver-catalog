@@ -125,9 +125,9 @@ connections:
   {%- endfor %}
 {%- else %}
   required:
-    - cluster
+    - kubernetes_cluster
   properties:
-    cluster:
+    kubernetes_cluster:
       $ref: aws-eks-cluster
 {%- endif %}
 

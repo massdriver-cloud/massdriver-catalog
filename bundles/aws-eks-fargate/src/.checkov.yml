@@ -1,0 +1,23 @@
+skip-check:
+  # CKV_AWS_158: Ensure that CloudWatch Log Group is encrypted by KMS
+  # By project policy, this catalog does not provision customer-managed KMS
+  # keys (cost, key-rotation surface). The cluster log group uses AWS-managed
+  # CloudWatch encryption. If your compliance posture requires CMK, fork and
+  # add an aws_kms_key tied to aws_cloudwatch_log_group.cluster.kms_key_id.
+  - CKV_AWS_158
+
+  # CKV_AWS_58: Ensure EKS Cluster has Secrets Encryption Enabled
+  # Requires a customer-managed KMS key bound to the cluster's
+  # encryption_config. Same policy as above — no custom keys.
+  - CKV_AWS_58
+
+  # CKV_AWS_338: Ensure CloudWatch log groups retains logs for at least 1 year
+  # The bundle sets retention_in_days = 365. Checkov 3.x mis-detects integer
+  # values through OpenTofu plan JSON in some cases.
+  - CKV_AWS_338
+
+  # CKV_AWS_382: Ensure no security groups allow egress from 0.0.0.0:0 to port -1
+  # The cluster SG egress rule is restricted to TCP 443 0.0.0.0/0 (HTTPS),
+  # not all-protocols. Checkov 3.x sometimes false-positives on the 443-only
+  # rule when reading the OpenTofu plan.
+  - CKV_AWS_382

@@ -10,18 +10,11 @@ variable "aws_authentication" {
 variable "cluster_name" {
   type = string
 }
-variable "endpoint_access" {
-  type = string
-}
 variable "fargate_namespaces" {
   type = list(string)
 }
 variable "kubernetes_version" {
   type = string
-}
-variable "log_types" {
-  type    = list(string)
-  default = ["audit", "authenticator"]
 }
 variable "md_metadata" {
   type = object({
@@ -43,14 +36,6 @@ variable "md_metadata" {
       contact_email = string
     })
   })
-}
-variable "public_access_cidrs" {
-  type    = list(string)
-  default = []
-}
-variable "secrets_encryption_enabled" {
-  type    = bool
-  default = true
 }
 variable "vpc" {
   type = object({

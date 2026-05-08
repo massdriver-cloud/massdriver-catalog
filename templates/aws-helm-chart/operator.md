@@ -1,7 +1,5 @@
 # {{ name }} Runbook
 
-It's 2am. The app is down. Here's what to check.
-
 ## Pods aren't scheduling
 
 If you're targeting an EKS Fargate cluster, the namespace must be covered by a Fargate profile. Check the cluster's `fargate_profiles` list — add the namespace and redeploy.
@@ -13,7 +11,7 @@ helm status {{ name }} -n <namespace>
 helm history {{ name }} -n <namespace>
 ```
 
-If a release is stuck `pending-upgrade`, it usually means a hook failed mid-upgrade. Roll back: `helm rollback {{ name }} <previous-revision> -n <namespace>`.
+If a release is stuck `pending-upgrade`, a hook usually failed mid-upgrade. Roll back: `helm rollback {{ name }} <previous-revision> -n <namespace>`.
 
 ## Workload can't reach AWS data resources
 

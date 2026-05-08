@@ -24,10 +24,10 @@
       kmsKeyArn: (.connections.bucket.kms_key_arn // null)
     }
   } else {} end)
-+ (if .connections.cluster then {
++ (if .connections.kubernetes_cluster then {
     cluster: {
-      name: .connections.cluster.name,
-      region: .connections.cluster.region,
-      oidcProviderArn: .connections.cluster.oidc.provider_arn
+      name: .connections.kubernetes_cluster.name,
+      region: .connections.kubernetes_cluster.region,
+      oidcProviderArn: .connections.kubernetes_cluster.oidc.provider_arn
     }
   } else {} end)

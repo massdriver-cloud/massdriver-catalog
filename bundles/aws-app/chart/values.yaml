@@ -1,26 +1,12 @@
-# Values applied on top of the application chart's defaults.
-# These keys are computed at deploy time from params and connections via
-# `chart/params.jq` (see Massdriver Helm provisioner docs).
-#
-# Example overrides — adjust to match the chart's actual values schema:
-#
-# replicaCount: 2
-# image:
-#   repository: ghcr.io/YOUR_ORG/app
-#   tag: stable
-# ingress:
-#   enabled: true
-#   host: app.example.com
-# database:
-#   host: ""        # populated from .connections.database.auth.hostname
-#   port: 5432
-#   name: ""        # populated from .connections.database.auth.database
-#   user: ""        # populated from .connections.database.auth.username
-#   passwordSecretArn: ""
-# storage:
-#   bucket: ""      # populated from .connections.bucket.name
-#   region: ""      # populated from .connections.bucket.region
-#   prefix: uploads/
-# serviceAccount:
-#   annotations:
-#     eks.amazonaws.com/role-arn: ""  # IRSA role bound to data resource policies
+replicaCount: 1
+
+# ECR Public — anonymous pulls, no rate limits.
+image:
+  repository: public.ecr.aws/nginx/nginx
+  tag: "1.27"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80

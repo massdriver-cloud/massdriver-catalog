@@ -1,5 +1,5 @@
 name: aws-app
-description: Helm-deployed application running on EKS Fargate. Consumes an RDS PostgreSQL database and an S3 bucket for user uploads.
+description: Helm-deployed nginx demo on EKS Fargate. Bare-minimum proof that the cluster + helm chain works.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-app
 version: 0.0.0
 
@@ -7,70 +7,36 @@ steps:
   - path: chart
     provisioner: helm
     config:
-      chart:
-        repo: .params.chart.repository
-        name: .params.chart.name
-        version: .params.chart.version
-      namespace: .params.namespace
-      release_name: .md.package.name
+      # The Massdriver helm provisioner reads
+      # `.kubernetes_cluster.data.authentication.cluster.server` and
+      # `.kubernetes_cluster.data.authentication.user.token`. The aws-eks-cluster
+      # artifact is flat (endpoint / certificate_authority / token), so we shape
+      # the v1 contract inline rather than carrying a `data` block on every
+      # artifact in the catalog.
+      kubernetes_cluster: '{data: {authentication: {cluster: {server: .connections.eks.endpoint, "certificate-authority-data": .connections.eks.certificate_authority}, user: {token: .connections.eks.token}}}}'
+      namespace: '.params.namespace'
+      release_name: '.params.namespace'
+      timeout: '@text "5m0s"'
+      wait: false
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
 
 params:
   examples:
     - __name: Development
-      chart:
-        repository: oci://ghcr.io/YOUR_ORG/charts
-        name: app
-        version: "0.1.0"
       namespace: app
       replicas: 1
-      image: ghcr.io/YOUR_ORG/app:dev
-      domain_name: app-dev.example.com
-      database_policy: Read
-      bucket_policy: Presign Upload
     - __name: Production
-      chart:
-        repository: oci://ghcr.io/YOUR_ORG/charts
-        name: app
-        version: "0.1.0"
       namespace: app
       replicas: 3
-      image: ghcr.io/YOUR_ORG/app:stable
-      domain_name: app.example.com
-      database_policy: Write
-      bucket_policy: Presign Upload
   required:
-    - chart
     - namespace
     - replicas
-    - image
-    - domain_name
-    - database_policy
-    - bucket_policy
   properties:
-    chart:
-      type: object
-      title: Helm Chart
-      description: Where the application's Helm chart is published.
-      required:
-        - repository
-        - name
-      properties:
-        repository:
-          type: string
-          title: Repository URL
-          description: Helm chart repository (HTTPS URL or `oci://` reference).
-        name:
-          type: string
-          title: Chart Name
-          description: Chart name in the repository.
-        version:
-          type: string
-          title: Chart Version
-          description: Chart version constraint. Leave empty for latest.
     namespace:
       type: string
       title: Namespace
-      description: Kubernetes namespace for the release. Must be covered by a Fargate profile on the target cluster.
+      description: Kubernetes namespace for the release. Must be covered by a Fargate profile on the connected cluster.
       default: app
       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
       $md.immutable: true
@@ -78,71 +44,17 @@ params:
       type: integer
       title: Replicas
       description: Number of pod replicas.
-      default: 2
+      default: 1
       minimum: 1
       maximum: 50
-    image:
-      type: string
-      title: Container Image
-      description: Container image (with registry and tag). Pinning to an immutable tag is strongly recommended.
-    domain_name:
-      type: string
-      title: Domain Name
-      description: External hostname for the workload. Configure DNS to point at the cluster ingress.
-      pattern: ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$
-    database_policy:
-      type: string
-      title: Database Access Policy
-      description: |
-        IAM policy bound to this workload's IAM role for database access.
-        Choices come from the connected RDS Postgres bundle.
-      $md.enum:
-        connection: database
-        options: .policies
-        value: .name
-    bucket_policy:
-      type: string
-      title: Bucket Access Policy
-      description: |
-        IAM policy bound to this workload's IAM role for S3 access. Use
-        `Presign Upload` for browser-direct user uploads.
-        Choices come from the connected S3 Bucket bundle.
-      $md.enum:
-        connection: bucket
-        options: .policies
-        value: .name
-    upload_prefix:
-      type: string
-      title: S3 Upload Prefix
-      description: Object key prefix for user-uploaded content. Keep prefixes per-tenant if you ever need bulk delete.
-      default: uploads/
-      pattern: ^[a-zA-Z0-9_.\-/]+$
-    log_level:
-      type: string
-      title: Log Level
-      description: Application log level.
-      default: info
-      enum:
-        - debug
-        - info
-        - warn
-        - error
 
 connections:
   required:
-    - cluster
-    - database
-    - bucket
+    - eks
   properties:
-    cluster:
+    eks:
       $ref: aws-eks-cluster
       title: EKS Cluster
-    database:
-      $ref: aws-rds-postgres
-      title: PostgreSQL Database
-    bucket:
-      $ref: aws-s3-bucket
-      title: S3 Bucket
 
 artifacts:
   required:
@@ -154,18 +66,6 @@ artifacts:
 
 ui:
   ui:order:
-    - chart
     - namespace
-    - image
     - replicas
-    - domain_name
-    - database_policy
-    - bucket_policy
-    - upload_prefix
-    - log_level
     - "*"
-  chart:
-    ui:order:
-      - repository
-      - name
-      - version

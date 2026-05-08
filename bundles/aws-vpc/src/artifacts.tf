@@ -1,16 +1,34 @@
+locals {
+  public_subnet_artifacts = [for idx, id in module.vpc.public_subnets : {
+    id                = id
+    cidr              = module.vpc.public_subnets_cidr_blocks[idx]
+    availability_zone = local.azs[idx]
+    type              = "public"
+  }]
+
+  private_subnet_artifacts = [for idx, id in module.vpc.private_subnets : {
+    id                = id
+    cidr              = module.vpc.private_subnets_cidr_blocks[idx]
+    availability_zone = local.azs[idx]
+    type              = "private"
+  }]
+
+  subnet_artifacts = concat(local.public_subnet_artifacts, local.private_subnet_artifacts)
+}
+
 resource "massdriver_artifact" "vpc" {
   field = "vpc"
   name  = "AWS VPC ${var.md_metadata.name_prefix}"
   artifact = jsonencode({
-    id         = local.vpc_id
-    arn        = "arn:aws:ec2:${var.region}:${local.account_id}:vpc/${local.vpc_id}"
-    cidr       = var.cidr
+    id         = module.vpc.vpc_id
+    arn        = module.vpc.vpc_arn
+    cidr       = module.vpc.vpc_cidr_block
     region     = var.region
-    account_id = local.account_id
-    subnets    = local.subnets
+    account_id = data.aws_caller_identity.current.account_id
+    subnets    = local.subnet_artifacts
     security_group_ids = {
-      default   = "sg-${substr(md5("${random_pet.vpc.id}-default"), 0, 17)}"
-      endpoints = "sg-${substr(md5("${random_pet.vpc.id}-endpoints"), 0, 17)}"
+      default   = module.vpc.default_security_group_id
+      endpoints = aws_security_group.endpoints.id
     }
   })
 }
