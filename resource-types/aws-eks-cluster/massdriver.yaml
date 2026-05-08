@@ -1,0 +1,81 @@
+name: aws-eks-cluster
+label: AWS EKS Cluster
+
+schema:
+  title: AWS EKS Cluster
+  description: Amazon EKS cluster with API endpoint and IAM identity
+  type: object
+  required:
+    - id
+    - name
+    - endpoint
+    - certificate_authority
+    - region
+    - oidc
+  properties:
+    id:
+      title: Cluster ID
+      description: Cluster ARN
+      type: string
+    name:
+      title: Cluster Name
+      description: EKS cluster name
+      type: string
+    endpoint:
+      title: API Endpoint
+      description: Kubernetes API server URL
+      type: string
+    certificate_authority:
+      title: Certificate Authority
+      description: Base64-encoded cluster CA bundle
+      type: string
+    region:
+      title: Region
+      description: AWS region the cluster runs in
+      type: string
+    version:
+      title: Kubernetes Version
+      description: EKS Kubernetes minor version (e.g. 1.30)
+      type: string
+    oidc:
+      title: OIDC Provider
+      description: IRSA OIDC issuer for binding IAM to service accounts
+      type: object
+      required:
+        - issuer
+        - provider_arn
+      properties:
+        issuer:
+          title: Issuer URL
+          description: OIDC issuer URL exposed by the cluster
+          type: string
+        provider_arn:
+          title: Provider ARN
+          description: ARN of the IAM OIDC identity provider
+          type: string
+    vpc_id:
+      title: VPC ID
+      description: VPC the cluster is attached to
+      type: string
+    cluster_security_group_id:
+      title: Cluster Security Group
+      description: EKS-managed security group for cluster ENIs
+      type: string
+    fargate_profiles:
+      title: Fargate Profiles
+      description: Namespaces and selectors that run on Fargate
+      type: array
+      items:
+        type: object
+        required:
+          - name
+          - namespace
+        properties:
+          name:
+            title: Name
+            description: Fargate profile name
+            type: string
+          namespace:
+            title: Namespace
+            description: Kubernetes namespace selector
+            type: string

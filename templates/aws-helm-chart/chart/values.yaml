@@ -1,0 +1,4 @@
+# Values applied on top of the upstream chart's defaults.
+# Computed at deploy time from params and connections via `chart/params.jq`.
+#
+# Override common Helm fields here if your chart's values schema needs them.

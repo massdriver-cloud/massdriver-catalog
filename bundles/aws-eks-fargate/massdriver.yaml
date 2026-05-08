@@ -1,0 +1,142 @@
+name: aws-eks-fargate
+description: Amazon EKS cluster running entirely on Fargate. No node groups to manage.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-eks-fargate
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      cluster_name: dev
+      kubernetes_version: "1.30"
+      fargate_namespaces:
+        - default
+        - kube-system
+      endpoint_access: public-and-private
+      log_types:
+        - audit
+        - authenticator
+    - __name: Production
+      cluster_name: prod
+      kubernetes_version: "1.30"
+      fargate_namespaces:
+        - default
+        - kube-system
+        - app
+      endpoint_access: private-only
+      log_types:
+        - api
+        - audit
+        - authenticator
+        - controllerManager
+        - scheduler
+  required:
+    - cluster_name
+    - kubernetes_version
+    - fargate_namespaces
+    - endpoint_access
+  properties:
+    cluster_name:
+      type: string
+      title: Cluster Name
+      description: Name of the EKS cluster. Used in IAM trust policies and the kubeconfig context — pick something stable.
+      pattern: ^[a-z][a-z0-9-]{0,62}$
+      $md.immutable: true
+    kubernetes_version:
+      type: string
+      title: Kubernetes Version
+      description: EKS minor version. EKS supports in-place minor upgrades; downgrades are not allowed.
+      default: "1.30"
+      enum:
+        - "1.28"
+        - "1.29"
+        - "1.30"
+        - "1.31"
+    fargate_namespaces:
+      type: array
+      title: Fargate Namespaces
+      description: |
+        Namespaces whose pods will run on Fargate. Add `kube-system` so CoreDNS
+        runs on Fargate too (otherwise the cluster has nowhere to schedule it).
+      default:
+        - default
+        - kube-system
+      minItems: 1
+      items:
+        type: string
+        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+    endpoint_access:
+      type: string
+      title: API Endpoint Access
+      description: |
+        Who can reach the Kubernetes API server.
+        - `public-and-private`: reachable from the internet and from inside the VPC
+        - `private-only`: reachable only from inside the VPC (recommended for production)
+      default: public-and-private
+      enum:
+        - public-and-private
+        - private-only
+    public_access_cidrs:
+      type: array
+      title: Public Access CIDRs
+      description: When public access is on, restrict it to these CIDRs. Leave empty to allow `0.0.0.0/0`.
+      default: []
+      items:
+        type: string
+        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    log_types:
+      type: array
+      title: Control Plane Logs
+      description: Which control plane log types to ship to CloudWatch. Audit logs are required for compliance audits.
+      default:
+        - audit
+        - authenticator
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - api
+          - audit
+          - authenticator
+          - controllerManager
+          - scheduler
+    secrets_encryption_enabled:
+      type: boolean
+      title: Encrypt Kubernetes Secrets with KMS
+      description: Wrap etcd-stored Secrets with a customer-managed KMS key. Cannot be disabled after cluster creation.
+      default: true
+      $md.immutable: true
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: VPC
+
+artifacts:
+  required:
+    - cluster
+  properties:
+    cluster:
+      $ref: aws-eks-cluster
+      title: EKS Cluster
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - cluster_name
+    - kubernetes_version
+    - fargate_namespaces
+    - endpoint_access
+    - public_access_cidrs
+    - log_types
+    - secrets_encryption_enabled
+    - "*"

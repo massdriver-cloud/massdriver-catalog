@@ -4,7 +4,6 @@ icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs
 
 ui:
   connectionOrientation: environmentDefault
-  environmentDefaultGroup: credentials
   instructions:
     - label: AWS CLI
       path: ./instructions/AWS CLI.md

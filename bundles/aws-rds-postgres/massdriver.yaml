@@ -1,0 +1,184 @@
+name: aws-rds-postgres
+description: Amazon RDS for PostgreSQL with encryption, IAM authentication, and optional read replicas.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-rds-postgres
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      database_name: appdb
+      username: appadmin
+      engine_version: "16"
+      instance_class: db.t4g.medium
+      allocated_storage_gb: 20
+      max_allocated_storage_gb: 100
+      multi_az: false
+      read_replica_count: 0
+      backup_retention_days: 7
+      deletion_protection: false
+      performance_insights_enabled: false
+    - __name: Production
+      database_name: appdb
+      username: appadmin
+      engine_version: "16"
+      instance_class: db.r6g.large
+      allocated_storage_gb: 200
+      max_allocated_storage_gb: 1000
+      multi_az: true
+      read_replica_count: 2
+      backup_retention_days: 30
+      deletion_protection: true
+      performance_insights_enabled: true
+  required:
+    - database_name
+    - username
+    - engine_version
+    - instance_class
+    - allocated_storage_gb
+    - max_allocated_storage_gb
+    - multi_az
+    - read_replica_count
+    - backup_retention_days
+    - deletion_protection
+  properties:
+    database_name:
+      type: string
+      title: Database Name
+      description: Name of the initial database to create. Cannot be renamed after the cluster is built.
+      default: appdb
+      pattern: ^[a-z][a-z0-9_]{0,62}$
+      $md.immutable: true
+    username:
+      type: string
+      title: Master Username
+      description: Master account name. Workloads should not log in as this account — bind IAM policies for app access instead.
+      default: appadmin
+      pattern: ^[a-z][a-z0-9_]{0,62}$
+      $md.immutable: true
+    engine_version:
+      type: string
+      title: PostgreSQL Major Version
+      description: PostgreSQL major version. Major-version upgrades are out-of-place and require a restart — test in a lower environment first.
+      default: "16"
+      enum:
+        - "13"
+        - "14"
+        - "15"
+        - "16"
+    instance_class:
+      type: string
+      title: Instance Class
+      description: RDS instance class. Graviton (`db.r6g`, `db.t4g`) is the cheaper default for most workloads.
+      default: db.t4g.medium
+      enum:
+        - db.t4g.micro
+        - db.t4g.small
+        - db.t4g.medium
+        - db.t4g.large
+        - db.r6g.large
+        - db.r6g.xlarge
+        - db.r6g.2xlarge
+        - db.m6g.large
+        - db.m6g.xlarge
+    allocated_storage_gb:
+      type: integer
+      title: Allocated Storage (GB)
+      description: Initial provisioned storage. Storage can grow but cannot shrink without a snapshot/restore.
+      default: 20
+      minimum: 20
+      maximum: 65536
+    max_allocated_storage_gb:
+      type: integer
+      title: Storage Autoscaling Limit (GB)
+      description: Storage will autoscale up to this value. Set equal to `allocated_storage_gb` to disable autoscaling.
+      default: 100
+      minimum: 20
+      maximum: 65536
+    multi_az:
+      type: boolean
+      title: Multi-AZ
+      description: Run a synchronous standby in a second AZ for HA. Doubles cost; required for production-grade availability.
+      default: false
+    read_replica_count:
+      type: integer
+      title: Read Replicas
+      description: Number of asynchronous read replicas. The reader endpoint load-balances across them.
+      default: 0
+      minimum: 0
+      maximum: 5
+    backup_retention_days:
+      type: integer
+      title: Backup Retention (days)
+      description: Days of automated backups to retain. Setting to 0 disables automated backups (not recommended).
+      default: 7
+      minimum: 0
+      maximum: 35
+    storage_encrypted:
+      type: boolean
+      title: Encrypt Storage at Rest
+      description: Encrypt storage with KMS. Required for most compliance regimes. Cannot be toggled after creation.
+      default: true
+      $md.immutable: true
+    iam_database_auth:
+      type: boolean
+      title: IAM Database Authentication
+      description: Allow IAM-based logins. Workloads can then authenticate via IAM tokens instead of passwords.
+      default: true
+    deletion_protection:
+      type: boolean
+      title: Deletion Protection
+      description: Block accidental deletion of the database via the AWS API or console.
+      default: true
+    performance_insights_enabled:
+      type: boolean
+      title: Performance Insights
+      description: Enable Performance Insights for query-level diagnostics. Free for the last 7 days of data.
+      default: false
+    master_password:
+      $md.sensitive: true
+      type: string
+      title: Master Password (Override)
+      description: Optional override for the master password. Leave blank to autogenerate and store in AWS Secrets Manager.
+      minLength: 16
+
+connections:
+  required:
+    - aws_authentication
+    - vpc
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    vpc:
+      $ref: aws-vpc
+      title: VPC
+
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: aws-rds-postgres
+      title: PostgreSQL
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - database_name
+    - username
+    - engine_version
+    - instance_class
+    - allocated_storage_gb
+    - max_allocated_storage_gb
+    - multi_az
+    - read_replica_count
+    - backup_retention_days
+    - storage_encrypted
+    - iam_database_auth
+    - deletion_protection
+    - performance_insights_enabled
+    - master_password
+    - "*"

@@ -1,0 +1,100 @@
+name: aws-rds-postgres
+label: AWS RDS PostgreSQL
+
+schema:
+  title: AWS RDS PostgreSQL
+  description: Amazon RDS PostgreSQL instance with reader/writer endpoints and IAM access policies
+  type: object
+  required:
+    - auth
+    - id
+    - region
+    - policies
+  properties:
+    auth:
+      title: Authentication
+      description: Connection details for the database
+      type: object
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Writer Endpoint
+          description: Primary endpoint for read/write traffic
+          type: string
+        reader_endpoint:
+          title: Reader Endpoint
+          description: Load-balanced endpoint across read replicas (omitted when no replicas exist)
+          type: string
+        port:
+          title: Port
+          description: TCP port for the database
+          type: integer
+          default: 5432
+        database:
+          title: Database
+          description: Default database name
+          type: string
+        username:
+          title: Username
+          description: Master username
+          type: string
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: Master password — secrets are stored in AWS Secrets Manager and surfaced through Massdriver
+          type: string
+    id:
+      title: Instance ID
+      description: RDS DB instance identifier (or cluster identifier when running Aurora)
+      type: string
+    arn:
+      title: ARN
+      description: ARN of the database instance or cluster
+      type: string
+    region:
+      title: Region
+      description: AWS region the database runs in
+      type: string
+    version:
+      title: Engine Version
+      description: PostgreSQL major version (e.g. 16)
+      type: string
+    iam_auth_enabled:
+      title: IAM Authentication
+      description: Whether IAM database authentication is enabled
+      type: boolean
+    security_group_id:
+      title: Security Group
+      description: Security group fronting the database — bind workload SGs to this for ingress
+      type: string
+    secret_arn:
+      title: Secret ARN
+      description: AWS Secrets Manager ARN for credential rotation
+      type: string
+    policies:
+      title: Access Policies
+      description: |
+        IAM-bindable access policies. These are example policies — pair the policy
+        ID with the workload's IAM role to grant DB access without sharing
+        passwords.
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier (typically the IAM policy ARN)
+            type: string
+          name:
+            title: Name
+            description: Human-readable policy name
+            type: string
