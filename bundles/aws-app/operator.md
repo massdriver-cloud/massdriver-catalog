@@ -11,8 +11,8 @@ templating: mustache
 
 ```bash
 aws eks update-kubeconfig \
-  --region {{#connections.kubernetes_cluster}}{{connections.kubernetes_cluster.region}}{{/connections.kubernetes_cluster}} \
-  --name {{#connections.kubernetes_cluster}}{{connections.kubernetes_cluster.name}}{{/connections.kubernetes_cluster}}
+  --region {{#connections.eks}}{{connections.eks.region}}{{/connections.eks}} \
+  --name {{#connections.eks}}{{connections.eks.name}}{{/connections.eks}}
 
 kubectl get pods -n {{params.namespace}}
 ```
@@ -28,20 +28,23 @@ kubectl get events -n {{params.namespace}} --sort-by=.lastTimestamp | tail -20
 
 ## Verify connection wiring
 
-The workload runs the `mendhak/http-https-echo` image, which echoes its environment back on every request. Port-forward and curl to confirm the env vars derived from connections are present:
+The pod runs nginx (`public.ecr.aws/nginx/nginx:1.27`). Connection metadata is wired in as environment variables. Read them directly with `kubectl exec`:
 
 ```bash
-kubectl port-forward -n {{params.namespace}} svc/{{params.namespace}} 8080:80 &
-curl -s localhost:8080 | jq .env
+POD=$(kubectl get pod -n {{params.namespace}} \
+  -l app.kubernetes.io/instance={{params.namespace}} \
+  -o jsonpath='{.items[0].metadata.name}')
+
+kubectl exec -n {{params.namespace}} "$POD" -- env | grep -E '^(DB|S3|EKS)_'
 ```
 
 Expected env keys, populated from connection data at deploy time:
 
 - `DB_HOST`, `DB_READER_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_SECRET_ARN`
-- `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_UPLOAD_PREFIX`
-- `EKS_CLUSTER_NAME`, `EKS_CLUSTER_REGION`, `EKS_OIDC_PROVIDER_ARN`
+- `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`
+- `EKS_CLUSTER_NAME`, `EKS_CLUSTER_REGION`
 
-Database credentials are NOT in env vars. The application fetches them at runtime from Secrets Manager using `DB_SECRET_ARN` (`{{#connections.database}}{{connections.database.secret_arn}}{{/connections.database}}`). This avoids stale credentials in pod env after a rotation.
+Database credentials are not in env vars. `DB_SECRET_ARN` (`{{#connections.database}}{{connections.database.secret_arn}}{{/connections.database}}`) points at AWS Secrets Manager. A real workload pulls credentials at runtime; this demo pod does not.
 
 ## Pods are not scheduling
 
@@ -49,32 +52,23 @@ Fargate-only clusters require the namespace to be matched by a Fargate profile. 
 
 ```bash
 aws eks list-fargate-profiles \
-  --region {{#connections.kubernetes_cluster}}{{connections.kubernetes_cluster.region}}{{/connections.kubernetes_cluster}} \
-  --cluster-name {{#connections.kubernetes_cluster}}{{connections.kubernetes_cluster.name}}{{/connections.kubernetes_cluster}}
+  --region {{#connections.eks}}{{connections.eks.region}}{{/connections.eks}} \
+  --cluster-name {{#connections.eks}}{{connections.eks.name}}{{/connections.eks}}
 ```
 
 If `{{params.namespace}}` is not covered by any profile, edit the cluster bundle's `fargate_namespaces` to include it and redeploy the cluster.
 
-## Application cannot connect to the database
+## Granting the workload access to AWS
 
-1. The IAM role bound to the pod's ServiceAccount must hold the `{{params.database_policy}}` policy (one of Read / Write / Admin from the connected RDS bundle's `policies` array).
-2. RDS security group `{{#connections.database}}{{connections.database.security_group_id}}{{/connections.database}}` must allow ingress on TCP 5432 from cluster security group `{{#connections.kubernetes_cluster}}{{connections.kubernetes_cluster.cluster_security_group_id}}{{/connections.kubernetes_cluster}}`.
-3. Confirm the pod can read the secret:
+This bundle is a wiring demo and does not bind IAM policies to the pod. The recommended pattern when forking the chart for a real workload is to run an IRSA-bound ServiceAccount and bind one of the connected bundle's `policies` array entries (the RDS bundle exposes Read / Write / Admin; the S3 bundle exposes Read / Write / Presign Upload / Admin) to the underlying IAM role.
 
-```bash
-kubectl exec -n {{params.namespace}} <pod-name> -- \
-  aws secretsmanager get-secret-value \
-  --region {{#connections.database}}{{connections.database.region}}{{/connections.database}} \
-  --secret-id {{#connections.database}}{{connections.database.secret_arn}}{{/connections.database}}
-```
+This catalog's `aws-eks-fargate` bundle does not provision an OIDC provider, so IRSA needs to be set up out-of-band first. See the EKS bundle's operator runbook for the issuer URL.
 
-If the call fails with `AccessDenied`, the IRSA role lacks `secretsmanager:GetSecretValue` on the secret ARN.
+If a workload is failing to reach the database or bucket, also check:
 
-## Browser uploads to S3 are failing
-
-1. The pod's IAM role must hold the `{{params.bucket_policy}}` policy (one of Read / Write / Presign Upload / Admin from the connected S3 bundle's `policies` array) — typically `Presign Upload` for browser-direct UGC.
-2. The browser request must use the same `Content-Type` that was signed.
-3. If the bucket uses SSE-KMS, the role also needs `kms:GenerateDataKey` on `{{#connections.bucket}}{{connections.bucket.kms_key_arn}}{{/connections.bucket}}`.
+1. RDS security group `{{#connections.database}}{{connections.database.security_group_id}}{{/connections.database}}` allows ingress on TCP 5432 from the cluster's pod security group.
+2. The pod's IAM identity (when configured) has `secretsmanager:GetSecretValue` on the secret ARN.
+3. For SSE-KMS S3 buckets, the role also needs `kms:Decrypt` (and `kms:GenerateDataKey` for writers) on `{{#connections.bucket}}{{connections.bucket.kms_key_arn}}{{/connections.bucket}}`.
 
 ## Helm rollback
 
@@ -95,5 +89,4 @@ The chart is in `chart/` inside this bundle. Edit the chart, republish the bundl
 ## Known constraints
 
 - `namespace` is immutable. Renaming requires destroying the package and redeploying.
-- Database credentials are pulled at runtime from Secrets Manager — they are not in the pod's env. Restarting the pod is sufficient to pick up a rotated password.
-- The IRSA role is recreated when the package is renamed. Out-of-band IAM grants on the old role ARN must be reapplied.
+- The pod is plain nginx — it will not pick up DB env-var changes on its own. Restarting the pod after a connection change reloads the env block.

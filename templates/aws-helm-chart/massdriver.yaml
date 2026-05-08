@@ -11,64 +11,34 @@ steps:
   - path: chart
     provisioner: helm
     config:
-      chart:
-        repo: .params.chart.repository
-        name: .params.chart.name
-        version: .params.chart.version
-      namespace: .params.namespace
-      release_name: .md.package.name
+      # The Massdriver helm provisioner reads
+      # `.kubernetes_cluster.data.authentication.cluster.server` and
+      # `.kubernetes_cluster.data.authentication.user.token`. The
+      # aws-eks-cluster artifact in this catalog is flat (endpoint /
+      # certificate_authority / token), so the v1 contract is shaped inline
+      # with jq rather than wrapping the artifact.
+      kubernetes_cluster: '{data: {authentication: {cluster: {server: .connections.eks.endpoint, "certificate-authority-data": .connections.eks.certificate_authority}, user: {token: .connections.eks.token}}}}'
+      namespace: '.params.namespace'
+      release_name: '.params.namespace'
+      timeout: '@text "5m0s"'
+      wait: false
 
 params:
   examples:
     - __name: Development
-      chart:
-        repository: oci://ghcr.io/YOUR_ORG/charts
-        name: {{ name }}
-        version: "0.1.0"
       namespace: {{ name }}
       replicas: 1
-      image: ghcr.io/YOUR_ORG/{{ name }}:dev
-      domain_name: {{ name }}-dev.example.com
     - __name: Production
-      chart:
-        repository: oci://ghcr.io/YOUR_ORG/charts
-        name: {{ name }}
-        version: "0.1.0"
       namespace: {{ name }}
       replicas: 3
-      image: ghcr.io/YOUR_ORG/{{ name }}:stable
-      domain_name: {{ name }}.example.com
   required:
-    - chart
     - namespace
     - replicas
-    - image
-    - domain_name
   properties:
-    chart:
-      type: object
-      title: Helm Chart
-      description: Where the application's Helm chart is published.
-      required:
-        - repository
-        - name
-      properties:
-        repository:
-          type: string
-          title: Repository URL
-          description: Helm chart repository (HTTPS URL or `oci://` reference).
-        name:
-          type: string
-          title: Chart Name
-          description: Chart name in the repository.
-        version:
-          type: string
-          title: Chart Version
-          description: Chart version constraint. Leave empty for latest.
     namespace:
       type: string
       title: Namespace
-      description: Kubernetes namespace for the release. Must be covered by a Fargate profile on the target cluster.
+      description: Kubernetes namespace for the release. Must be covered by a Fargate profile on the connected cluster.
       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
       $md.immutable: true
     replicas:
@@ -78,57 +48,31 @@ params:
       default: 2
       minimum: 1
       maximum: 50
-    image:
-      type: string
-      title: Container Image
-      description: Container image (with registry and tag).
-    domain_name:
-      type: string
-      title: Domain Name
-      description: External hostname for the workload.
-      pattern: ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$
-{%- for conn in connections %}
-  {%- if conn.artifact_definition == "aws-rds-postgres" %}
-    database_policy:
-      type: string
-      title: Database Access Policy
-      description: IAM policy bound to this workload's IAM role for database access.
-      $md.enum:
-        connection: {{ conn.name }}
-        options: .policies
-        value: .name
-  {%- endif %}
-  {%- if conn.artifact_definition == "aws-s3-bucket" %}
-    bucket_policy:
-      type: string
-      title: Bucket Access Policy
-      description: IAM policy bound to this workload's IAM role for S3 access.
-      $md.enum:
-        connection: {{ conn.name }}
-        options: .policies
-        value: .name
-  {%- endif %}
-{%- endfor %}
 
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:
 {%- if connections.size > 0 %}
   required:
+    - eks
   {%- for conn in connections %}
     - {{ conn.name }}
   {%- endfor %}
   properties:
+    eks:
+      $ref: aws-eks-cluster
+      title: EKS Cluster
   {%- for conn in connections %}
     {{ conn.name }}:
       $ref: {{ conn.artifact_definition }}
   {%- endfor %}
 {%- else %}
   required:
-    - kubernetes_cluster
+    - eks
   properties:
-    kubernetes_cluster:
+    eks:
       $ref: aws-eks-cluster
+      title: EKS Cluster
 {%- endif %}
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
@@ -142,14 +86,6 @@ artifacts:
 
 ui:
   ui:order:
-    - chart
     - namespace
-    - image
     - replicas
-    - domain_name
     - "*"
-  chart:
-    ui:order:
-      - repository
-      - name
-      - version

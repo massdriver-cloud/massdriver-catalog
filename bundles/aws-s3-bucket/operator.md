@@ -9,15 +9,17 @@ templating: mustache
 
 ## List, upload, fetch
 
+The bundle does not own a key prefix — that's the consuming workload's choice. The examples below use `uploads/` as a placeholder; substitute whatever prefix your workload writes under.
+
 ```bash
 aws s3 ls s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/ \
   --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}}
 
 aws s3 cp ./photo.jpg \
-  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}photo.jpg
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/uploads/photo.jpg
 
 aws s3 cp \
-  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}photo.jpg \
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/uploads/photo.jpg \
   ./photo.jpg
 ```
 
@@ -27,7 +29,7 @@ aws s3 cp \
 aws s3 presign \
   --region {{#artifacts.bucket}}{{artifacts.bucket.region}}{{/artifacts.bucket}} \
   --expires-in {{params.presigned_url_expiration_seconds}} \
-  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/{{params.upload_prefix}}<key>
+  s3://{{#artifacts.bucket}}{{artifacts.bucket.name}}{{/artifacts.bucket}}/uploads/<key>
 ```
 
 The browser must `PUT` to that URL with the same `Content-Type` it was signed against. Mismatched content types produce `SignatureDoesNotMatch`.

@@ -10,7 +10,7 @@ A Massdriver catalog of AWS-prefixed bundles that compose into a working applica
 | --- | --- | --- |
 | `aws-iam-role` | Cross-account IAM role + external_id | All AWS bundles (auth) |
 | `aws-vpc` | VPC ID, CIDR, region, subnets, account_id | EKS, RDS |
-| `aws-eks-cluster` | Cluster ARN, endpoint, OIDC provider, Fargate profiles, plus a `data` block with v1-shaped helm-provisioner auth (server, CA, bearer token) | App (helm step + IRSA info) |
+| `aws-eks-cluster` | Cluster ARN, endpoint, CA, region, Fargate profile inventory, and a long-lived bearer token | App (helm step) |
 | `aws-rds-postgres` | Writer/reader endpoints, IAM-bindable policies, Secrets Manager ARN | App |
 | `aws-s3-bucket` | Bucket ARN/name/region, KMS ARN, IAM-bindable policies | App |
 | `aws-application` | Workload identifier, IAM role, namespace, service URL | (output of app) |
@@ -20,10 +20,10 @@ A Massdriver catalog of AWS-prefixed bundles that compose into a working applica
 | Bundle | What it provisions |
 | --- | --- |
 | `aws-vpc` | VPC, public + private subnets across 2–3 AZs, optional NAT Gateway, locked-down default SG/NACL, optional VPC Flow Logs |
-| `aws-eks-fargate` | EKS control plane, OIDC provider for IRSA, configurable Fargate profiles, a `massdriver` ServiceAccount with a long-lived bearer token (used by the Massdriver helm provisioner) |
+| `aws-eks-fargate` | EKS control plane, configurable Fargate profiles, an in-cluster `massdriver` ServiceAccount with a long-lived bearer token used by the Massdriver helm provisioner |
 | `aws-rds-postgres` | RDS Postgres instance + 0–5 read replicas, parameter group with `rds.force_ssl=1` and pg_stat_statements, Multi-AZ optional, Secrets Manager-backed credentials, IAM database auth, enhanced monitoring |
 | `aws-s3-bucket` | S3 bucket tuned for user-uploaded content (CORS, presign-friendly, KMS, lifecycle archive/expire), optional event notifications via SNS, optional cross-region replication |
-| `aws-app` | A Helm chart shipped inside the bundle that deploys `mendhak/http-https-echo` on EKS Fargate, with connection metadata wired in as env vars (no plaintext secrets — DB password stays in Secrets Manager, accessed at runtime via IRSA) |
+| `aws-app` | A Helm chart shipped inside the bundle that deploys nginx (`public.ecr.aws/nginx/nginx:1.27`) on EKS Fargate, with connection metadata from the connected RDS and S3 wired into the pod as env vars. Use it as a reference for the wiring pattern; fork the chart for real workloads. |
 
 ### Helm chart template
 
@@ -38,7 +38,7 @@ flowchart TB
   eks[aws-eks-fargate]
   db[aws-rds-postgres]
   s3[aws-s3-bucket]
-  app[aws-app<br/>helm + mendhak/http-https-echo]
+  app[aws-app<br/>helm + nginx]
 
   iam -.-> vpc
   iam -.-> eks
@@ -46,7 +46,7 @@ flowchart TB
   iam -.-> s3
   vpc --> eks
   vpc --> db
-  eks -->|kubernetes_cluster artifact: API + token, OIDC, Fargate profiles| app
+  eks -->|kubernetes_cluster artifact: API endpoint, CA, bearer token, Fargate profiles| app
   db -->|database artifact + IAM policies| app
   s3 -->|bucket artifact + IAM policies| app
 ```
@@ -118,7 +118,7 @@ mass component add $PROJECT aws-app          --id app      --name "Application"
 
 mass component link $PROJECT-vpc.vpc                    $PROJECT-cluster.vpc
 mass component link $PROJECT-vpc.vpc                    $PROJECT-db.vpc
-mass component link $PROJECT-cluster.kubernetes_cluster $PROJECT-app.kubernetes_cluster
+mass component link $PROJECT-cluster.kubernetes_cluster $PROJECT-app.eks
 mass component link $PROJECT-db.database                $PROJECT-app.database
 mass component link $PROJECT-uploads.bucket             $PROJECT-app.bucket
 ```
@@ -165,9 +165,7 @@ cat > /tmp/cluster.json <<'EOF'
 {
   "cluster_name": "mystack",
   "kubernetes_version": "1.30",
-  "fargate_namespaces": ["default", "kube-system", "app"],
-  "endpoint_access": "public-and-private",
-  "log_types": ["audit", "authenticator"]
+  "fargate_namespaces": ["default", "kube-system", "app"]
 }
 EOF
 mass instance deploy $PROJECT-test-cluster --params=/tmp/cluster.json -m "initial"
@@ -208,11 +206,7 @@ mass instance deploy $PROJECT-test-uploads --params=/tmp/s3.json -m "initial"
 cat > /tmp/app.json <<'EOF'
 {
   "namespace": "app",
-  "replicas": 1,
-  "database_policy": "Read",
-  "bucket_policy": "Presign Upload",
-  "upload_prefix": "uploads/",
-  "log_level": "info"
+  "replicas": 1
 }
 EOF
 mass instance deploy $PROJECT-test-app --params=/tmp/app.json -m "initial"
@@ -220,15 +214,15 @@ mass instance deploy $PROJECT-test-app --params=/tmp/app.json -m "initial"
 
 ### 9. Verify the chain
 
-Once the app is up, port-forward to the echo pod and confirm the connection metadata flowed in as env vars:
+Once the app is up, exec into the nginx pod and confirm the connection metadata flowed in as env vars:
 
 ```bash
 aws eks update-kubeconfig --region us-west-1 --name mystack
-kubectl port-forward -n app svc/app 8080:80 &
-curl -s localhost:8080 | jq .env
+POD=$(kubectl get pod -n app -l app.kubernetes.io/instance=app -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n app "$POD" -- env | grep -E '^(DB|S3|EKS)_'
 ```
 
-You should see `DB_HOST`, `S3_BUCKET`, `EKS_CLUSTER_NAME`, etc., populated from the connected RDS, S3, and EKS bundles. **Passwords and tokens are not in env vars** — `DB_SECRET_ARN` points at Secrets Manager; the workload pulls credentials at runtime via IRSA.
+You should see `DB_HOST`, `S3_BUCKET`, `EKS_CLUSTER_NAME`, etc., populated from the connected RDS, S3, and EKS bundles. Passwords and tokens are not in env vars — `DB_SECRET_ARN` points at Secrets Manager. The `aws-app` bundle is a wiring demo; it does not bind IAM policies to the pod. When you fork it for a real workload, use an IRSA role bound to one of the connected bundle's `policies` to grant runtime access.
 
 ## Compliance posture
 
@@ -273,7 +267,7 @@ Per-bundle runbooks live in `bundles/<name>/operator.md`. They use mustache temp
 
 ## Known limitations
 
-- The Massdriver helm provisioner expects a v1-shaped authentication block at `.connections.kubernetes_cluster.data.authentication.cluster.server` / `.data.authentication.user.token`. To satisfy that contract without forcing every consumer to wire two artifacts, `aws-eks-cluster` carries a `data` wrapper on top of its otherwise-flat fields and is published under the field name `kubernetes_cluster` from the EKS bundle. Other v2 resource types in this catalog stay flat.
-- The helm provisioner authenticates with a static bearer token. The `aws-eks-fargate` bundle creates a `massdriver` ServiceAccount with a long-lived token (a `kubernetes.io/service-account-token` Secret) so the provisioner has something stable to authenticate with — short-lived `aws eks get-token` tokens (~15 min) don't fit the provisioner's contract.
-- EKS Fargate ships CoreDNS with the `eks.amazonaws.com/compute-type: ec2` annotation. The aws-eks-fargate bundle strips that annotation so CoreDNS can land on the kube-system Fargate profile — without it pods fail with `ImagePullBackOff` because DNS resolution breaks.
+- The Massdriver helm provisioner expects a v1-shaped authentication block at `.kubernetes_cluster.data.authentication.cluster.server` / `.data.authentication.user.token`. The `aws-eks-cluster` artifact in this catalog is flat (no `data` wrapper); the `aws-app` bundle's helm step shapes the v1 contract inline with a jq expression. Other helm bundles consuming `aws-eks-cluster` need the same shaping.
+- The helm provisioner authenticates with a static bearer token. The `aws-eks-fargate` bundle creates an in-cluster `massdriver` ServiceAccount with a `kubernetes.io/service-account-token` Secret so the provisioner has something stable to authenticate with — short-lived `aws eks get-token` tokens (~15 min) don't fit the provisioner's contract.
+- IRSA is not provisioned by this catalog. The EKS bundle does not create an `aws_iam_openid_connect_provider`. If a workload needs IRSA, fetch the cluster's OIDC issuer URL with `aws eks describe-cluster` and create the provider out-of-band.
 - VPC quota is per-region (default 5). Bumping it via AWS Service Quotas is required if your sandbox account is at the limit.

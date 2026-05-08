@@ -5,7 +5,8 @@ templating: mustache
 # AWS EKS Fargate — Operator Runbook
 
 - **Instance:** `{{id}}`
-- **API endpoint:** {{#artifacts.cluster}}`{{artifacts.cluster.endpoint}}`{{/artifacts.cluster}}
+- **Cluster name:** `{{params.cluster_name}}`
+- **API endpoint:** {{#artifacts.kubernetes_cluster}}`{{artifacts.kubernetes_cluster.endpoint}}`{{/artifacts.kubernetes_cluster}}
 
 ## Connect kubectl
 
@@ -43,51 +44,45 @@ kubectl describe pod <pod> -n <namespace>
 
 If the namespace is not in the cluster's `fargate_namespaces` param, add it and redeploy. Existing Pending pods do not migrate automatically — delete them after the profile is created.
 
-## CoreDNS is Pending
+## Cluster DNS
 
-CoreDNS runs in `kube-system`. If `kube-system` is not covered by `fargate_namespaces`, CoreDNS cannot schedule and cluster DNS resolution breaks. Add `kube-system` back and redeploy.
+The bundle does not manage CoreDNS. The cluster ships with whatever EKS provisions by default. If workloads need cluster DNS for service-to-service resolution and the default install is not running, configuring CoreDNS for Fargate is your responsibility — out of scope for this bundle.
+
+Image pulls do not depend on CoreDNS; they resolve through VPC DNS.
 
 ## API server unreachable
 
-If `endpoint_access` is `private-only` (currently `{{params.endpoint_access}}`), the API is only reachable from inside the VPC. Use a bastion, VPN, Direct Connect, or AWS SSM port-forward. `aws eks update-kubeconfig` succeeds in any mode — what fails is the actual API call.
+The cluster API endpoint is configured for both public and private access. From inside the VPC, `kubectl` should reach the private endpoint directly. From outside the VPC, the public endpoint is reachable from any IP — there is no IP allowlist on this bundle. If the API call fails, confirm the kubeconfig context and that the calling identity is authorized:
 
 ```bash
 aws eks describe-cluster \
   --region {{#connections.vpc}}{{connections.vpc.region}}{{/connections.vpc}} \
   --name {{params.cluster_name}} \
-  --query 'cluster.resourcesVpcConfig.{PublicAccess:endpointPublicAccess,PrivateAccess:endpointPrivateAccess,PublicCidrs:publicAccessCidrs}'
+  --query 'cluster.{Endpoint:endpoint,Status:status,Version:version}'
 ```
 
-## Audit and control-plane logs
+## Workload IAM
 
-Logs are delivered to CloudWatch under `/aws/eks/{{params.cluster_name}}/cluster` for whichever log types the bundle's `log_types` param has enabled.
+This bundle does not provision an OIDC provider, so IRSA is not available out of the box. If a workload needs to call AWS APIs, either:
+
+1. Bring up the OIDC provider out-of-band — fetch the cluster's issuer URL and register it as an `aws_iam_openid_connect_provider` in IAM, then annotate the ServiceAccount with `eks.amazonaws.com/role-arn`. Or,
+2. Run with EC2 instance-profile credentials (not applicable on Fargate), or attach a node-level IAM identity at the pod-execution role (broad, not workload-scoped).
 
 ```bash
-aws logs tail /aws/eks/{{params.cluster_name}}/cluster \
+aws eks describe-cluster \
   --region {{#connections.vpc}}{{connections.vpc.region}}{{/connections.vpc}} \
-  --follow
-
-# Audit events only
-aws logs tail /aws/eks/{{params.cluster_name}}/cluster \
-  --region {{#connections.vpc}}{{connections.vpc.region}}{{/connections.vpc}} \
-  --log-stream-name-prefix kube-apiserver-audit \
-  --since 1h
+  --name {{params.cluster_name}} \
+  --query 'cluster.identity.oidc.issuer'
 ```
 
-## Workload IAM via IRSA
+## The `massdriver` ServiceAccount
 
-Workloads receive AWS credentials by binding a Kubernetes ServiceAccount to an IAM role through the cluster's OIDC provider.
-
-The IAM role's trust policy must federate with {{#artifacts.cluster}}`{{artifacts.cluster.oidc.provider_arn}}`{{/artifacts.cluster}} and condition on the `system:serviceaccount:<namespace>:<sa-name>` subject.
+The bundle creates a `massdriver` ServiceAccount in `kube-system`, a `cluster-admin` ClusterRoleBinding, and a long-lived `kubernetes.io/service-account-token` Secret. The token is exposed on the artifact's `token` field and is consumed by the Massdriver helm provisioner to install Helm releases against this cluster. EKS only issues short-lived tokens via `aws eks get-token` (~15 minutes); a token Secret bound to a ServiceAccount is what the helm provisioner uses to authenticate without refreshing.
 
 ```bash
-kubectl annotate serviceaccount -n <namespace> <sa-name> \
-  eks.amazonaws.com/role-arn=arn:aws:iam::{{#connections.vpc}}{{connections.vpc.account_id}}{{/connections.vpc}}:role/<role-name>
-
-kubectl rollout restart deployment -n <namespace> <deployment-name>
+kubectl get serviceaccount massdriver -n kube-system
+kubectl get secret massdriver-token -n kube-system
 ```
-
-Pods must be restarted after the annotation is added so the projected token is mounted.
 
 ## Known constraints
 

@@ -33,7 +33,7 @@ The Massdriver helm provisioner reads `kubernetes_cluster.data.authentication.cl
 
 Production environments (`md-target` matching `^(prod|prd|production)$`) hard-fail on Checkov findings; lower environments surface findings as warnings.
 
-Database credentials are **not** injected as env vars. `DB_SECRET_ARN` points at AWS Secrets Manager — the workload's IAM role (bound to the cluster's OIDC provider via IRSA) is expected to pull master credentials at runtime. This avoids stale credentials in pod env after a rotation.
+Database credentials are **not** injected as env vars. `DB_SECRET_ARN` points at AWS Secrets Manager. A real workload would pull credentials from there at runtime via an IRSA-bound IAM role (note: this catalog's `aws-eks-fargate` bundle does not provision the OIDC provider; if you fork this bundle for a real workload, set IRSA up out-of-band first). This demo pod does not bind any IAM policies — it's a wiring reference.
 
 ## Operator runbook
 
