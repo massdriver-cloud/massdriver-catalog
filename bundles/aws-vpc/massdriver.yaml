@@ -14,10 +14,30 @@ params:
       availability_zone_count: 3
       nat_gateway_mode: per-az
   required:
+    - region
     - cidr
     - availability_zone_count
     - nat_gateway_mode
   properties:
+    region:
+      type: string
+      title: AWS Region
+      description: |
+        AWS region to provision the VPC in. Cannot be changed after creation —
+        moving regions requires a new VPC and migrating workloads.
+      default: us-west-2
+      enum:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-west-2
+        - eu-central-1
+        - ap-northeast-1
+        - ap-southeast-1
+        - ap-southeast-2
+      $md.immutable: true
     cidr:
       type: string
       title: VPC CIDR
@@ -80,6 +100,7 @@ steps:
 
 ui:
   ui:order:
+    - region
     - cidr
     - availability_zone_count
     - nat_gateway_mode

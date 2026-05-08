@@ -24,6 +24,10 @@ variable "enable_access_logs" {
   type    = bool
   default = false
 }
+variable "enable_event_notifications" {
+  type    = bool
+  default = false
+}
 variable "enable_intelligent_tiering" {
   type    = bool
   default = false
@@ -70,6 +74,10 @@ variable "object_ownership" {
 variable "presigned_url_expiration_seconds" {
   type    = number
   default = 900
+}
+variable "replication_destination_bucket_arn" {
+  type    = string
+  default = ""
 }
 variable "versioning" {
   type = string

@@ -159,6 +159,22 @@ params:
       title: Intelligent Tiering
       description: Let S3 automatically move objects between tiers based on access patterns. Pairs well with unpredictable UGC traffic.
       default: false
+    enable_event_notifications:
+      type: boolean
+      title: Enable Event Notifications
+      description: |
+        Publish object-created events to an SNS topic. Useful for downstream
+        processing pipelines (image transcoding, AV scanning, etc.).
+      default: false
+    replication_destination_bucket_arn:
+      type: string
+      title: Replication Destination Bucket ARN
+      description: |
+        ARN of an S3 bucket in another region to replicate objects to. Leave
+        empty to disable cross-region replication. Replication runs continuously
+        for new objects and (when versioning is enabled) all object versions.
+      pattern: ^(|arn:aws:s3:::[a-z0-9][a-z0-9.-]*[a-z0-9])$
+      default: ""
 
 connections:
   required:
@@ -195,4 +211,6 @@ ui:
     - lifecycle_expire_after_days
     - enable_access_logs
     - enable_intelligent_tiering
+    - enable_event_notifications
+    - replication_destination_bucket_arn
     - "*"

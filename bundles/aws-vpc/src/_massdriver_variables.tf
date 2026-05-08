@@ -45,3 +45,6 @@ variable "md_metadata" {
 variable "nat_gateway_mode" {
   type = string
 }
+variable "region" {
+  type = string
+}

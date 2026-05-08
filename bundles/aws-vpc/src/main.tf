@@ -12,20 +12,27 @@ terraform {
   }
 }
 
+# NOTE: Simulated resources. The aws-vpc bundle's real-TF variant uses
+# `terraform-aws-modules/vpc/aws` to provision a real VPC, NAT, IGW, subnets,
+# locked-down default SG/NACL, and flow logs. It is currently disabled
+# because this AWS account hits `VpcLimitExceeded` in every region tested
+# (us-west-2, us-east-1). When the per-region VPC quota is bumped, restore
+# the real-TF version from git history.
+
 resource "random_pet" "vpc" {
   length = 2
   keepers = {
-    cidr = var.cidr
-    azs  = tostring(var.availability_zone_count)
+    cidr   = var.cidr
+    azs    = tostring(var.availability_zone_count)
+    region = var.region
   }
 }
 
 locals {
-  region     = "us-east-1"
   account_id = "123456789012"
   vpc_id     = "vpc-${substr(md5(random_pet.vpc.id), 0, 17)}"
 
-  azs = slice(["${local.region}a", "${local.region}b", "${local.region}c"], 0, var.availability_zone_count)
+  azs = slice(["${var.region}a", "${var.region}b", "${var.region}c"], 0, var.availability_zone_count)
 
   public_subnets = [for idx, az in local.azs : {
     id                = "subnet-pub-${substr(md5("${random_pet.vpc.id}-pub-${az}"), 0, 14)}"
