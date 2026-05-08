@@ -1,0 +1,221 @@
+name: gcp-storage-bucket
+description: Google Cloud Storage bucket with configurable storage class, optional
+  versioning, and lifecycle rules. Enforces uniform bucket-level access and public
+  access prevention as non-negotiable security baselines. Grants the landing zone's
+  workload service account objectAdmin access. Emits a gcp-storage-bucket artifact
+  for downstream Cloud Run, BigQuery, and Vertex Workbench bundles.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-storage-bucket
+version: 0.1.1
+
+params:
+  required:
+    - storage_class
+    - location
+    - versioning_enabled
+    - lifecycle_rules
+  examples:
+    - __name: Staging
+      storage_class: STANDARD
+      location: US
+      versioning_enabled: false
+      lifecycle_rules:
+        - action:
+            type: Delete
+          condition:
+            age_days: 30
+    - __name: Durable
+      storage_class: STANDARD
+      location: US
+      versioning_enabled: true
+      lifecycle_rules: []
+    - __name: Archive
+      storage_class: COLDLINE
+      location: US
+      versioning_enabled: true
+      lifecycle_rules:
+        - action:
+            type: SetStorageClass
+            storage_class: ARCHIVE
+          condition:
+            age_days: 365
+  properties:
+    storage_class:
+      title: Storage Class
+      description: Storage class controls cost vs. access latency trade-offs. STANDARD
+        for frequently accessed data. NEARLINE for monthly access. COLDLINE for
+        quarterly access. ARCHIVE for annual or less frequent access.
+      type: string
+      enum:
+        - STANDARD
+        - NEARLINE
+        - COLDLINE
+        - ARCHIVE
+      default: STANDARD
+
+    location:
+      title: Location
+      description: GCS location for the bucket. Multi-regions (US, EU, ASIA) give
+        highest availability. Dual-regions (NAM4, EUR4, ASIA1) offer low-latency
+        redundancy. Single regions (e.g. us-central1) co-locate storage with compute.
+        Location cannot be changed after bucket creation.
+      type: string
+      $md.immutable: true
+      default: US
+      enum:
+        - US
+        - EU
+        - ASIA
+        - NAM4
+        - EUR4
+        - ASIA1
+        - us-central1
+        - us-east1
+        - us-east4
+        - us-west1
+        - us-west2
+        - europe-west1
+        - europe-west2
+        - europe-west3
+        - europe-west4
+        - asia-east1
+        - asia-northeast1
+        - asia-south1
+        - asia-southeast1
+        - australia-southeast1
+        - southamerica-east1
+
+    versioning_enabled:
+      title: Enable Versioning
+      description: When enabled, GCS retains previous versions of objects when they
+        are overwritten or deleted. Required for Archive lifecycle transitions and
+        recommended for durable datasets.
+      type: boolean
+      default: false
+
+    lifecycle_rules:
+      title: Lifecycle Rules
+      description: Ordered list of lifecycle rules applied to objects in this bucket.
+        Rules are evaluated in order; the first matching rule wins. Leave empty
+        for no automated lifecycle management.
+      type: array
+      default: []
+      items:
+        type: object
+        required:
+          - action
+          - condition
+        properties:
+          action:
+            title: Action
+            description: What to do when the condition is met.
+            type: object
+            required:
+              - type
+            properties:
+              type:
+                title: Action Type
+                description: "Delete: permanently removes matched objects. SetStorageClass:
+                  transitions matched objects to the target storage class."
+                type: string
+                enum:
+                  - Delete
+                  - SetStorageClass
+            dependencies:
+              type:
+                oneOf:
+                  - properties:
+                      type:
+                        const: SetStorageClass
+                      storage_class:
+                        title: Target Storage Class
+                        description: Storage class to transition matched objects into.
+                          Only valid when action type is SetStorageClass.
+                        type: string
+                        enum:
+                          - NEARLINE
+                          - COLDLINE
+                          - ARCHIVE
+                    required:
+                      - storage_class
+                  - properties:
+                      type:
+                        const: Delete
+          condition:
+            title: Condition
+            description: When to apply the action.
+            type: object
+            required:
+              - age_days
+            properties:
+              age_days:
+                title: Age (days)
+                description: Apply the action to objects that are at least this many
+                  days old.
+                type: integer
+                minimum: 1
+              with_state:
+                title: Object State Filter
+                description: "Restrict the rule to objects in a particular versioning
+                  state. LIVE: current versions only. ARCHIVED: non-current versions
+                  only. ANY: all versions. Omit to match all states."
+                type: string
+                enum:
+                  - LIVE
+                  - ARCHIVED
+                  - ANY
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+artifacts:
+  required:
+    - storage_bucket
+  properties:
+    storage_bucket:
+      $ref: catalog-demo/gcp-storage-bucket
+      title: GCP Storage Bucket
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - storage_class
+    - location
+    - versioning_enabled
+    - lifecycle_rules
+    - "*"
+  properties:
+    versioning_enabled:
+      ui:widget: checkbox
+    lifecycle_rules:
+      items:
+        ui:order:
+          - action
+          - condition
+          - "*"
+        properties:
+          action:
+            ui:order:
+              - type
+              - storage_class
+              - "*"
+          condition:
+            ui:order:
+              - age_days
+              - with_state
+              - "*"

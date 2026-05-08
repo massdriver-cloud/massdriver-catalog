@@ -1,0 +1,9 @@
+skip-check:
+  # CKV_GCP_83: PubSub Topics encrypted with Customer Supplied Encryption Keys (CSEK)
+  # CSEK requires the caller to manage raw AES-256 keys and pass them on every API
+  # call — an operational burden that GCP itself recommends against for most workloads.
+  # Google-managed encryption (default) and CMEK via Cloud KMS are both acceptable
+  # alternatives that satisfy encryption-at-rest requirements without CSEK complexity.
+  # This skip applies to all environments; if CMEK is required, add a kms_key_name
+  # param and wire it to the google_pubsub_topic resources, then remove this skip.
+  - CKV_GCP_83

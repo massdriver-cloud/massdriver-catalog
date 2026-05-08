@@ -1,0 +1,260 @@
+name: gcp-cloud-run-service
+description: Google Cloud Run v2 service with auto-binding IAM for upstream data
+  artifacts. Provisions the Cloud Run service running as the landing zone's workload
+  service account, and automatically grants the service account the appropriate IAM
+  role on any connected upstream artifact (Pub/Sub publisher, BigQuery dataEditor,
+  GCS objectUser). Emits a gcp-cloud-run-service artifact for downstream event sources
+  (Scheduler, Pub/Sub push) to use for invoking the service.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-cloud-run-service
+version: 0.1.1
+
+params:
+  required:
+    - image
+    - port
+    - cpu
+    - memory
+    - min_instances
+    - max_instances
+    - ingress
+    - allow_unauthenticated
+  examples:
+    - __name: Internal
+      image: gcr.io/cloudrun/hello
+      port: 8080
+      cpu: "1"
+      memory: 512Mi
+      min_instances: 0
+      max_instances: 10
+      ingress: internal
+      allow_unauthenticated: false
+    - __name: Public API
+      image: gcr.io/cloudrun/hello
+      port: 8080
+      cpu: "2"
+      memory: 1Gi
+      min_instances: 1
+      max_instances: 100
+      ingress: all
+      allow_unauthenticated: true
+    - __name: Worker
+      image: gcr.io/cloudrun/hello
+      port: 8080
+      cpu: "2"
+      memory: 2Gi
+      min_instances: 1
+      max_instances: 50
+      ingress: internal
+      allow_unauthenticated: false
+
+  properties:
+    image:
+      title: Container Image
+      description: Fully-qualified container image reference to deploy. Supports
+        Docker Hub, Google Artifact Registry, and GCR images. Defaults to the Cloud
+        Run hello-world image so the bundle is deployable out of the box before your
+        application image is ready. Pin to a digest (image@sha256:...) rather than
+        a mutable tag for production deployments.
+      type: string
+      default: gcr.io/cloudrun/hello
+
+    port:
+      title: Container Port
+      description: TCP port that your container listens on. Cloud Run sends all HTTP/2
+        and HTTP/1.1 traffic to this port. Must match what the running process actually
+        binds — a mismatch causes revision-failed-readiness errors and Cloud Run will
+        roll back the revision.
+      type: integer
+      minimum: 1
+      maximum: 65535
+      default: 8080
+
+    cpu:
+      title: CPU
+      description: Number of vCPUs allocated to each container instance. Cloud Run
+        supports 1, 2, 4, and 8 vCPUs. Values above 1 require at least 512Mi memory.
+        CPU is only allocated while a request is being processed unless min_instances
+        is greater than 0 (always-on). Higher CPU allows more concurrent goroutines
+        or threads within a single instance before autoscaling triggers.
+      type: string
+      default: "1"
+      enum:
+        - "1"
+        - "2"
+        - "4"
+        - "8"
+
+    memory:
+      title: Memory
+      description: Memory allocated to each container instance. Must be at least
+        512Mi when CPU is 2 or higher. Cloud Run enforces CPU-to-memory ratios —
+        if you increase CPU, you may need to increase memory too to avoid a deploy
+        error. For workers processing large payloads, start with 2Gi and tune down.
+      type: string
+      default: 512Mi
+      enum:
+        - 256Mi
+        - 512Mi
+        - 1Gi
+        - 2Gi
+        - 4Gi
+        - 8Gi
+        - 16Gi
+        - 32Gi
+
+    min_instances:
+      title: Minimum Instances
+      description: Minimum number of container instances to keep running at all times.
+        Set to 0 for scale-to-zero (cost-efficient for low-traffic or batch workloads).
+        Set to 1 or higher to eliminate cold starts. Any value above 0 disables
+        scale-to-zero — you are billed for idle capacity continuously.
+      type: integer
+      minimum: 0
+      default: 0
+
+    max_instances:
+      title: Maximum Instances
+      description: Maximum number of container instances Cloud Run will scale to.
+        Cloud Run default is 100. Reduce this to cap costs or to protect downstream
+        databases from connection storms. Increasing beyond 100 requires a quota
+        request in GCP.
+      type: integer
+      minimum: 1
+      default: 100
+
+    ingress:
+      title: Ingress
+      description: Controls which traffic sources can reach the service. `internal`
+        restricts access to VPC networks and Cloud Load Balancing in the same project.
+        `internal-and-cloud-load-balancing` adds Google Cloud Load Balancing traffic.
+        `all` allows all internet traffic to reach the service directly via its
+        .run.app URL. Changing ingress settings triggers a full revision replacement
+        with a brief cold start.
+      type: string
+      default: internal
+      enum:
+        - all
+        - internal
+        - internal-and-cloud-load-balancing
+
+    allow_unauthenticated:
+      title: Allow Unauthenticated Requests
+      description: When true, grants the `roles/run.invoker` IAM role to `allUsers`
+        on this service, making the .run.app URL publicly accessible without a Bearer
+        token. Required for the Public API preset when you want anonymous access.
+        When false, callers must present a valid GCP identity token — use this for
+        internal APIs and workers. Has no effect on ingress routing — set `ingress`
+        to `all` separately if you want public network access.
+      type: boolean
+      default: false
+
+    push_ack_deadline_seconds:
+      title: Push Subscription Ack Deadline (seconds)
+      description: Maximum time Pub/Sub waits for the service to acknowledge a push
+        message before redelivering it. Range is 10–600 seconds. Only used when
+        `incoming_topic` is connected. Set this to at least as long as your handler's
+        maximum processing time. If your handler cannot finish within 600 seconds,
+        acknowledge early and process asynchronously.
+      type: integer
+      minimum: 10
+      maximum: 600
+      default: 60
+
+    vpc_egress:
+      title: VPC Egress
+      description: Controls which traffic is routed through the VPC connector. Only
+        used when `vpc_connector` is connected. `PRIVATE_RANGES_ONLY` routes RFC1918
+        traffic (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) through the connector;
+        public destinations still egress directly. `ALL_TRAFFIC` forces all outbound
+        traffic — including public API calls — through the connector and VPC. Use
+        `ALL_TRAFFIC` when the downstream endpoint (e.g., a Kafka broker) is on a
+        private IP behind the connector.
+      type: string
+      default: PRIVATE_RANGES_ONLY
+      enum:
+        - PRIVATE_RANGES_ONLY
+        - ALL_TRAFFIC
+
+    deletion_protection:
+      title: Enable Deletion Protection
+      description: When enabled, the Cloud Run service cannot be destroyed until
+        deletion protection is first disabled in a prior apply (two-step destroy).
+        Default is false — Cloud Run services are stateless compute, so destroying
+        one does not lose data. Set to true in production to prevent accidental
+        tear-down.
+      type: boolean
+      default: false
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+    # Optional upstream artifact connections — omit from canvas to skip IAM binding.
+    # When connected, the bundle automatically grants the workload service account
+    # the appropriate role on the upstream resource (see src/iam.tf for binding logic).
+    pubsub_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: Pub/Sub Topic (optional)
+
+    bigquery_dataset:
+      $ref: catalog-demo/gcp-bigquery-dataset
+      title: BigQuery Dataset (optional)
+
+    storage_bucket:
+      $ref: catalog-demo/gcp-storage-bucket
+      title: Storage Bucket (optional)
+
+    # incoming_topic: when wired, this bundle creates a Pub/Sub push subscription
+    # that delivers messages FROM this topic INTO this Cloud Run service's URL.
+    # The subscription uses a dedicated push_invoker SA for OIDC authentication —
+    # separate from the runtime SA that runs the container.
+    incoming_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: Incoming Pub/Sub Topic (optional — creates push subscription)
+
+    # vpc_connector: when wired, attaches the connector to this Cloud Run service
+    # for private VPC egress. The connector must be in the same region as the service.
+    vpc_connector:
+      $ref: catalog-demo/gcp-vpc-connector
+      title: VPC Connector (optional — private egress)
+
+artifacts:
+  required:
+    - cloud_run_service
+  properties:
+    cloud_run_service:
+      $ref: catalog-demo/gcp-cloud-run-service
+      title: GCP Cloud Run Service
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - image
+    - port
+    - cpu
+    - memory
+    - min_instances
+    - max_instances
+    - ingress
+    - allow_unauthenticated
+    - vpc_egress
+    - push_ack_deadline_seconds
+    - "*"
+  properties:
+    allow_unauthenticated:
+      ui:widget: checkbox

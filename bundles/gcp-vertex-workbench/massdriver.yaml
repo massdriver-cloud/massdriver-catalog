@@ -1,0 +1,139 @@
+name: gcp-vertex-workbench
+description: Vertex AI Workbench instance for interactive data science. Provisions
+  a dedicated per-instance service account with scoped IAM access to any connected
+  data resources. Automatically grants the instance SA read-only access to a connected
+  BigQuery dataset when wired. Emits a gcp-vertex-workbench artifact carrying the
+  instance name, zone, JupyterLab proxy URL, and SA identity.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-vertex-workbench
+version: 0.1.1
+
+params:
+  required:
+    - machine_type
+    - boot_disk_size_gb
+    - idle_shutdown_timeout_minutes
+  examples:
+    - __name: Small
+      machine_type: e2-standard-4
+      boot_disk_size_gb: 150
+      idle_shutdown_timeout_minutes: 180
+    - __name: Medium
+      machine_type: n1-standard-8
+      boot_disk_size_gb: 200
+      idle_shutdown_timeout_minutes: 180
+    - __name: GPU
+      machine_type: n1-standard-8
+      boot_disk_size_gb: 200
+      idle_shutdown_timeout_minutes: 180
+      accelerator_type: NVIDIA_TESLA_T4
+      accelerator_count: 1
+
+  properties:
+    machine_type:
+      title: Machine Type
+      description: GCP machine type for the Workbench instance. E2 types are cost-efficient
+        general-purpose machines. N1 types are required when attaching GPUs. N2 types
+        offer higher per-core performance for CPU-intensive workloads. Machine type
+        can be changed in-place by redeploying — the instance is stopped and restarted.
+      type: string
+      default: e2-standard-4
+      enum:
+        - e2-standard-2
+        - e2-standard-4
+        - e2-standard-8
+        - e2-standard-16
+        - n1-standard-4
+        - n1-standard-8
+        - n1-standard-16
+        - n1-standard-32
+        - n2-standard-4
+        - n2-standard-8
+        - n2-standard-16
+
+    boot_disk_size_gb:
+      title: Boot Disk Size (GB)
+      description: Size of the boot disk in gigabytes. The boot disk holds the OS,
+        JupyterLab environment, conda/pip packages, and local notebook files. Increase
+        if you expect to install large libraries (e.g., TensorFlow with CUDA) or store
+        interim data locally. Boot disk size can only be increased in-place, not decreased.
+        Minimum 150 GB (enforced by the Workbench base image), maximum 4000 GB.
+      type: integer
+      minimum: 150
+      maximum: 4000
+      default: 150
+
+    idle_shutdown_timeout_minutes:
+      title: Idle Shutdown Timeout (minutes)
+      description: Number of minutes of kernel inactivity before the instance automatically
+        shuts down. Set to 0 to disable idle shutdown entirely (not recommended in
+        shared projects — you will be billed continuously). Default 180 minutes (3 hours)
+        is a good balance for interactive data science sessions. The instance can be
+        manually restarted from the Massdriver canvas or via gcloud after an idle shutdown.
+      type: integer
+      minimum: 0
+      default: 180
+
+    accelerator_type:
+      title: GPU Accelerator Type
+      description: GPU accelerator to attach to the instance. Leave empty for CPU-only
+        workloads. GPUs require an N1 machine type — do not combine with E2 or N2 types.
+        Attaching a GPU changes the underlying VM and will cause a brief interruption
+        if changed in-place.
+      type: string
+      enum:
+        - NVIDIA_TESLA_T4
+        - NVIDIA_TESLA_V100
+        - NVIDIA_TESLA_A100
+        - NVIDIA_L4
+
+    accelerator_count:
+      title: GPU Count
+      description: Number of GPU accelerators to attach. Must be set alongside accelerator_type.
+        Typical values are 1, 2, or 4 depending on the GPU type and quota.
+      type: integer
+      minimum: 1
+      maximum: 8
+      default: 1
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+    # Optional — when wired, the bundle automatically grants the instance SA
+    # roles/bigquery.dataViewer on this dataset (read-only). Disconnect to remove.
+    bigquery_dataset:
+      $ref: catalog-demo/gcp-bigquery-dataset
+      title: BigQuery Dataset (optional — grants read-only access to instance SA)
+
+artifacts:
+  required:
+    - vertex_workbench
+  properties:
+    vertex_workbench:
+      $ref: catalog-demo/gcp-vertex-workbench
+      title: GCP Vertex AI Workbench Instance
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - machine_type
+    - boot_disk_size_gb
+    - idle_shutdown_timeout_minutes
+    - accelerator_type
+    - accelerator_count
+    - "*"
