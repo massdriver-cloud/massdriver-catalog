@@ -1,6 +1,6 @@
 name: bucket
 label: Storage Bucket
-icon: https://raw.githubusercontent.com/YOUR_ORG/massdriver-catalog/main/bundles/bucket/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
 
 ui:
   connectionOrientation: link

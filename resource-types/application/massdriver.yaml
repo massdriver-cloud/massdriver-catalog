@@ -1,6 +1,6 @@
 name: application
 label: Application
-icon: https://raw.githubusercontent.com/YOUR_ORG/massdriver-catalog/main/bundles/application/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/application/icon.svg
 
 ui:
   connectionOrientation: link

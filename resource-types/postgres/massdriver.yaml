@@ -1,6 +1,6 @@
 name: postgres
 label: PostgreSQL
-icon: https://raw.githubusercontent.com/YOUR_ORG/massdriver-catalog/main/bundles/postgres/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
 
 ui:
   connectionOrientation: link
