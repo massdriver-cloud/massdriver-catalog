@@ -243,6 +243,75 @@ make publish-platforms
 
 This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for publishing.
 
+## Tour of the Demo Bundles & Resource Types
+
+The bundles and resource types ship pre-wired with realistic shapes so you can poke at the UX on the canvas before writing any IaC. Below is a quick map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want to find a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
+
+> [!TIP]
+> The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + connections on every `mass bundle build`, so you can change the schema and your variables stay in sync.
+
+### `network/` bundle ↔ `network` resource type
+
+Produces a virtual network with subnets that other bundles attach to.
+
+- **`params.examples`**: Small (/24 dev) · Medium (staging) · Large (production multi-AZ) — preset dropdown in the UI.
+- **`$md.immutable: true`** on `cidr` — once set, the form blocks edits.
+- **`message.pattern`** override on the CIDR pattern (so users see "Must be a valid IPv4 CIDR block, like 10.0.0.0/16" instead of a raw regex).
+- **Conditional `dependencies`** block: `flow_log_retention_days` is required only when `enable_flow_logs` is `true`.
+- **Array constraints** on `subnets` (`minItems: 1`, `maxItems: 12`, `uniqueItems`) and `dns_servers` (`maxItems: 4`).
+- **UI**: `ui:widget: updown` on retention, `ui:help` on every non-obvious field, `ui:options.orderable/addable/removable` on the subnets array.
+- **Alarms** (`src/alarms.tf`): `Egress Throughput Anomaly`, `NAT Port Exhaustion`.
+
+### `postgres/` bundle ↔ `postgres` resource type
+
+Produces a PostgreSQL instance, depends on a `network`.
+
+- **Human-readable version selector** via `oneOf` + `const` + `title` (Postgres `12` is labelled "out of community support — upgrade soon"; `16` is labelled "current").
+- **`$md.enum`** on `subnet_filter` — populates a dropdown from the linked network's `.subnets`.
+- **Multi-annotation combo** on `username`: `$md.immutable: true` + `$md.copyable: false` (won't change post-deploy, won't carry into a cloned env).
+- **`$md.sensitive: true`** on the resource-type's `auth.password` (masks the value in the UI and audit-logs every download).
+- **T-shirt sizing** (`xs`/`s`/`m`/`l`/`xl`), `allocated_storage_gb` with `multipleOf: 10`, `backup_retention_days` with `minimum`/`maximum`, conditional `multi_az_zones` when `high_availability: true`.
+- **Alarms**: `High Connections`, `Storage 80% Full`, and a conditional `Replication Lag` that only emits when HA is on.
+
+### `mysql/` bundle ↔ `mysql` resource type
+
+Same shape as `postgres/`, with MySQL-specific touches:
+
+- **`character_set` and `collation`** enums, both `$md.immutable: true`.
+- **Conditional `slow_query_log_long_query_time_seconds`** required only when `slow_query_log_enabled: true`.
+- **`username` capped at 32 chars** via `maxLength` (MySQL's username limit).
+- **Alarms**: conditional `Slow Query Rate`, conditional `Replication Lag`, `Storage 80% Full`.
+
+### `bucket/` bundle ↔ `bucket` resource type
+
+Object storage. No upstream connections.
+
+- **`access_level`** as `oneOf` with `title` labels ("Private — no anonymous access (recommended)", "Public Read+Write — rarely safe").
+- **`object_lock`** marked `$md.immutable: true` (one-way switch) with a `dependencies` block requiring `object_lock_retention_days` and `versioning_enabled` when on.
+- **`lifecycle_rules`** array (max 8, unique items) with per-rule transition + storage class enum; UI lets you reorder / add / remove rules.
+- **CORS origins** array with origin-URL pattern validation.
+- **Alarms**: `5xx Error Rate`, conditional `Anonymous Access Anomaly` (only when the bucket is private).
+
+### `application/` bundle ↔ `application` resource type
+
+A containerized app that connects to a network + Postgres + (optional) bucket.
+
+- **Full `app:` block** showcasing both halves:
+  - **`app.envs`** — JQ expressions that lift connection values into env vars (`DATABASE_HOST`, `DATABASE_URL` via string-concat, `BUCKET_NAME` with `// ""` fallback when no bucket is linked).
+  - **`app.secrets`** — declares `JWT_SECRET` (`required: true`), `SENTRY_DSN` and `GOOGLE_OAUTH_CLIENT_SECRET` (optional). The UI blocks deploy until required secrets are set.
+- **`$md.enum`** on `database_policy` and `bucket_policy` — populates from the linked resource's `.policies` array.
+- **`environment` and `log_level`** as `oneOf` enums with explanatory `title` labels.
+- **`cpu_limit`/`memory_limit`** as plain `enum`s modeled on Kubernetes resource strings.
+- **`image` regex** that requires `image:tag` or `image@digest` (no implicit `:latest`).
+- **Alarms**: `Pod Restart Rate`, `5xx Error Rate`, `p95 Latency`.
+
+### `resource-types/*/instructions/`
+
+Each resource type ships per-source form-fill walkthroughs that render alongside the resource creation form in the Massdriver UI. They tell operators how to harvest each schema field from the matching cloud (`AWS RDS PostgreSQL.md`, `Azure VNet.md`, `GCP Cloud Storage.md`, etc.) or from a self-hosted setup. Same pattern as `platforms/<cloud>/instructions/` — replace or extend with your team's onboarding steps.
+
+> [!NOTE]
+> The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 1.4`. Reference these when you wire your real cloud resources up.
+
 ## Customizing Your Catalog
 
 ### Prerequisites
