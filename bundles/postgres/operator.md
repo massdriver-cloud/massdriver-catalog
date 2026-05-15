@@ -2,208 +2,179 @@
 templating: mustache
 ---
 
-# 🐘 PostgreSQL Bundle Runbook
+# PostgreSQL Runbook
 
-> **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
+> **Templating context:** `slug`, `params`, `connections.<name>`, `artifacts.<name>`.
 
-## Package Information
+## At a glance
 
-**Slug:** `{{slug}}`
-
-### Configuration
-
-**PostgreSQL Version:** `{{params.db_version}}`
-
-**Database Name:** `{{params.database_name}}`
-
-**Username:** `{{params.username}}`
-
-### Connected Network
-
-{{#connections.network}}
-**Network ID:** `{{connections.network.id}}`
-
-**Network CIDR:** `{{connections.network.cidr}}`
-{{/connections.network}}
+| Field | Value |
+|-------|-------|
+| Instance slug | `{{slug}}` |
+| Database ID | `{{artifacts.database.id}}` |
+| Version | `{{artifacts.database.version}}` |
+| Host | `{{artifacts.database.auth.hostname}}` |
+| Port | `{{artifacts.database.auth.port}}` |
+| Database | `{{artifacts.database.auth.database}}` |
+| Username | `{{artifacts.database.auth.username}}` |
+| Instance size | `{{params.instance_size}}` |
+| Storage | `{{params.allocated_storage_gb}} GB` |
+| HA | `{{params.high_availability}}` |
+| Backup retention | `{{params.backup_retention_days}}d` |
+| Network | `{{connections.network.id}}` ({{connections.network.cidr}}) |
 
 ---
 
-## Welcome to Your Runbook! 👋
+## Connecting in a hurry
 
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
+```bash
+PGPASSWORD={{artifacts.database.auth.password}} psql \
+  -h {{artifacts.database.auth.hostname}} \
+  -p {{artifacts.database.auth.port}} \
+  -U {{artifacts.database.auth.username}} \
+  -d {{artifacts.database.auth.database}}
+```
 
-### 📝 How to Use This File
+Connection string form (for tools that want a DSN):
 
-This `operator.md` file lives in the root of your bundle directory (`./bundles/postgres/operator.md`). When you edit it, your custom runbook will appear in the Massdriver UI, giving your team instant access to operational documentation right where they need it.
+```
+postgresql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}
+```
 
-### 💡 What to Include
-
-Consider adding:
-
-- **Common Operations**: How to scale, update, or modify this infrastructure
-- **Troubleshooting Guide**: Known issues and their solutions
-- **Monitoring & Alerts**: What to watch and when to act
-- **Disaster Recovery**: Backup and restore procedures
-- **Configuration Tips**: Best practices and gotchas
-- **Useful Commands**: CLI commands, queries, or scripts
-- **Contact Information**: Who to reach for help
-
-### ✨ Pro Tips
-
-- Use clear headings and sections
-- Include code blocks with examples
-- Add links to relevant documentation
-- Keep it updated as you learn more
-- Make it searchable with good keywords
+> The password above is rendered from the deployed resource. Avoid copying it into chat or tickets — share via your secret manager.
 
 ---
 
-## PostgreSQL Operations
+## Active alarms — what they mean
 
-### Database Configuration
+### High Connections (> 80)
 
-**Database ID:** `{{artifacts.database.id}}`
+The pool is saturating. New connections will start timing out. Common causes: a deploy that leaks connections, an in-memory cache restart hammering the DB, or a queue worker fan-out.
 
-**PostgreSQL Version:** `{{params.db_version}}`
-
-### Connection Details
-
-**Hostname:** `{{artifacts.database.auth.hostname}}`
-
-**Port:** `{{artifacts.database.auth.port}}`
-
-**Database Name:** `{{artifacts.database.auth.database}}`
-
-**Username:** `{{artifacts.database.auth.username}}`
-
-### Connecting to the Database
-
-```bash
-# Connect to PostgreSQL interactively
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}}
-
-# Connect with connection string format
-psql "postgresql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}"
+```sql
+-- Top offenders right now
+SELECT
+  application_name,
+  client_addr,
+  state,
+  count(*) AS conns,
+  sum(EXTRACT(EPOCH FROM (now() - state_change))) AS sec_in_state
+FROM pg_stat_activity
+WHERE datname = '{{artifacts.database.auth.database}}'
+GROUP BY application_name, client_addr, state
+ORDER BY conns DESC;
 ```
 
-### Common Operations
-
-**List all databases:**
-
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "\l"
+```sql
+-- Kill idle-in-transaction sessions older than 5 minutes
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '{{artifacts.database.auth.database}}'
+  AND state = 'idle in transaction'
+  AND state_change < now() - interval '5 minutes';
 ```
 
-**List all tables:**
+If the offender is a known application, redeploy with a smaller pool. If you can't identify the source, scale the database **temporarily** (next size up) and open an incident.
 
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "\dt"
+### Storage 80% Full
+
+Disk pressure. PostgreSQL stops accepting writes near 100%. Order of triage:
+
+```sql
+-- Where is the space going?
+SELECT
+  schemaname,
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname || '.' || tablename)) AS size
+FROM pg_tables
+WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC
+LIMIT 10;
 ```
 
-**Check database size:**
-
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "SELECT
-           pg_database.datname AS database_name,
-           pg_size_pretty(pg_database_size(pg_database.datname)) AS size
-         FROM pg_database
-         WHERE datname = '{{artifacts.database.auth.database}}';"
+```sql
+-- Bloat from un-vacuumed dead tuples
+SELECT
+  relname,
+  n_dead_tup,
+  pg_size_pretty(pg_relation_size(relid)) AS size
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC
+LIMIT 10;
 ```
 
-**Check connection and version:**
+Fixes, in order: `VACUUM (FULL)` a known-bloated table (locks it!), drop unneeded indexes, increase `allocated_storage_gb` on this bundle's parameters and redeploy.
 
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "SELECT version(), current_user, current_database();"
+### Replication Lag (> 30s) — HA only
+
+The standby is falling behind primary. Failover within the next few minutes would lose committed data.
+
+```sql
+-- From primary
+SELECT
+  client_addr,
+  state,
+  pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) AS lag_bytes
+FROM pg_stat_replication;
 ```
 
-**Show active connections:**
+Common causes: long-running transaction on the primary blocking WAL apply on the replica, network saturation between AZs, or under-sized replica. Page the on-call DBA if lag keeps growing.
+
+---
+
+## Common operations
+
+### Database size
 
 ```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "SELECT pid, usename, application_name, client_addr, state, query_start
-         FROM pg_stat_activity
-         WHERE datname = '{{artifacts.database.auth.database}}';"
+PGPASSWORD={{artifacts.database.auth.password}} psql \
+  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
+  -c "SELECT pg_size_pretty(pg_database_size('{{artifacts.database.auth.database}}'));"
 ```
 
-**Check table sizes:**
+### Take a backup (out-of-band)
 
 ```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -c "SELECT
-           schemaname,
-           tablename,
-           pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
-         FROM pg_tables
-         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-         ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
-         LIMIT 10;"
+PGPASSWORD={{artifacts.database.auth.password}} pg_dump \
+  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
+  -F c -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).dump
 ```
 
-**Create a backup:**
+### Restore from a `pg_dump -F c` file
 
 ```bash
-# Custom format (recommended, supports parallel restore)
-PGPASSWORD={{artifacts.database.auth.password}} pg_dump -h {{artifacts.database.auth.hostname}} \
-        -U {{artifacts.database.auth.username}} \
-        -d {{artifacts.database.auth.database}} \
-        -p {{artifacts.database.auth.port}} \
-        -F c \
-        -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).dump
-
-# Plain SQL format
-PGPASSWORD={{artifacts.database.auth.password}} pg_dump -h {{artifacts.database.auth.hostname}} \
-        -U {{artifacts.database.auth.username}} \
-        -d {{artifacts.database.auth.database}} \
-        -p {{artifacts.database.auth.port}} \
-        -F p \
-        -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
+PGPASSWORD={{artifacts.database.auth.password}} pg_restore \
+  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
+  --clean --if-exists \
+  backup-{{artifacts.database.auth.database}}-YYYYMMDD-HHMMSS.dump
 ```
 
-**Restore from backup:**
+### Manually trigger failover (HA only)
+
+Use the bundle's failover button in Massdriver. If that's unavailable, your cloud provider's CLI:
 
 ```bash
-# Restore from custom format
-PGPASSWORD={{artifacts.database.auth.password}} pg_restore -h {{artifacts.database.auth.hostname}} \
-           -U {{artifacts.database.auth.username}} \
-           -d {{artifacts.database.auth.database}} \
-           -p {{artifacts.database.auth.port}} \
-           -c \
-           backup-{{artifacts.database.auth.database}}-20260123-120000.dump
-
-# Restore from SQL format
-PGPASSWORD={{artifacts.database.auth.password}} psql -h {{artifacts.database.auth.hostname}} \
-     -U {{artifacts.database.auth.username}} \
-     -d {{artifacts.database.auth.database}} \
-     -p {{artifacts.database.auth.port}} \
-     -f backup-{{artifacts.database.auth.database}}-20260123-120000.sql
+# AWS RDS example
+aws rds reboot-db-instance --db-instance-identifier {{artifacts.database.id}} --force-failover
 ```
 
 ---
 
-**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md) 🎯
+## Disaster recovery
+
+`database_name`, `username`, and `db_version` are **immutable**. Changing any of them in Massdriver triggers a destroy and recreate — your data goes with the instance.
+
+If you need to change any of those, follow the migration playbook:
+
+1. Take an out-of-band backup (see above).
+2. Deploy a new postgres bundle instance with the new values.
+3. Restore the dump into the new instance.
+4. Update each consuming app's connection link to point at the new instance.
+5. Verify, then destroy the old instance.
+
+---
+
+**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md

@@ -1,54 +1,146 @@
 name: application
-description: "Example application bundle (edit in ./bundles/application/massdriver.yaml)"
+description: >-
+  Example application bundle — container image, replica count, domain,
+  CPU/memory limits, log level, plus an `app:` block that lifts connection
+  values into env vars and declares the secrets the workload expects.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application
-version: 0.0.0
+version: 0.1.0
 
 params:
-  required:
-    - image
-    - replicas
-    - domain_name
   examples:
-    - __name: Development (edit in ./bundles/application/massdriver.yaml)
+    - __name: Development (single replica, debug logging)
       image: "nginx:latest"
       replicas: 1
       port: 8080
       domain_name: "dev.example.com"
-    - __name: Production (edit in ./bundles/application/massdriver.yaml)
+      environment: "development"
+      log_level: "debug"
+      cpu_limit: "100m"
+      memory_limit: "256Mi"
+      health_check_path: "/health"
+    - __name: Staging (two replicas, info logging)
+      image: "nginx:stable"
+      replicas: 2
+      port: 8080
+      domain_name: "stg.example.com"
+      environment: "staging"
+      log_level: "info"
+      cpu_limit: "500m"
+      memory_limit: "512Mi"
+      health_check_path: "/health"
+    - __name: Production (three replicas, warn logging)
       image: "nginx:stable"
       replicas: 3
       port: 8080
       domain_name: "app.example.com"
+      environment: "production"
+      log_level: "warn"
+      cpu_limit: "1000m"
+      memory_limit: "1Gi"
+      health_check_path: "/health"
+  required:
+    - image
+    - replicas
+    - port
+    - domain_name
+    - environment
   properties:
     image:
       type: string
       title: Container Image
-      description: Container image to deploy
+      description: Container image reference, including a tag or digest. Avoid `:latest` outside of development.
       default: "nginx:latest"
+      minLength: 1
+      pattern: "^[^[:space:]]+:[^[:space:]]+$"
+      message:
+        pattern: "Must be image:tag or image@digest format (no spaces)."
+      examples:
+        - "nginx:stable"
+        - "ghcr.io/acme/api:1.42.0"
+        - "ghcr.io/acme/api@sha256:7a2f3e9b..."
     replicas:
       type: integer
       title: Replicas
-      description: Number of replicas to deploy
+      description: Number of running pods / instances.
       default: 2
       minimum: 1
-      maximum: 10
+      maximum: 50
     port:
       type: integer
-      title: Port
-      description: Port the application listens on
+      title: Container Port
+      description: Port the container listens on.
       default: 8080
       minimum: 1
       maximum: 65535
     domain_name:
       type: string
       title: Domain Name
-      description: Domain name for the application
+      description: Hostname the application is served at.
       default: "app.example.com"
-      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$
+      message:
+        pattern: "Must be a valid lowercase DNS name with at least one dot (e.g. app.example.com)."
+    environment:
+      type: string
+      title: Environment Tag
+      description: Logical environment this deployment represents. Surfaces in env vars and observability.
+      default: "production"
+      oneOf:
+        - const: "development"
+          title: "Development"
+        - const: "staging"
+          title: "Staging"
+        - const: "production"
+          title: "Production"
+    log_level:
+      type: string
+      title: Log Level
+      description: How chatty the application logs are.
+      default: "info"
+      oneOf:
+        - const: "debug"
+          title: "debug — everything (dev only)"
+        - const: "info"
+          title: "info — default"
+        - const: "warn"
+          title: "warn — only abnormal events"
+        - const: "error"
+          title: "error — failures only"
+    cpu_limit:
+      type: string
+      title: CPU Limit
+      description: Kubernetes-style CPU limit. `1000m` = 1 vCPU.
+      default: "500m"
+      enum:
+        - "100m"
+        - "250m"
+        - "500m"
+        - "1000m"
+        - "2000m"
+    memory_limit:
+      type: string
+      title: Memory Limit
+      description: Kubernetes-style memory limit.
+      default: "512Mi"
+      enum:
+        - "128Mi"
+        - "256Mi"
+        - "512Mi"
+        - "1Gi"
+        - "2Gi"
+        - "4Gi"
+    health_check_path:
+      type: string
+      title: Health Check Path
+      description: HTTP path the platform probes for liveness / readiness.
+      default: "/health"
+      pattern: ^/[^\s]*$
+      message:
+        pattern: "Must start with `/` and contain no spaces."
     database_policy:
       type: string
       title: Database Access Policy
-      description: Access policy to apply for database access
+      description: Access policy to apply for database access. Populated from the linked database's policies.
       $md.enum:
         connection: database
         options: .policies
@@ -56,7 +148,7 @@ params:
     bucket_policy:
       type: string
       title: Bucket Access Policy
-      description: Access policy to apply for bucket access
+      description: Access policy to apply for bucket access. Populated from the linked bucket's policies.
       $md.enum:
         connection: bucket
         options: .policies
@@ -72,10 +164,13 @@ connections:
   properties:
     network:
       $ref: network
+      title: Network
     database:
       $ref: postgres
+      title: PostgreSQL
     bucket:
       $ref: bucket
+      title: Storage Bucket
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
 # `artifacts:` until a backward-compatible rename ships.
@@ -85,17 +180,71 @@ artifacts:
   properties:
     application:
       $ref: application
+      title: Application
 
 steps:
   - path: src
     provisioner: opentofu:1.10
 
+app:
+  envs:
+    APP_ENV: .params.environment
+    LOG_LEVEL: .params.log_level
+    PORT: .params.port | tostring
+    HEALTH_CHECK_PATH: .params.health_check_path
+    DATABASE_HOST: .connections.database.auth.hostname
+    DATABASE_PORT: .connections.database.auth.port | tostring
+    DATABASE_NAME: .connections.database.auth.database
+    DATABASE_USER: .connections.database.auth.username
+    DATABASE_PASSWORD: .connections.database.auth.password
+    DATABASE_URL: >-
+      "postgresql://"
+      + .connections.database.auth.username + ":"
+      + .connections.database.auth.password + "@"
+      + .connections.database.auth.hostname + ":"
+      + (.connections.database.auth.port | tostring) + "/"
+      + .connections.database.auth.database
+    DATABASE_POLICY: .params.database_policy
+    BUCKET_NAME: .connections.bucket.name // ""
+    BUCKET_ENDPOINT: .connections.bucket.endpoint // ""
+    BUCKET_POLICY: .params.bucket_policy // ""
+  secrets:
+    JWT_SECRET:
+      title: JWT Signing Secret
+      description: Secret used to sign and verify JWTs. Generate with `openssl rand -base64 64`. Required.
+      required: true
+    SENTRY_DSN:
+      title: Sentry DSN
+      description: Sentry DSN URL for error reporting. Optional.
+      required: false
+    GOOGLE_OAUTH_CLIENT_SECRET:
+      title: Google OAuth Client Secret
+      description: OAuth client secret if the app supports Google sign-in. Optional.
+      required: false
+
 ui:
   ui:order:
     - image
     - replicas
+    - environment
+    - log_level
     - port
     - domain_name
+    - health_check_path
+    - cpu_limit
+    - memory_limit
     - database_policy
     - bucket_policy
     - "*"
+  image:
+    ui:help: "Pin to a tag or digest. Pulling `:latest` makes rollbacks ambiguous."
+    ui:placeholder: "ghcr.io/acme/api:1.42.0"
+  replicas:
+    ui:widget: updown
+    ui:help: "1 for dev, 2+ for staging, 3+ for production. Combine with HPA in your real IaC."
+  port:
+    ui:widget: updown
+  log_level:
+    ui:help: "`debug` floods logs and bloats your log-storage bill — keep it for dev / incident triage."
+  health_check_path:
+    ui:placeholder: "/health"

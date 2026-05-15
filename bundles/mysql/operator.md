@@ -2,164 +2,196 @@
 templating: mustache
 ---
 
-# 🐬 MySQL Bundle Runbook
+# MySQL Runbook
 
-> **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
+> **Templating context:** `slug`, `params`, `connections.<name>`, `artifacts.<name>`.
 
-## Package Information
+## At a glance
 
-**Slug:** `{{slug}}`
-
-### Configuration
-
-**MySQL Version:** `{{params.db_version}}`
-
-**Database Name:** `{{params.database_name}}`
-
-**Username:** `{{params.username}}`
-
-### Connected Network
-
-{{#connections.network}}
-**Network ID:** `{{connections.network.id}}`
-
-**Network CIDR:** `{{connections.network.cidr}}`
-{{/connections.network}}
-
----
-
-## Welcome to Your Runbook! 👋
-
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
-
-### 📝 How to Use This File
-
-This `operator.md` file lives in the root of your bundle directory (`./bundles/mysql/operator.md`). When you edit it, your custom runbook will appear in the Massdriver UI, giving your team instant access to operational documentation right where they need it.
-
-### 💡 What to Include
-
-Consider adding:
-
-- **Common Operations**: How to scale, update, or modify this infrastructure
-- **Troubleshooting Guide**: Known issues and their solutions
-- **Monitoring & Alerts**: What to watch and when to act
-- **Disaster Recovery**: Backup and restore procedures
-- **Configuration Tips**: Best practices and gotchas
-- **Useful Commands**: CLI commands, queries, or scripts
-- **Contact Information**: Who to reach for help
-
-### ✨ Pro Tips
-
-- Use clear headings and sections
-- Include code blocks with examples
-- Add links to relevant documentation
-- Keep it updated as you learn more
-- Make it searchable with good keywords
+| Field | Value |
+|-------|-------|
+| Instance slug | `{{slug}}` |
+| Database ID | `{{artifacts.database.id}}` |
+| Version | `{{artifacts.database.version}}` |
+| Host | `{{artifacts.database.auth.hostname}}` |
+| Port | `{{artifacts.database.auth.port}}` |
+| Database | `{{artifacts.database.auth.database}}` |
+| Username | `{{artifacts.database.auth.username}}` |
+| Character set | `{{params.character_set}}` |
+| Collation | `{{params.collation}}` |
+| Instance size | `{{params.instance_size}}` |
+| Storage | `{{params.allocated_storage_gb}} GB` |
+| HA | `{{params.high_availability}}` |
+| Backup retention | `{{params.backup_retention_days}}d` |
+| Slow log | `{{params.slow_query_log_enabled}}` |
+| Network | `{{connections.network.id}}` ({{connections.network.cidr}}) |
 
 ---
 
-## MySQL Operations
-
-### Database Configuration
-
-**Database ID:** `{{artifacts.database.id}}`
-
-**MySQL Version:** `{{params.db_version}}`
-
-### Connection Details
-
-**Hostname:** `{{artifacts.database.auth.hostname}}`
-
-**Port:** `{{artifacts.database.auth.port}}`
-
-**Database Name:** `{{artifacts.database.auth.database}}`
-
-**Username:** `{{artifacts.database.auth.username}}`
-
-### Connecting to the Database
+## Connecting in a hurry
 
 ```bash
-# Connect to MySQL interactively
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      {{artifacts.database.auth.database}}
+mysql \
+  -h {{artifacts.database.auth.hostname}} \
+  -P {{artifacts.database.auth.port}} \
+  -u {{artifacts.database.auth.username}} \
+  -p'{{artifacts.database.auth.password}}' \
+  {{artifacts.database.auth.database}}
 ```
 
-### Common Operations
+Connection string form:
 
-**Show all databases:**
-
-```bash
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      -e "SHOW DATABASES;"
+```
+mysql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}
 ```
 
-**Show tables in current database:**
+> Avoid pasting the password into chat — share via your secret manager.
+
+---
+
+## Active alarms — what they mean
+
+### Slow Query Rate (> 50/5min)
+
+A query, or a small set of queries, is regularly missing the `{{params.slow_query_log_long_query_time_seconds}}s` threshold. App requests are likely timing out.
 
 ```bash
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      {{artifacts.database.auth.database}} \
-      -e "SHOW TABLES;"
+# Top offenders from the slow query log
+mysql -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+      -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
+      mysql -e "
+SELECT
+  query_time,
+  rows_examined,
+  rows_sent,
+  CONVERT(sql_text USING utf8) AS query
+FROM mysql.slow_log
+WHERE start_time > NOW() - INTERVAL 1 HOUR
+ORDER BY query_time DESC
+LIMIT 20;"
 ```
 
-**Check database size:**
+```sql
+-- Performance schema — running queries right now
+SELECT
+  CONCAT(USER, '@', HOST) AS user,
+  DB,
+  TIME,
+  STATE,
+  SUBSTR(INFO, 1, 120) AS query
+FROM information_schema.processlist
+WHERE COMMAND != 'Sleep'
+ORDER BY TIME DESC;
+```
+
+```sql
+-- Get the EXPLAIN for one of them
+EXPLAIN ANALYZE <paste the slow query here>;
+```
+
+Fixes: add the missing index, rewrite the query, or use a covering index. If the query is from a known ORM, add a hint via the framework.
+
+### Replication Lag (> 30s) — HA only
+
+The replica is falling behind. A failover right now would lose committed data.
+
+```sql
+-- Run against the primary
+SHOW REPLICAS;
+
+-- Run against the replica
+SHOW REPLICA STATUS\G
+-- Look at: Seconds_Behind_Source, Replica_IO_Running, Replica_SQL_Running, Last_Errno
+```
+
+Common causes: long-running write on the primary holding row locks the replica must wait for; replica under-sized; cross-AZ network saturation.
+
+### Storage 80% Full
+
+```sql
+-- Where's the space going?
+SELECT
+  table_schema,
+  table_name,
+  ROUND(SUM(data_length + index_length) / 1024 / 1024 / 1024, 2) AS gb
+FROM information_schema.tables
+WHERE table_schema = '{{artifacts.database.auth.database}}'
+GROUP BY table_schema, table_name
+ORDER BY gb DESC
+LIMIT 10;
+```
+
+```sql
+-- Binary log size (often the surprise culprit)
+SHOW BINARY LOGS;
+PURGE BINARY LOGS BEFORE NOW() - INTERVAL 3 DAY;  -- only if you control replication and have alternate copies
+```
+
+If you can't free space, bump `allocated_storage_gb` and redeploy.
+
+---
+
+## Common operations
+
+### Database size
 
 ```bash
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      {{artifacts.database.auth.database}} \
-      -e "SELECT
-            table_schema AS 'Database',
-            ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
+mysql -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+      -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
+      -e "SELECT table_schema, ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
           FROM information_schema.tables
           WHERE table_schema = '{{artifacts.database.auth.database}}'
           GROUP BY table_schema;"
 ```
 
-**Check connection status:**
+### Take a backup
 
 ```bash
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      -e "SELECT USER(), DATABASE(), VERSION();"
+mysqldump \
+  -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+  -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
+  --single-transaction --routines --triggers --events \
+  {{artifacts.database.auth.database}} \
+  > backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
 ```
 
-**Create a backup:**
+### Restore
 
 ```bash
-mysqldump -h {{artifacts.database.auth.hostname}} \
-          -u {{artifacts.database.auth.username}} \
-          -p{{artifacts.database.auth.password}} \
-          -P {{artifacts.database.auth.port}} \
-          --single-transaction \
-          --routines \
-          --triggers \
-          {{artifacts.database.auth.database}} > backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
+mysql \
+  -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+  -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
+  {{artifacts.database.auth.database}} \
+  < backup-{{artifacts.database.auth.database}}-YYYYMMDD-HHMMSS.sql
 ```
 
-**Restore from backup:**
+### Kill long-running queries
 
-```bash
-mysql -h {{artifacts.database.auth.hostname}} \
-      -u {{artifacts.database.auth.username}} \
-      -p{{artifacts.database.auth.password}} \
-      -P {{artifacts.database.auth.port}} \
-      {{artifacts.database.auth.database}} < backup-{{artifacts.database.auth.database}}-20260123-120000.sql
+```sql
+-- List longest queries
+SELECT id, time, state, info
+FROM information_schema.processlist
+WHERE command != 'Sleep' AND time > 60
+ORDER BY time DESC;
+
+-- Kill by ID
+KILL QUERY <id>;
 ```
 
 ---
 
-**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/mysql/operator.md) 🎯
+## Disaster recovery
+
+`database_name`, `username`, `db_version`, `character_set`, and `collation` are **immutable**. Changing any of them in Massdriver triggers a destroy and recreate.
+
+Migration playbook:
+
+1. `mysqldump` the existing database (see above).
+2. Deploy a new mysql bundle instance with the new values.
+3. Restore the dump into the new instance.
+4. Update each consuming app's connection link to point at the new instance.
+5. Verify, then destroy the old instance.
+
+---
+
+**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/mysql/operator.md

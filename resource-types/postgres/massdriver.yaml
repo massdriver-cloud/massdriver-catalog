@@ -1,10 +1,23 @@
 name: postgres
 label: PostgreSQL
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: AWS RDS PostgreSQL
+      path: ./instructions/AWS RDS PostgreSQL.md
+    - label: GCP Cloud SQL PostgreSQL
+      path: ./instructions/GCP Cloud SQL PostgreSQL.md
+    - label: Self-Hosted PostgreSQL
+      path: ./instructions/Self-Hosted PostgreSQL.md
 
 schema:
   title: PostgreSQL Database
-  description: PostgreSQL database instance with connection details and access policies
+  description: PostgreSQL database instance with connection details and access policies.
   type: object
+  additionalProperties: false
   required:
     - auth
     - id
@@ -12,8 +25,9 @@ schema:
   properties:
     auth:
       title: Authentication
-      description: Database connection parameters
+      description: Database connection parameters.
       type: object
+      additionalProperties: false
       required:
         - hostname
         - port
@@ -23,50 +37,66 @@ schema:
       properties:
         hostname:
           title: Host
-          description: Database server hostname or IP
+          description: Database server hostname or IP address.
           type: string
+          minLength: 1
         port:
           title: Port
-          description: TCP port number
+          description: TCP port the database listens on.
           type: integer
+          minimum: 1
+          maximum: 65535
           default: 5432
         database:
           title: Database
-          description: Default database name
+          description: Default database name to connect to.
           type: string
+          pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
+          message:
+            pattern: "Must start with a letter or underscore, then letters, digits, or underscores."
         username:
           title: Username
-          description: Authentication username
+          description: Authentication username.
           type: string
+          minLength: 1
         password:
           $md.sensitive: true
           $md.copyable: false
           title: Password
-          description: Authentication password
+          description: Authentication password. Masked everywhere except in IaC at deploy time.
           type: string
     id:
       title: ID
-      description: Unique database instance identifier
+      description: Unique database instance identifier from the cloud provider.
       type: string
+      minLength: 1
     version:
       title: Version
-      description: PostgreSQL major version
+      description: PostgreSQL major version (e.g. 16).
       type: string
+    high_availability:
+      title: High Availability
+      description: Whether the instance is deployed in a multi-AZ / replicated configuration.
+      type: boolean
     policies:
       title: Access Policies
-      description: Available IAM policies for database access
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
       type: array
+      minItems: 1
       items:
         type: object
+        additionalProperties: false
         required:
           - id
           - name
         properties:
           id:
             title: ID
-            description: Policy identifier
+            description: Policy identifier.
             type: string
+            minLength: 1
           name:
             title: Name
-            description: Human-readable policy name
+            description: Human-readable policy name.
             type: string
+            minLength: 1

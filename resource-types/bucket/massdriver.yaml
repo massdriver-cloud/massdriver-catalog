@@ -1,10 +1,23 @@
 name: bucket
 label: Storage Bucket
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: storage
+  instructions:
+    - label: AWS S3
+      path: ./instructions/AWS S3.md
+    - label: Azure Blob Storage
+      path: ./instructions/Azure Blob Storage.md
+    - label: GCP Cloud Storage
+      path: ./instructions/GCP Cloud Storage.md
 
 schema:
   title: Storage Bucket
-  description: Object storage bucket with access policies
+  description: Object storage bucket with access policies.
   type: object
+  additionalProperties: false
   required:
     - id
     - name
@@ -12,31 +25,48 @@ schema:
   properties:
     id:
       title: ID
-      description: Unique resource identifier
+      description: Unique resource identifier from the cloud provider (e.g. an ARN or selfLink).
       type: string
+      minLength: 1
     name:
       title: Name
-      description: Storage bucket name
+      description: Storage bucket name (S3 bucket name, container name, etc.). Must be globally or account-unique depending on the provider.
       type: string
+      minLength: 3
+      maxLength: 63
+      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+      message:
+        pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
     endpoint:
       title: Endpoint
-      description: Storage API endpoint URL
+      description: Storage API endpoint URL or virtual-hosted-style URL for the bucket.
+      type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
+    region:
+      title: Region
+      description: Cloud region the bucket lives in.
       type: string
     policies:
       title: Access Policies
-      description: Available IAM policies for bucket access
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
       type: array
+      minItems: 1
       items:
         type: object
+        additionalProperties: false
         required:
           - id
           - name
         properties:
           id:
             title: ID
-            description: Policy identifier
+            description: Policy identifier.
             type: string
+            minLength: 1
           name:
             title: Name
-            description: Human-readable policy name
+            description: Human-readable policy name.
             type: string
+            minLength: 1

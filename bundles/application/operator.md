@@ -2,126 +2,162 @@
 templating: mustache
 ---
 
-# 🚀 Application Bundle Runbook
+# Application Runbook
 
-> **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
+> **Templating context:** `slug`, `params`, `connections.<name>`, `artifacts.<name>`.
 
-## Package Information
+## At a glance
 
-**Slug:** `{{slug}}`
+| Field | Value |
+|-------|-------|
+| Instance slug | `{{slug}}` |
+| Image | `{{params.image}}` |
+| Environment | `{{params.environment}}` |
+| Log level | `{{params.log_level}}` |
+| Replicas | `{{params.replicas}}` |
+| Port | `{{params.port}}` |
+| Domain | `{{params.domain_name}}` |
+| Health check | `https://{{params.domain_name}}{{params.health_check_path}}` |
+| CPU / memory | `{{params.cpu_limit}}` / `{{params.memory_limit}}` |
 
-### Application Configuration
-
-**Container Image:** `{{params.image}}`
-
-**Replicas:** `{{params.replicas}}`
-
-**Port:** `{{params.port}}`
-
-**Domain:** `{{params.domain_name}}`
-
----
-
-## Welcome to Your Runbook! 👋
-
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
-
-### Connected Database
+### Connected dependencies
 
 {{#connections.database}}
-**Database ID:** `{{connections.database.id}}`
-
-**Connection:** `{{connections.database.auth.hostname}}:{{connections.database.auth.port}}/{{connections.database.auth.database}}`
-
-**Selected Access Policy:** `{{params.database_policy}}`
+**Database:** `{{connections.database.id}}` — `{{connections.database.auth.hostname}}:{{connections.database.auth.port}}/{{connections.database.auth.database}}` (policy: `{{params.database_policy}}`)
 {{/connections.database}}
-{{^connections.database}}
-_No database connected_
-{{/connections.database}}
-
-### Connected Storage Bucket
-
 {{#connections.bucket}}
-**Bucket Name:** `{{connections.bucket.name}}`
-
-**Bucket ID:** `{{connections.bucket.id}}`
-
-**Selected Access Policy:** `{{params.bucket_policy}}`
+**Bucket:** `{{connections.bucket.name}}` (policy: `{{params.bucket_policy}}`)
 {{/connections.bucket}}
-{{^connections.bucket}}
-_No storage bucket connected_
-{{/connections.bucket}}
-
-### Network Information
-
 {{#connections.network}}
-**Network ID:** `{{connections.network.id}}`
-
-**Network CIDR:** `{{connections.network.cidr}}`
+**Network:** `{{connections.network.id}}` ({{connections.network.cidr}})
 {{/connections.network}}
-{{^connections.network}}
-_No network connected_
-{{/connections.network}}
-
-### 💡 What to Include
-
-Consider adding:
-
-- **Common Operations**: How to scale, update, or modify this infrastructure
-- **Troubleshooting Guide**: Known issues and their solutions
-- **Monitoring & Alerts**: What to watch and when to act
-- **Disaster Recovery**: Backup and restore procedures
-- **Configuration Tips**: Best practices and gotchas
-- **Useful Commands**: CLI commands, queries, or scripts
-- **Contact Information**: Who to reach for help
-
-### ✨ Pro Tips
-
-- Use clear headings and sections
-- Include code blocks with examples
-- Add links to relevant documentation
-- Keep it updated as you learn more
-- Make it searchable with good keywords
 
 ---
 
-## Application Operations
+## Active alarms — what they mean
 
-### Testing the Application
+### Pod Restart Rate (> 3 / 10min)
 
-**Health check:**
-
-```bash
-curl https://{{params.domain_name}}/health
-```
-
-**Basic connectivity test:**
+A pod is crash-looping. Either OOMKilled, liveness-probe failures, or a config error.
 
 ```bash
-curl -I https://{{params.domain_name}}
+# Look at the most recent restarts
+kubectl get pods -l app={{slug}} \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[0].restartCount}{"\t"}{.status.containerStatuses[0].lastState.terminated.reason}{"\n"}{end}'
+
+# Pull logs from the previous (terminated) container — most useful for OOMs
+kubectl logs <pod-name> --previous --tail 200
 ```
 
-**Debug with verbose output:**
+Common fixes: bump `memory_limit` if `lastState.terminated.reason` is `OOMKilled`; widen the `health_check_path` probe's failure threshold; check for a missing env var the app expects.
+
+### 5xx Error Rate (> 1%)
+
+Users are seeing server errors.
 
 ```bash
-curl -v https://{{params.domain_name}}
+# Compare error rate to traffic rate over the last 30 minutes
+kubectl exec -ti <pod-name> -- curl -s http://localhost:{{params.port}}{{params.health_check_path}}
 ```
 
-### Database Connection
+```bash
+# Trail logs at warn+
+kubectl logs -l app={{slug}} --tail 200 -f | grep -Ei 'warn|error|panic'
+```
 
-{{#connections.database}}
-The application is connected to database `{{connections.database.id}}`.
+If errors cluster around a code path, roll back to the last green deploy:
 
-Connection details are available via environment variables injected at runtime.
-{{/connections.database}}
+```bash
+# Roll back via the Massdriver UI ("Versions" → previous), or use the CLI
+mass instance deploy <instance-id> --patch='.image = "<previous-image-tag>"'
+```
 
-### Scaling Application
+### p95 Latency (> 500ms)
 
-Current replicas: **{{params.replicas}}**
+Response times are slowing. Common causes: database becoming the bottleneck, an upstream timeout, or a noisy neighbor on the node.
 
-To scale the application, update the `replicas` parameter in Massdriver and redeploy.
+```bash
+# Show DB connections from this app (if you've labeled them via application_name)
+PGPASSWORD={{connections.database.auth.password}} psql \
+  -h {{connections.database.auth.hostname}} \
+  -p {{connections.database.auth.port}} \
+  -U {{connections.database.auth.username}} \
+  -d {{connections.database.auth.database}} \
+  -c "SELECT pid, state, query_start, wait_event_type, wait_event,
+             substring(query, 1, 80) AS query
+      FROM pg_stat_activity
+      WHERE application_name LIKE '%{{slug}}%'
+        AND state != 'idle';"
+```
+
+```bash
+# Per-pod CPU / memory snapshot
+kubectl top pod -l app={{slug}}
+```
 
 ---
 
-**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application/operator.md) 🎯
+## Common operations
+
+### Restart cleanly
+
+```bash
+kubectl rollout restart deployment/{{slug}}
+kubectl rollout status deployment/{{slug}}
+```
+
+### Tail logs
+
+```bash
+kubectl logs -l app={{slug}} --tail 200 -f
+```
+
+### Scale temporarily without a redeploy
+
+```bash
+# Useful in incident response — the next Massdriver deploy will reset to params.replicas={{params.replicas}}
+kubectl scale deployment/{{slug}} --replicas=<n>
+```
+
+### Open a shell in a running pod
+
+```bash
+kubectl exec -ti $(kubectl get pod -l app={{slug}} -o jsonpath='{.items[0].metadata.name}') -- /bin/sh
+```
+
+### Verify env vars are wired correctly
+
+The bundle's `app:` block lifts these values out of the linked resources:
+
+| Env var | Source |
+|---------|--------|
+| `APP_ENV` | `params.environment` = `{{params.environment}}` |
+| `LOG_LEVEL` | `params.log_level` = `{{params.log_level}}` |
+| `PORT` | `params.port` = `{{params.port}}` |
+| `DATABASE_HOST` | `connections.database.auth.hostname` |
+| `DATABASE_URL` | composed from `connections.database.auth.*` |
+| `BUCKET_NAME` | `connections.bucket.name` (empty if no bucket linked) |
+| `JWT_SECRET` | `app.secrets.JWT_SECRET` (set in Massdriver UI) |
+
+```bash
+kubectl exec -ti <pod-name> -- env | grep -E '^(APP_ENV|LOG_LEVEL|PORT|DATABASE_|BUCKET_)='
+```
+
+---
+
+## Disaster recovery
+
+The application is stateless — replicas can be killed and recreated freely. Data lives in:
+
+- **Database** `{{connections.database.id}}` — see its own runbook for recovery.
+- **Bucket** `{{connections.bucket.name}}` — see its own runbook for recovery.
+
+If the application image itself is bad:
+
+1. Identify the last known-good image tag from this bundle's deploy history (Versions tab).
+2. Patch the deployed config: `mass instance deploy <instance-id> --patch='.image = "<good-tag>"'`.
+3. Watch the rollout: `kubectl rollout status deployment/{{slug}}`.
+
+---
+
+**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application/operator.md

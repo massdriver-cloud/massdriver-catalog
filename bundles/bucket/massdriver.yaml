@@ -1,22 +1,128 @@
 name: bucket
-description: "Example storage bucket bundle (edit in ./bundles/bucket/massdriver.yaml)"
+description: "Example object-storage bucket bundle showing access levels, versioning, lifecycle rules, CORS, and optional object lock. Edit ./bundles/bucket/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket
-version: 0.0.0
+version: 0.1.0
 
 params:
+  examples:
+    - __name: Private app data
+      bucket_name: "app-data"
+      access_level: "private"
+      versioning_enabled: true
+      object_lock: false
+      lifecycle_rules:
+        - transition_after_days: 30
+          storage_class: "infrequent_access"
+        - transition_after_days: 180
+          storage_class: "archive"
+    - __name: Public website assets
+      bucket_name: "site-assets"
+      access_level: "public-read"
+      versioning_enabled: false
+      object_lock: false
+      cors_allowed_origins:
+        - "https://example.com"
+        - "https://*.example.com"
+    - __name: Compliance archive (immutable)
+      bucket_name: "compliance-vault"
+      access_level: "private"
+      versioning_enabled: true
+      object_lock: true
+      object_lock_retention_days: 2557
   required:
     - bucket_name
+    - access_level
   properties:
     bucket_name:
-      type: string
       title: Bucket Name
-      description: Name of the storage bucket
+      description: Globally (S3) or account-unique (Azure/GCS) name. Cannot be renamed after creation.
+      type: string
+      minLength: 3
+      maxLength: 63
       pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "3–63 lowercase characters, digits, or hyphens. Must start and end with a letter or digit."
+      $md.immutable: true
+    access_level:
+      title: Access Level
+      description: Public access policy at the bucket level. Object-level ACLs still apply.
+      type: string
+      default: "private"
+      oneOf:
+        - const: "private"
+          title: "Private — no anonymous access (recommended)"
+        - const: "public-read"
+          title: "Public Read — anonymous GET allowed (websites, CDN origins)"
+        - const: "public-read-write"
+          title: "Public Read+Write — anonymous PUT allowed (rarely safe)"
     versioning_enabled:
+      title: Versioning
+      description: Keep old versions of overwritten objects. Required by most compliance regimes.
       type: boolean
-      title: Enable Versioning
-      description: Enable versioning for the bucket
+      default: true
+    object_lock:
+      title: Object Lock (compliance mode)
+      description: Make objects immutable for the retention period. Cannot be disabled after creation.
+      type: boolean
       default: false
+      $md.immutable: true
+    object_lock_retention_days:
+      title: Object Lock Retention (days)
+      description: How long every object stays immutable after upload. 7 years (2557d) is a common compliance default.
+      type: integer
+      default: 2557
+      minimum: 1
+      maximum: 36500
+    lifecycle_rules:
+      title: Lifecycle Rules
+      description: Move objects to cheaper storage tiers as they age.
+      type: array
+      default: []
+      maxItems: 8
+      uniqueItems: true
+      items:
+        type: object
+        required:
+          - transition_after_days
+          - storage_class
+        properties:
+          transition_after_days:
+            title: Transition After (days)
+            type: integer
+            minimum: 1
+            maximum: 36500
+          storage_class:
+            title: Target Storage Class
+            type: string
+            enum:
+              - "infrequent_access"
+              - "archive"
+              - "deep_archive"
+    cors_allowed_origins:
+      title: CORS Allowed Origins
+      description: Browser origins allowed to call this bucket directly. Leave empty to disable browser CORS.
+      type: array
+      default: []
+      maxItems: 20
+      uniqueItems: true
+      items:
+        type: string
+        pattern: ^https?://[^\s]+$
+        message:
+          pattern: "Must be a full origin (e.g. https://example.com)."
+
+dependencies:
+  object_lock:
+    oneOf:
+      - properties:
+          object_lock:
+            const: false
+      - properties:
+          object_lock:
+            const: true
+        required:
+          - object_lock_retention_days
+          - versioning_enabled
 
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
@@ -41,5 +147,32 @@ steps:
 ui:
   ui:order:
     - bucket_name
+    - access_level
     - versioning_enabled
+    - object_lock
+    - object_lock_retention_days
+    - lifecycle_rules
+    - cors_allowed_origins
     - "*"
+  bucket_name:
+    ui:help: "Provisioner appends a unique suffix to avoid collisions across environments."
+    ui:placeholder: "my-app-data"
+  access_level:
+    ui:help: "Public buckets should be the exception, not the default. Pick `Private` and grant access via IAM."
+  versioning_enabled:
+    ui:help: "Cheap insurance against accidental overwrites and ransomware."
+  object_lock:
+    ui:help: "One-way switch. You cannot disable object lock on a bucket after creation."
+  lifecycle_rules:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+    items:
+      ui:order:
+        - transition_after_days
+        - storage_class
+      transition_after_days:
+        ui:widget: updown
+  cors_allowed_origins:
+    ui:help: "Use exact origins or wildcard subdomains. Avoid `*` unless the bucket is truly public."

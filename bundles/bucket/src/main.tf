@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.3"
+      version = "~> 1.4"
     }
   }
 }
@@ -15,7 +15,9 @@ terraform {
 resource "random_pet" "main" {
   keepers = {
     bucket_name        = var.bucket_name
+    access_level       = var.access_level
     versioning_enabled = tostring(var.versioning_enabled)
+    object_lock        = tostring(var.object_lock)
   }
 }
 

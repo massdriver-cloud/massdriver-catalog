@@ -1,7 +1,7 @@
-resource "massdriver_artifact" "database" {
+resource "massdriver_resource" "database" {
   field = "database"
   name  = "Demo PostgreSQL ${var.md_metadata.name_prefix}"
-  artifact = jsonencode({
+  resource = jsonencode({
     auth = {
       hostname = local.hostname
       port     = local.port
@@ -9,8 +9,9 @@ resource "massdriver_artifact" "database" {
       username = var.username
       password = random_pet.main.id
     }
-    id      = random_pet.main.id
-    version = var.db_version
+    id                = random_pet.main.id
+    version           = var.db_version
+    high_availability = var.high_availability
     policies = [
       {
         id   = "read-only"
