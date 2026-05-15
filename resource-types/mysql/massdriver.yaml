@@ -1,10 +1,23 @@
 name: mysql
 label: MySQL
+icon: https://raw.githubusercontent.com/YOUR_ORG/massdriver-catalog/main/bundles/mysql/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: AWS RDS MySQL
+      path: ./instructions/AWS RDS MySQL.md
+    - label: Azure Database for MySQL
+      path: ./instructions/Azure Database for MySQL.md
+    - label: Self-Hosted MySQL
+      path: ./instructions/Self-Hosted MySQL.md
 
 schema:
   title: MySQL Database
-  description: MySQL database instance with connection details and access policies
+  description: MySQL database instance with connection details and access policies.
   type: object
+  additionalProperties: false
   required:
     - auth
     - id
@@ -12,8 +25,9 @@ schema:
   properties:
     auth:
       title: Authentication
-      description: Database connection parameters
+      description: Database connection parameters.
       type: object
+      additionalProperties: false
       required:
         - hostname
         - port
@@ -23,46 +37,70 @@ schema:
       properties:
         hostname:
           title: Host
-          description: Database server hostname or IP
+          description: Database server hostname or IP address.
           type: string
+          minLength: 1
         port:
           title: Port
-          description: TCP port number
+          description: TCP port the database listens on.
           type: integer
+          minimum: 1
+          maximum: 65535
           default: 3306
         database:
           title: Database
-          description: Default database name
+          description: Default database name to connect to.
           type: string
+          pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
+          message:
+            pattern: "Must start with a letter or underscore, then letters, digits, or underscores."
         username:
           title: Username
-          description: Authentication username
+          description: Authentication username.
           type: string
+          minLength: 1
         password:
           $md.sensitive: true
           $md.copyable: false
           title: Password
-          description: Authentication password
+          description: Authentication password. Masked everywhere except in IaC at deploy time.
           type: string
     id:
       title: ID
-      description: Unique database instance identifier
+      description: Unique database instance identifier from the cloud provider.
       type: string
+      minLength: 1
+    version:
+      title: Version
+      description: MySQL major version (e.g. 8.0).
+      type: string
+    character_set:
+      title: Character Set
+      description: Default character set on the instance.
+      type: string
+    high_availability:
+      title: High Availability
+      description: Whether the instance is deployed in a multi-AZ / replicated configuration.
+      type: boolean
     policies:
       title: Access Policies
-      description: Available IAM policies for database access
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
       type: array
+      minItems: 1
       items:
         type: object
+        additionalProperties: false
         required:
           - id
           - name
         properties:
           id:
             title: ID
-            description: Policy identifier
+            description: Policy identifier.
             type: string
+            minLength: 1
           name:
             title: Name
-            description: Human-readable policy name
+            description: Human-readable policy name.
             type: string
+            minLength: 1

@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.3"
+      version = "~> 1.4"
     }
   }
 }
@@ -19,12 +19,16 @@ locals {
 
 resource "random_pet" "main" {
   keepers = {
-    image      = var.image
-    replicas   = tostring(var.replicas)
-    port       = tostring(var.port)
-    network_id = var.network.id
-    database   = local.has_database ? var.database.auth.hostname : "none"
-    bucket     = local.has_bucket ? var.bucket.name : "none"
+    image        = var.image
+    replicas     = tostring(var.replicas)
+    port         = tostring(var.port)
+    environment  = var.environment
+    log_level    = var.log_level
+    cpu_limit    = var.cpu_limit
+    memory_limit = var.memory_limit
+    network_id   = var.network.id
+    database     = local.has_database ? var.database.auth.hostname : "none"
+    bucket       = local.has_bucket ? var.bucket.name : "none"
   }
 }
 
@@ -35,9 +39,12 @@ output "application_id" {
 
 output "config" {
   value = {
-    image    = var.image
-    replicas = var.replicas
-    port     = var.port
+    image        = var.image
+    replicas     = var.replicas
+    port         = var.port
+    environment  = var.environment
+    cpu_limit    = var.cpu_limit
+    memory_limit = var.memory_limit
   }
   description = "Application configuration"
 }

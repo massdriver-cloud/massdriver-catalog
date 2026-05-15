@@ -1,38 +1,145 @@
 name: postgres
-description: "Example PostgreSQL bundle (edit in ./bundles/postgres/massdriver.yaml)"
+description: "Example PostgreSQL bundle showing instance sizing, HA selection, and per-environment retention policy. Edit ./bundles/postgres/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres
-version: 0.0.0
+version: 0.1.0
 
 params:
+  examples:
+    - __name: Development (single-AZ, minimal retention)
+      db_version: "16"
+      database_name: "appdev"
+      username: "appdev"
+      instance_size: "xs"
+      allocated_storage_gb: 20
+      backup_retention_days: 1
+      high_availability: false
+    - __name: Staging (single-AZ, week of backups)
+      db_version: "16"
+      database_name: "appstg"
+      username: "appstg"
+      instance_size: "s"
+      allocated_storage_gb: 100
+      backup_retention_days: 7
+      high_availability: false
+    - __name: Production (HA, 35d backups)
+      db_version: "16"
+      database_name: "appprd"
+      username: "appprd"
+      instance_size: "l"
+      allocated_storage_gb: 500
+      backup_retention_days: 35
+      high_availability: true
+      multi_az_zones: 3
   required:
     - db_version
     - database_name
     - username
+    - instance_size
+    - allocated_storage_gb
   properties:
     db_version:
-      type: string
       title: PostgreSQL Version
-      description: PostgreSQL version to deploy
+      description: PostgreSQL major version. Major-version upgrades require a destroy/recreate.
+      type: string
       default: "16"
       $md.immutable: true
-      enum:
-        - "12"
-        - "13"
-        - "14"
-        - "15"
-        - "16"
+      oneOf:
+        - const: "12"
+          title: "12 (out of community support — upgrade soon)"
+        - const: "13"
+          title: "13"
+        - const: "14"
+          title: "14"
+        - const: "15"
+          title: "15"
+        - const: "16"
+          title: "16 (current)"
     database_name:
-      type: string
       title: Database Name
-      description: Name of the database to create
-      default: "mydb"
-      pattern: ^[a-z][a-z0-9_]*$
-    username:
+      description: Name of the application database to create on first deploy.
       type: string
-      title: Database Username
-      description: Username for database access
-      default: "postgres"
+      default: "mydb"
+      minLength: 1
+      maxLength: 63
       pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores. 1–63 characters."
+      $md.immutable: true
+    username:
+      title: Database Username
+      description: Application database user. The provisioner generates and rotates the password.
+      type: string
+      default: "appuser"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores."
+      $md.immutable: true
+      $md.copyable: false
+    instance_size:
+      title: Instance Size
+      description: T-shirt size mapped by the provisioner to a cloud-specific machine type (e.g. `db.t4g.small` on AWS RDS).
+      type: string
+      default: "s"
+      oneOf:
+        - const: "xs"
+          title: "Extra Small — dev only (2 vCPU, 1 GiB)"
+        - const: "s"
+          title: "Small (2 vCPU, 4 GiB)"
+        - const: "m"
+          title: "Medium (4 vCPU, 16 GiB)"
+        - const: "l"
+          title: "Large (8 vCPU, 32 GiB)"
+        - const: "xl"
+          title: "Extra Large (16 vCPU, 64 GiB)"
+    allocated_storage_gb:
+      title: Storage (GB)
+      description: Allocated storage in gibibytes. Most cloud providers grow storage online, but some can't shrink.
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 16384
+      multipleOf: 10
+    backup_retention_days:
+      title: Backup Retention (days)
+      description: How long automatic backups are kept. 0 disables backups entirely (do not use in production).
+      type: integer
+      default: 7
+      minimum: 0
+      maximum: 35
+    high_availability:
+      title: High Availability
+      description: Run with a synchronous standby in a different AZ. Doubles cost; enables sub-minute failover.
+      type: boolean
+      default: false
+    multi_az_zones:
+      title: Number of AZs
+      description: How many availability zones the replicas span when HA is enabled.
+      type: integer
+      default: 2
+      minimum: 2
+      maximum: 3
+    subnet_filter:
+      title: Subnet Placement
+      description: Which subnet from the connected network the instance lands in. Defaults to the network bundle's first private subnet.
+      type: string
+      $md.enum:
+        connection: network
+        options: .subnets
+        value: .id
+
+dependencies:
+  high_availability:
+    oneOf:
+      - properties:
+          high_availability:
+            const: false
+      - properties:
+          high_availability:
+            const: true
+        required:
+          - multi_az_zones
 
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
@@ -61,6 +168,24 @@ steps:
 ui:
   ui:order:
     - db_version
+    - instance_size
+    - allocated_storage_gb
     - database_name
     - username
+    - high_availability
+    - multi_az_zones
+    - backup_retention_days
+    - subnet_filter
     - "*"
+  db_version:
+    ui:help: "Major-version upgrade is a destroy/recreate. Plan a maintenance window before changing."
+  allocated_storage_gb:
+    ui:widget: updown
+    ui:help: "Cloud providers grow storage online; shrinking usually requires a logical dump and restore."
+  backup_retention_days:
+    ui:widget: updown
+    ui:help: "Production: 35 days. Staging: 7. Dev: 1. Compliance requirements override these defaults."
+  high_availability:
+    ui:help: "Required for production. Roughly 2× cost; failover usually completes in under 60 seconds."
+  multi_az_zones:
+    ui:widget: updown

@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.3"
+      version = "~> 1.4"
     }
   }
 }
@@ -20,9 +20,9 @@ resource "random_pet" "main" {
 }
 
 locals {
-  subnets = [for idx, subnet in var.subnets : {
+  subnets = [for subnet in var.subnets : {
     id   = "${random_pet.main.id}-${subnet.name}"
     cidr = subnet.cidr
-    type = idx == 0 ? "public" : "private"
+    type = try(subnet.type, "private")
   }]
 }

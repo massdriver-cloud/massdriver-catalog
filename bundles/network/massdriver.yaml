@@ -1,26 +1,84 @@
 name: network
-description: "Example network bundle (edit in ./bundles/network/massdriver.yaml)"
+description: "Example network bundle that produces a virtual network with subnets, optional flow-log retention, and DNS configuration. Edit ./bundles/network/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network
-version: 0.0.0
+version: 0.1.0
 
 params:
+  examples:
+    - __name: Small (/24 dev)
+      cidr: "10.0.0.0/16"
+      subnets:
+        - name: "subnet-a"
+          cidr: "10.0.1.0/24"
+          type: "public"
+        - name: "subnet-b"
+          cidr: "10.0.2.0/24"
+          type: "private"
+      enable_flow_logs: false
+    - __name: Medium (staging)
+      cidr: "10.10.0.0/16"
+      subnets:
+        - name: "public-a"
+          cidr: "10.10.1.0/24"
+          type: "public"
+        - name: "private-a"
+          cidr: "10.10.10.0/22"
+          type: "private"
+        - name: "private-b"
+          cidr: "10.10.20.0/22"
+          type: "private"
+      enable_flow_logs: true
+      flow_log_retention_days: 30
+    - __name: Large (production multi-AZ)
+      cidr: "10.20.0.0/16"
+      subnets:
+        - name: "public-a"
+          cidr: "10.20.0.0/24"
+          type: "public"
+        - name: "public-b"
+          cidr: "10.20.1.0/24"
+          type: "public"
+        - name: "private-a"
+          cidr: "10.20.10.0/22"
+          type: "private"
+        - name: "private-b"
+          cidr: "10.20.20.0/22"
+          type: "private"
+      enable_flow_logs: true
+      flow_log_retention_days: 90
+      dns_servers:
+        - "10.20.0.2"
   required:
     - cidr
+    - subnets
   properties:
     cidr:
       type: string
       title: Network CIDR
-      description: CIDR block for the network
+      description: IPv4 address range for the entire network. Cannot be changed after the network is created.
       default: "10.0.0.0/16"
       pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+      $md.immutable: true
+      examples:
+        - "10.0.0.0/16"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
     subnets:
       type: array
       title: Subnets
+      description: Subnets to carve out of the network CIDR. Order matters — the first subnet defaults to public.
+      minItems: 1
+      maxItems: 12
+      uniqueItems: true
       default:
         - name: "subnet-a"
           cidr: "10.0.1.0/24"
+          type: "public"
         - name: "subnet-b"
           cidr: "10.0.2.0/24"
+          type: "private"
       items:
         type: object
         required:
@@ -30,10 +88,62 @@ params:
           name:
             type: string
             title: Subnet Name
+            description: Friendly name for the subnet. Used in tags and resource identifiers.
+            pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+            message:
+              pattern: "Must be lowercase alphanumerics and hyphens, starting and ending with a letter or digit."
           cidr:
             type: string
             title: Subnet CIDR
+            description: IPv4 range, must be a subset of the network CIDR.
             pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+            message:
+              pattern: "Must be a valid IPv4 CIDR block."
+          type:
+            type: string
+            title: Subnet Type
+            description: Public subnets get a default route to the internet gateway. Private subnets don't.
+            default: "private"
+            enum:
+              - "public"
+              - "private"
+    enable_flow_logs:
+      type: boolean
+      title: Enable Flow Logs
+      description: Capture network traffic metadata for security review and troubleshooting.
+      default: false
+    flow_log_retention_days:
+      type: integer
+      title: Flow Log Retention (days)
+      description: How long to keep flow logs before deletion.
+      default: 30
+      minimum: 1
+      maximum: 365
+    dns_servers:
+      type: array
+      title: Custom DNS Servers
+      description: Override the network's default resolver with custom DNS servers. Leave empty to use the cloud provider default.
+      default: []
+      maxItems: 4
+      uniqueItems: true
+      items:
+        type: string
+        title: DNS Server IP
+        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+        message:
+          pattern: "Must be an IPv4 address (e.g. 10.0.0.2)."
+
+dependencies:
+  enable_flow_logs:
+    oneOf:
+      - properties:
+          enable_flow_logs:
+            const: false
+      - properties:
+          enable_flow_logs:
+            const: true
+        required:
+          - flow_log_retention_days
 
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
@@ -59,4 +169,27 @@ ui:
   ui:order:
     - cidr
     - subnets
+    - enable_flow_logs
+    - flow_log_retention_days
+    - dns_servers
     - "*"
+  cidr:
+    ui:help: "Pick from a private range (RFC 1918): 10.0.0.0/8, 172.16.0.0/12, or 192.168.0.0/16."
+    ui:placeholder: "10.0.0.0/16"
+  subnets:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+    items:
+      ui:order:
+        - name
+        - cidr
+        - type
+  enable_flow_logs:
+    ui:help: "Required by SOC 2 and HIPAA, but adds per-GB storage cost."
+  flow_log_retention_days:
+    ui:widget: updown
+    ui:help: "30 days is enough for most security incident reviews; 90 days for compliance audits."
+  dns_servers:
+    ui:help: "Most networks should use the default cloud resolver. Override only if you're forwarding queries to an on-prem DNS or Active Directory."

@@ -2,78 +2,135 @@
 templating: mustache
 ---
 
-# 📚 Network Bundle Runbook
+# Network Runbook
 
-> **Templating**: This runbook supports mustache templating.
-> **Available context**: `slug`, `params`, `connections.<name>`, `artifacts.<name>`
+> **Templating context:** `slug`, `params`, `artifacts.<name>`. Connections aren't used by this bundle.
 
-## Package Information
+## At a glance
 
-**Slug:** `{{slug}}`
-
-### Configuration
-
-**CIDR Block:** `{{params.cidr}}`
-
-**Subnets:**
-
-{{#params.subnets}}
-
-- **{{name}}**: `{{cidr}}`
-  {{/params.subnets}}
-
----
-
-## Welcome to Your Runbook! 👋
-
-This is a **default runbook template** for your bundle. You can customize this file to provide operational guidance, troubleshooting steps, and best practices for managing this infrastructure.
-
-### 📝 How to Use This File
-
-This `operator.md` file lives in the root of your bundle directory (`./bundles/network/operator.md`). When you edit it, your custom runbook will appear in the Massdriver UI, giving your team instant access to operational documentation right where they need it.
-
-### 💡 What to Include
-
-Consider adding:
-
-- **Common Operations**: How to scale, update, or modify this infrastructure
-- **Troubleshooting Guide**: Known issues and their solutions
-- **Monitoring & Alerts**: What to watch and when to act
-- **Disaster Recovery**: Backup and restore procedures
-- **Configuration Tips**: Best practices and gotchas
-- **Useful Commands**: CLI commands, queries, or scripts
-- **Contact Information**: Who to reach for help
-
-### ✨ Pro Tips
-
-- Use clear headings and sections
-- Include code blocks with examples
-- Add links to relevant documentation
-- Keep it updated as you learn more
-- Make it searchable with good keywords
-
----
-
-## Network Operations
-
-### Network Configuration
-
-**Network ID:** `{{artifacts.network.id}}`
-
-**Network CIDR:** `{{artifacts.network.cidr}}`
+| Field | Value |
+|-------|-------|
+| Instance slug | `{{slug}}` |
+| Network ID | `{{artifacts.network.id}}` |
+| CIDR | `{{artifacts.network.cidr}}` |
+| Flow logs | `{{params.enable_flow_logs}}` (retention: `{{params.flow_log_retention_days}}d`) |
 
 ### Subnets
 
-| Subnet ID | CIDR | Type |
-|-----------|------|------|
+| ID | CIDR | Type |
+|----|------|------|
 {{#artifacts.network.subnets}}
-| {{id}} | {{cidr}} | {{type}} |
+| `{{id}}` | `{{cidr}}` | `{{type}}` |
 {{/artifacts.network.subnets}}
-
-### Network Information
-
-Use the network ID and subnet details to connect other resources to this network.
 
 ---
 
-**Ready to customize?** [Edit this runbook](https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md) 🎯
+## Active alarms — what they mean
+
+### Egress Throughput Anomaly
+
+The network is pushing > 1 GB/s outbound. Either a real traffic spike (good news, check business metrics) or data exfiltration.
+
+```bash
+# AWS — top talkers in the last 10 minutes via flow logs
+aws logs start-query \
+  --log-group-name "/aws/vpc/flowlogs/{{artifacts.network.id}}" \
+  --start-time $(date -u -d '10 minutes ago' +%s) \
+  --end-time $(date -u +%s) \
+  --query-string 'fields srcaddr, dstaddr, bytes
+                  | filter action = "ACCEPT"
+                  | stats sum(bytes) as total by srcaddr, dstaddr
+                  | sort total desc
+                  | limit 20'
+```
+
+If destinations look unfamiliar, page the security on-call.
+
+### NAT Port Exhaustion
+
+The shared NAT gateway is out of ephemeral ports. New outbound connections will start failing for everything in `{{artifacts.network.id}}`.
+
+```bash
+# Check which subnet's instances are opening the most connections
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/NATGateway \
+  --metric-name ActiveConnectionCount \
+  --start-time $(date -u -d '1 hour ago' +%FT%TZ) \
+  --end-time $(date -u +%FT%TZ) \
+  --period 60 --statistics Maximum
+```
+
+Workarounds while you investigate: add a second NAT in another AZ (or temporarily attach an Elastic IP per heavy workload), then redeploy.
+
+---
+
+## Common operations
+
+### Verify a CIDR doesn't overlap before adding a subnet
+
+```bash
+python3 -c "
+from ipaddress import ip_network
+net = ip_network('{{artifacts.network.cidr}}')
+existing = [{{#artifacts.network.subnets}}'{{cidr}}',{{/artifacts.network.subnets}}]
+new = ip_network('NEW_SUBNET_CIDR_HERE')
+print('subset:', new.subnet_of(net))
+print('overlaps:', any(new.overlaps(ip_network(c)) for c in existing))
+"
+```
+
+### Subnet exhaustion check
+
+```bash
+# What % of each subnet's IPs are in use? Run inside the VPC.
+{{#artifacts.network.subnets}}
+echo -n "{{id}} ({{cidr}}): "
+aws ec2 describe-network-interfaces \
+  --filters Name=subnet-id,Values={{id}} \
+  --query 'length(NetworkInterfaces)' --output text
+{{/artifacts.network.subnets}}
+```
+
+### Flow log queries
+
+{{#params.enable_flow_logs}}
+Flow logs are enabled (retention `{{params.flow_log_retention_days}}d`). Useful starter queries:
+
+```bash
+# Most rejected traffic in the last hour — surfaces misconfigured security groups
+aws logs start-query \
+  --log-group-name "/aws/vpc/flowlogs/{{artifacts.network.id}}" \
+  --start-time $(date -u -d '1 hour ago' +%s) \
+  --end-time $(date -u +%s) \
+  --query-string 'fields srcaddr, dstaddr, dstport
+                  | filter action = "REJECT"
+                  | stats count() as hits by srcaddr, dstaddr, dstport
+                  | sort hits desc
+                  | limit 20'
+```
+{{/params.enable_flow_logs}}
+{{^params.enable_flow_logs}}
+**Flow logs are disabled on this network.** Enable them and redeploy if you're troubleshooting connectivity issues.
+{{/params.enable_flow_logs}}
+
+---
+
+## Disaster recovery
+
+This bundle's CIDR (`{{params.cidr}}`) is **immutable**. To re-IP, deploy a new network bundle instance, migrate workloads, then decommission this one.
+
+### Pre-migration checklist
+
+1. Snapshot every dependent resource (databases, persistent volumes).
+2. Note all peering / transit-gateway attachments on `{{artifacts.network.id}}`.
+3. Communicate the cutover window — expect 5–15 min of inbound traffic disruption.
+
+### Post-migration
+
+- Update DNS to point at the new network's load balancers.
+- Verify outbound connectivity from a workload in each subnet type (`public`, `private`).
+- Re-establish VPN / Direct Connect / ExpressRoute on the new network before destroying the old one.
+
+---
+
+**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md

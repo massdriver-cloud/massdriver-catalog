@@ -1,28 +1,53 @@
 name: application
 label: Application
+icon: https://raw.githubusercontent.com/YOUR_ORG/massdriver-catalog/main/bundles/application/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: applications
+  instructions:
+    - label: External Service
+      path: ./instructions/External Service.md
+    - label: Kubernetes Workload
+      path: ./instructions/Kubernetes Workload.md
 
 schema:
   title: Application
-  description: Generic application template for customization or extension
+  description: Generic application contract — register any deployed workload (in-cluster, on a VM, or behind a SaaS endpoint) that other infrastructure should know about.
   type: object
+  additionalProperties: false
   required:
     - name
   properties:
     deployment_id:
       title: Deployment ID
-      description: Unique deployment identifier
+      description: Unique deployment identifier (commit SHA, build number, or platform-specific deployment ID).
       type: string
     name:
       title: Name
-      description: Application name
+      description: Application name. Shows up in dashboards, dependency graphs, and observability.
       type: string
+      minLength: 1
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "Must be lowercase alphanumerics and hyphens, starting and ending with a letter or digit."
     service_url:
       title: Service URL
-      description: Base URL for the application service
+      description: Base URL where the application is reachable.
       type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
+    health_check_url:
+      title: Health Check URL
+      description: Full URL to a liveness or health-check endpoint, used by monitoring and synthetic checks.
+      type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
     tags:
       title: Tags
-      description: Resource tags
+      description: Free-form tags. Common keys are `team`, `tier`, `environment`, `owner`.
       type: object
       additionalProperties:
         type: string
