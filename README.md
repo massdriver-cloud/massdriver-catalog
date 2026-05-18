@@ -254,7 +254,18 @@ The `preview.yaml` at the repo root is a working example you can adapt:
 - **`environmentDefaults`** — pin shared resources (e.g. a Kubernetes cluster) the preview should reuse instead of cloning.
 - **`instances`** — per-instance overrides for `version`, `params`, and `secrets`. Instances listed without overrides inherit from the fork; instances omitted entirely are still cloned from the parent.
 
-Use it from CI (typically a `pull_request` GitHub Action) with `mass preview deploy`, and tear it down on PR close with `mass preview decommission`.
+Use it from CI (typically a `pull_request` GitHub Action) to fork the environment:
+
+```bash
+mass environment preview "pr${GITHUB_PR}" -f preview.yaml
+```
+
+Then on PR close, decommission and delete it:
+
+```bash
+mass environment decommission "pr${GITHUB_PR}" --follow
+mass environment delete "pr${GITHUB_PR}"
+```
 
 See the [Preview Environments workflow guide](https://docs.massdriver.cloud/workflows/preview) for the full CLI reference, CI examples, and the complete `preview.yaml` schema.
 
