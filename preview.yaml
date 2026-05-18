@@ -3,25 +3,26 @@ project: fancy
 
 # Required: the local segment of the env to fork from. The full parent
 # identifier is `<project>-<baseEnvironment>` → `fancy-claude`.
-baseEnvironment: claude
+baseEnvironment: production
 
 # Optional fork-level macros. Default false.
 copyEnvironmentDefaults: false   # carry the parent's default resources over
-copySecrets: true                # fan copyInstance(copySecrets: true) to every instance
+copySecrets: false                # fan copyInstance(copySecrets: true) to every instance
 copyRemoteReferences: false      # fan copyInstance(copyRemoteReferences: true) to every instance
 
 # Optional. Required when the org declares attributes at the environment scope.
 # Both keys and values must be strings. Overridden by `-a/--attributes` flag.
-# attributes:
-  # environment: preview
-  # pr: "${GITHUB_PR}"
-  # region: us-east-1
+# These are completely customizable organization environment attributes from our ABAC system.
+attributes:
+  environmentLifecycle: preview
+  branch: "${GITHUB_PR}"
+  region: us-east-1
 
 # Optional: pin specific resources as defaults for this env. `resourceType` is
 # documentation for the reader; the CLI only sends `resourceId` to the API.
 environmentDefaults:
   - resourceType: kubernetes-cluster
-    resourceId: selfhst-test-k8s.kubernetes_cluster
+    resourceId: shared-produse1-k8s.kubernetes_cluster
 
 # Optional: per-instance overrides. Listed instances with no overrides just
 # inherit from the fork's seed. Valid keys per instance: version, params, secrets.
@@ -33,15 +34,15 @@ instances:
     params:
       image: nginx:stable
       replicas: 1
-      domain_name: app-pr-${GITHUB_PR}.fancy-claude.mdawssbx.com
+      domain_name: app-pr${GITHUB_PR}.mdawssbx.com
       cpu_limit: "100m"
       memory_limit: "256Mi"
       log_level: debug
     secrets:
       - name: JWT_SECRET
         value: e56H5xb7PIWInazpKKsdCbsjXy0MP1eM5GIjOhypTgmoz1tRwg3nCJs4f0Rq5gosP7HMb1wbc3x1xEJ3r31Dtw==
-      - name: SENTRY_DSN
-        value: https://abc123@o123.ingest.sentry.io/456
+      - name: DATADOG_KEY
+        value: lmnopoh
 
   pg:
     version: "latest+dev"   # stable channel; semver constraint
