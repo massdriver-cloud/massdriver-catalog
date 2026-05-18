@@ -243,6 +243,32 @@ make publish-platforms
 
 This compiles the `massdriver.yaml` definitions into `dist.json` artifacts for publishing.
 
+### 📄 `preview.yaml`
+
+**Preview environments** are short-lived environments forked from a base environment (typically `production` or `staging`) so you can stand up a full stack for a pull request, a demo, or a one-off experiment without hand-wiring every instance. Massdriver clones the canvas, then applies the overrides you declare in `preview.yaml` — pinning specific bundle versions, swapping in cheaper instance sizes, scoping secrets, and templating values with environment variables like `${GITHUB_PR}`.
+
+The `preview.yaml` at the repo root is a working example you can adapt:
+
+- **`project` / `baseEnvironment`** — which environment to fork from.
+- **`attributes`** — ABAC tags applied to the new environment (lifecycle, branch, region).
+- **`environmentDefaults`** — pin shared resources (e.g. a Kubernetes cluster) the preview should reuse instead of cloning.
+- **`instances`** — per-instance overrides for `version`, `params`, and `secrets`. Instances listed without overrides inherit from the fork; instances omitted entirely are still cloned from the parent.
+
+Use it from CI (typically a `pull_request` GitHub Action) to fork the environment:
+
+```bash
+mass environment preview "pr${GITHUB_PR}" -f preview.yaml
+```
+
+Then on PR close, decommission and delete it:
+
+```bash
+mass environment decommission "pr${GITHUB_PR}" --follow
+mass environment delete "pr${GITHUB_PR}"
+```
+
+See the [Preview Environments workflow guide](https://docs.massdriver.cloud/workflows/preview) for the full CLI reference, CI examples, and the complete `preview.yaml` schema.
+
 ## Tour of the Demo Bundles & Resource Types
 
 The bundles and resource types ship pre-wired with realistic shapes so you can poke at the UX on the canvas before writing any IaC. Below is a quick map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want to find a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
@@ -498,6 +524,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 .
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
+├── preview.yaml                        # Preview environment fork config (see docs.massdriver.cloud/workflows/preview)
 ├── resource-types/                     # Resource type contracts (formerly artifact definitions)
 │   ├── application/
 │   │   └── massdriver.yaml
