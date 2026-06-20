@@ -1,0 +1,172 @@
+name: azure-virtual-network
+description: "Azure Virtual Network providing foundational networking with configurable address space, subnets, and DDoS protection."
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/azure-virtual-network
+version: 0.3.1
+
+params:
+  required:
+    - location
+    - cidr
+    - subnets
+  properties:
+    location:
+      type: string
+      title: Azure Region
+      description: Azure region where the VNet will be deployed.
+      $md.immutable: true
+      enum:
+        - eastus
+        - eastus2
+        - westus
+        - westus2
+        - westus3
+        - centralus
+        - northcentralus
+        - southcentralus
+        - westcentralus
+        - northeurope
+        - westeurope
+        - uksouth
+        - ukwest
+        - australiaeast
+        - australiasoutheast
+        - southeastasia
+        - eastasia
+        - japaneast
+        - japanwest
+        - southindia
+        - centralindia
+        - westindia
+        - canadacentral
+        - canadaeast
+        - brazilsouth
+    cidr:
+      type: string
+      title: Address Space
+      description: CIDR block for the Virtual Network address space.
+      $md.immutable: true
+      default: "10.0.0.0/16"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    subnets:
+      type: array
+      title: Subnets
+      description: Subnet definitions within the VNet.
+      minItems: 1
+      default:
+        - name: "default"
+          cidr: "10.0.1.0/24"
+          service_endpoints: []
+      items:
+        type: object
+        required:
+          - name
+          - cidr
+        properties:
+          name:
+            type: string
+            title: Name
+            description: Subnet name (alphanumeric and hyphens only).
+            pattern: ^[a-zA-Z0-9-]+$
+          cidr:
+            type: string
+            title: CIDR
+            description: Subnet address range (must be within VNet CIDR).
+            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+          service_endpoints:
+            type: array
+            title: Service Endpoints
+            description: Azure service endpoints to enable on this subnet.
+            default: []
+            items:
+              type: string
+              enum:
+                - Microsoft.Storage
+                - Microsoft.Sql
+                - Microsoft.KeyVault
+                - Microsoft.ServiceBus
+                - Microsoft.EventHub
+                - Microsoft.AzureActiveDirectory
+                - Microsoft.Web
+                - Microsoft.ContainerRegistry
+                - Microsoft.CognitiveServices
+    enable_ddos_protection:
+      type: boolean
+      title: Enable DDoS Protection
+      description: Enable Azure DDoS Network Protection (Standard plan — additional cost applies).
+      default: false
+    dns_servers:
+      type: array
+      title: Custom DNS Servers
+      description: Custom DNS server IP addresses. Leave empty to use Azure-provided DNS.
+      default: []
+      items:
+        type: string
+        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$
+
+  examples:
+    - __name: Development
+      location: eastus
+      cidr: "10.0.0.0/16"
+      enable_ddos_protection: false
+      dns_servers: []
+      subnets:
+        - name: "default"
+          cidr: "10.0.1.0/24"
+          service_endpoints: []
+    - __name: Production
+      location: eastus
+      cidr: "10.0.0.0/14"
+      enable_ddos_protection: true
+      dns_servers: []
+      subnets:
+        - name: "app"
+          cidr: "10.0.0.0/24"
+          service_endpoints:
+            - Microsoft.KeyVault
+            - Microsoft.Storage
+        - name: "data"
+          cidr: "10.0.1.0/24"
+          service_endpoints:
+            - Microsoft.Sql
+            - Microsoft.Storage
+        - name: "private-endpoints"
+          cidr: "10.0.2.0/24"
+          service_endpoints: []
+        - name: "management"
+          cidr: "10.0.3.0/24"
+          service_endpoints: []
+
+connections:
+  required:
+    - azure_service_principal
+  properties:
+    azure_service_principal:
+      $ref: acd/azure-service-principal
+      title: Azure Service Principal
+    azure_virtual_wan:
+      $ref: acd/azure-virtual-wan
+      title: Azure Virtual WAN
+
+artifacts:
+  required:
+    - azure_virtual_network
+  properties:
+    azure_virtual_network:
+      $ref: acd/azure-virtual-network
+      title: Azure Virtual Network
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("prd|prod|production")'
+
+ui:
+  ui:order:
+    - location
+    - cidr
+    - subnets
+    - enable_ddos_protection
+    - dns_servers
+    - "*"
