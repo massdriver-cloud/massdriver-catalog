@@ -216,21 +216,21 @@ Export configuration is defined in the `massdriver.yaml`:
 - `templatePath`: Path to the template file (relative to the platform directory)
 - `templateLang`: Template language (currently only `liquid` is supported)
 
-**Example template** (`exports/kubeconfig.yaml.liquid`):
+**Example template** (see the working one at `resource-types/kubernetes-cluster/exports/kubeconfig.yaml.liquid`):
 ```yaml
 apiVersion: v1
 clusters:
   - cluster:
-      server: {{ artifact.data.authentication.cluster.server }}
-      certificate-authority-data: {{ artifact.data.authentication.cluster.certificate-authority-data }}
+      server: {{ artifact.authentication.cluster.server }}
+      certificate-authority-data: {{ artifact.authentication.cluster.certificate-authority-data }}
     name: {{ artifact.id }}
 users:
   - name: {{ artifact.id }}
     user:
-      token: {{ artifact.data.authentication.user.token }}
+      token: {{ artifact.authentication.user.token }}
 ```
 
-This template references fields from the deployed artifact's `data` payload, allowing developers to instantly download correctly configured files without manual copy-paste.
+The `artifact` variable is the resource's payload itself — fields sit at the top level, exactly as the resource type's schema defines them (the v1 `data`/`specs` envelope is gone in v2). Developers instantly download correctly configured files without manual copy-paste.
 
 > **Note**: The `massdriver.yaml` format used here is a prototype for a more declarative authoring experience that may be adopted in future versions of Massdriver.
 
