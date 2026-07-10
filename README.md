@@ -285,6 +285,9 @@ See the [Preview Environments workflow guide](https://docs.massdriver.cloud/work
 The bundles on this branch provision real AWS infrastructure with deliberately minimal OpenTofu — enough to work end-to-end and demo well, not every provider option. Below is a map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
 
 > [!TIP]
+> Looking for a specific feature instead? **[TOUR.md](./TOUR.md)** is the reverse lookup: an index of every Massdriver feature this catalog demonstrates, linked to the exact file that shows it.
+
+> [!TIP]
 > **What's deliberately missing:** there is no cache (Redis/ElastiCache) or queue (SQS) bundle in this catalog. That's intentional — it demonstrates the governed "escape hatch": when an app needs a capability DevOps hasn't published, the right move is to request the bundle from your platform team, not to improvise infrastructure. Watch for it when demoing the Massdriver Claude Code plugin.
 
 ### `aws-vpc/` → `aws-network`
@@ -561,6 +564,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ```
 .
 ├── README.md                           # This file
+├── TOUR.md                             # Feature index → working example lookup
 ├── Makefile                            # Automation for publishing
 ├── preview.yaml                        # Preview environment fork config (see docs.massdriver.cloud/workflows/preview)
 ├── resource-types/                     # Capability contracts (formerly artifact definitions)
