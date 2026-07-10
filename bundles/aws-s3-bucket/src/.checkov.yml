@@ -1,0 +1,17 @@
+skip-check:
+  # Cross-region replication is a DR architecture decision (second bucket,
+  # second region) out of scope for this catalog.
+  - CKV_AWS_144
+  # AES256 (SSE-S3) is used; customer-managed KMS keys are an org-level
+  # decision. Swap in your CMK and remove this skip if compliance requires it.
+  - CKV_AWS_145
+  # Access logging needs a second, dedicated log bucket — out of scope for a
+  # demo catalog.
+  - CKV_AWS_18
+  # Event notifications are an application concern wired up by consumers, not
+  # by the bucket bundle.
+  - CKV2_AWS_62
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV_AWS_21 (versioning) — user-configurable via versioning_enabled
+# - CKV2_AWS_61 (lifecycle configuration) — user-configurable via
+#   expire_noncurrent_versions_days

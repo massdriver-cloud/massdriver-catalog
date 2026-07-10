@@ -1,0 +1,136 @@
+name: aws-s3-bucket
+description: >-
+  AWS S3 bucket with private-by-default access, versioning, optional object lock, and lifecycle cleanup of old
+  versions. Emits real IAM policies applications can attach to read or write the bucket.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-s3-bucket
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: us-east-1
+      access: private
+      versioning_enabled: true
+      object_lock: false
+      expire_noncurrent_versions_days: 30
+    - __name: Production
+      region: us-east-1
+      access: private
+      versioning_enabled: true
+      object_lock: false
+      expire_noncurrent_versions_days: 365
+  required:
+    - region
+    - access
+    - versioning_enabled
+    - object_lock
+    - expire_noncurrent_versions_days
+  properties:
+    region:
+      title: Region
+      description: AWS region the bucket is created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: "US East (N. Virginia) — us-east-1"
+        - const: us-east-2
+          title: "US East (Ohio) — us-east-2"
+        - const: us-west-2
+          title: "US West (Oregon) — us-west-2"
+        - const: eu-west-1
+          title: "Europe (Ireland) — eu-west-1"
+    access:
+      title: Access
+      description: Public access policy at the bucket level. Private buckets grant access only through the IAM policies this bundle emits.
+      type: string
+      default: private
+      oneOf:
+        - const: private
+          title: "Private — no anonymous access (recommended)"
+        - const: public_read
+          title: "Public Read — anyone can read objects (static assets/CDN origins only)"
+    versioning_enabled:
+      title: Versioning
+      description: Keep old versions of overwritten and deleted objects so they can be restored.
+      type: boolean
+      default: true
+    object_lock:
+      title: Object Lock
+      description: Make object versions immutable for a retention period. Can only be enabled when the bucket is created.
+      type: boolean
+      default: false
+      $md.immutable: true
+    object_lock_retention_days:
+      title: Object Lock Retention (days)
+      description: How long every new object version stays immutable after upload.
+      type: integer
+      default: 30
+      minimum: 1
+      maximum: 365
+    expire_noncurrent_versions_days:
+      title: Expire Old Versions After (days)
+      description: Delete noncurrent object versions after this many days. Set 0 to keep old versions forever.
+      type: integer
+      default: 90
+      minimum: 0
+      maximum: 365
+
+dependencies:
+  object_lock:
+    oneOf:
+      - properties:
+          object_lock:
+            const: false
+      - properties:
+          object_lock:
+            const: true
+        required:
+          - object_lock_retention_days
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - bucket
+  properties:
+    bucket:
+      $ref: object-storage
+      title: Bucket
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - access
+    - versioning_enabled
+    - object_lock
+    - object_lock_retention_days
+    - expire_noncurrent_versions_days
+    - "*"
+  access:
+    ui:help: "Public Read exposes every object in the bucket to the internet. Pick Private and let applications use the emitted IAM policies unless this bucket serves static assets directly."
+  versioning_enabled:
+    ui:help: "Cheap insurance against accidental deletes and overwrites — old versions can be restored with one CLI call."
+  object_lock:
+    ui:help: "One-way switch: S3 object lock can only be enabled at bucket creation and never turned off. It requires versioning, so versioning is forced on while lock is enabled."
+  object_lock_retention_days:
+    ui:widget: updown
+    ui:help: "Nobody (without governance-bypass permission) can delete or overwrite a version during this window."
+  expire_noncurrent_versions_days:
+    ui:widget: updown
+    ui:help: "0 keeps old versions forever. Only applies when versioning is on — noncurrent versions are what pile up storage costs."

@@ -13,6 +13,9 @@ A bootstrap catalog for self-hosted Massdriver instances containing resource typ
 >
 > The keys `connections:` and `artifacts:` inside `massdriver.yaml` are **unchanged** — backward-compatible renames to `dependencies:` and `resources:` are coming in a future release. Until then this repo continues to use `connections:` and `artifacts:` in every `massdriver.yaml`, with a comment pointing to the new names.
 
+> [!IMPORTANT]
+> **You are on the `example/aws-customer` branch.** This branch models a fictional AWS customer: the resource types are capability contracts (`postgres-database`, `kubernetes-cluster`), the bundles are that org's AWS implementations (`aws-rds-postgres`, `aws-eks-cluster`) with **real, minimal OpenTofu** — deployable to a sandbox account, not `random_pet` stubs. Cache and queue bundles are deliberately absent (see the tour below). To use it for your own AWS org, find-and-replace `YOUR_ORG` with your GitHub organization.
+
 **tl;dr:** [Jump to Quick Start](#customizing-your-catalog)
 
 ## Quick Start Workflow
@@ -58,17 +61,17 @@ Each resource type is a directory containing a `massdriver.yaml` file:
 
 ```
 resource-types/
-├── network/
-│   └── massdriver.yaml    # Network/VPC contract
-├── postgres/
-│   └── massdriver.yaml    # PostgreSQL connection contract
-├── mysql/
-│   └── massdriver.yaml    # MySQL connection contract
-├── bucket/
-│   └── massdriver.yaml    # Object storage contract
-└── application/
-    └── massdriver.yaml    # Application metadata contract
+├── aws-network/           # VPC + subnets contract
+├── kubernetes-cluster/    # Cluster + kubeconfig contract (with a kubeconfig download export)
+├── container-registry/    # Image registry contract
+├── postgres-database/     # PostgreSQL connection contract
+├── mysql-database/        # MySQL/MariaDB connection contract
+├── object-storage/        # Bucket + IAM policies contract
+└── application/           # Deployed-app identity contract
 ```
+
+> [!NOTE]
+> **Naming convention (v2 shared namespace):** In Massdriver v2, resource types and bundles share one namespace and cannot collide. This catalog resolves that with a convention worth copying: **resource types are capability nouns** (what a consumer gets — `postgres-database`), **bundles are implementation names** (how this org builds it — `aws-rds-postgres`). An app depends on a `postgres-database`; DevOps happens to fulfill it with RDS.
 
 > **💡 Note on Sensitive Fields**: Resource types support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All resource data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
 
@@ -90,13 +93,15 @@ Use these example resource types to:
 
 Bundles provide a safe self-service framework where you (the platform team) encode best practices into ready-to-use modules, and developers get a simple interface to deploy what they need.
 
-This catalog includes template bundles with complete schemas and placeholder infrastructure code:
+This branch includes bundles with complete schemas and real, minimal AWS OpenTofu:
 
-- `network/` - Network/VPC provisioning
-- `postgres/` - PostgreSQL database provisioning
-- `mysql/` - MySQL database provisioning
-- `bucket/` - Object storage bucket provisioning
-- `application/` - Application deployment template
+- `aws-vpc/` - VPC with public/private subnets, optional NAT and flow logs → produces `aws-network`
+- `aws-eks-cluster/` - EKS cluster + managed node group → produces `kubernetes-cluster`
+- `aws-ecr-repo/` - ECR image repository with lifecycle policy → produces `container-registry`
+- `aws-rds-postgres/` - RDS PostgreSQL → produces `postgres-database`
+- `aws-rds-mariadb/` - RDS MariaDB (backs WordPress) → produces `mysql-database`
+- `aws-s3-bucket/` - S3 bucket with real IAM access policies → produces `object-storage`
+- `k8s-wordpress/` - Off-the-shelf WordPress onto a cluster + MariaDB → produces `application`
 
 Each bundle includes:
 
@@ -105,7 +110,7 @@ Each bundle includes:
 - ✅ **Connection schemas** (the `connections:` key — the product surfaces these as **dependencies**) - Define resources from other bundles this one needs, enabling secure access to their details during automation.
 - ✅ **Artifact schemas** (the `artifacts:` key — the product surfaces these as **resources**) - Define what infrastructure this bundle produces for others to consume.
 - ✅ **UI schemas** - Control how the configuration form looks and behaves
-- 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
+- ✅ Real, minimal OpenTofu code (deployable to a sandbox AWS account — extend or replace with yours)
 
 > [!NOTE]
 > The `connections:` and `artifacts:` keys keep their v1 names inside `massdriver.yaml`. Backward-compatible renames to `dependencies:` and `resources:` are coming — until then, prefer the v1 keys here.
@@ -123,8 +128,6 @@ Available templates:
 | Template | Provisioner | Description |
 |----------|-------------|-------------|
 | `opentofu` | OpenTofu | OpenTofu module template |
-| `terraform` | Terraform | Terraform module template |
-| `bicep` | Bicep | Azure Bicep template |
 | `helm-chart` | Helm | Deploy external Helm charts |
 
 **Usage with the CLI:**
@@ -228,10 +231,7 @@ This template references fields from the deployed artifact's `data` payload, all
 
 **Included platforms**:
 
-- `aws/` - AWS IAM Role authentication
-- `azure/` - Azure Service Principal authentication
-- `gcp/` - GCP Service Account authentication
-- `kubernetes/` - Kubernetes cluster connection
+- `aws/` - AWS IAM Role authentication (this example-AWS-customer branch ships only this one; the `main` branch has Azure, GCP, Kubernetes, and more)
 
 **Extending Massdriver**: Your platform team can support any cloud or SaaS platform by creating a new platform directory and defining its `massdriver.yaml`. Design the `schema` section to match your OpenTofu provider or Helm authentication configuration. Massdriver captures those credential values and securely passes them to your automation workflows.
 
@@ -269,71 +269,81 @@ mass environment delete "pr${GITHUB_PR}"
 
 See the [Preview Environments workflow guide](https://docs.massdriver.cloud/workflows/preview) for the full CLI reference, CI examples, and the complete `preview.yaml` schema.
 
-## Tour of the Demo Bundles & Resource Types
+## Tour of the Bundles & Resource Types
 
-The bundles and resource types ship pre-wired with realistic shapes so you can poke at the UX on the canvas before writing any IaC. Below is a quick map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want to find a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
+The bundles on this branch provision real AWS infrastructure with deliberately minimal OpenTofu — enough to work end-to-end and demo well, not every provider option. Below is a map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
 
 > [!TIP]
-> The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + connections on every `mass bundle build`, so you can change the schema and your variables stay in sync.
+> **What's deliberately missing:** there is no cache (Redis/ElastiCache) or queue (SQS) bundle in this catalog. That's intentional — it demonstrates the governed "escape hatch": when an app needs a capability DevOps hasn't published, the right move is to request the bundle from your platform team, not to improvise infrastructure. Watch for it when demoing the Massdriver Claude Code plugin.
 
-### `network/` bundle ↔ `network` resource type
+### `aws-vpc/` → `aws-network`
 
-Produces a virtual network with subnets that other bundles attach to.
+The foundational network. Public + private subnet per AZ, internet gateway, optional NAT, optional flow logs.
 
-- **`params.examples`**: Small (/24 dev) · Medium (staging) · Large (production multi-AZ) — preset dropdown in the UI.
-- **`$md.immutable: true`** on `cidr` — once set, the form blocks edits.
-- **`message.pattern`** override on the CIDR pattern (so users see "Must be a valid IPv4 CIDR block, like 10.0.0.0/16" instead of a raw regex).
-- **Conditional `dependencies`** block: `flow_log_retention_days` is required only when `enable_flow_logs` is `true`.
-- **Array constraints** on `subnets` (`minItems: 1`, `maxItems: 12`, `uniqueItems`) and `dns_servers` (`maxItems: 4`).
-- **UI**: `ui:widget: updown` on retention, `ui:help` on every non-obvious field, `ui:options.orderable/addable/removable` on the subnets array.
-- **Alarms** (`src/alarms.tf`): `Egress Throughput Anomaly`, `NAT Port Exhaustion`.
+- **`params.examples`**: Development (no NAT) · Staging (single NAT) · Production (3 AZs, HA NAT) presets.
+- **`$md.immutable: true`** on `region` and `cidr`; **`message.pattern`** override so users see "Must be a valid IPv4 CIDR block…" instead of a raw regex.
+- **Conditional `dependencies`** block: `flow_log_retention_days` required only when `enable_flow_logs` is on.
+- **Costs in option labels**: the NAT selector spells out ~$32/mo per gateway.
+- **Alarms**: per-NAT `NAT Port Exhaustion` (`AWS/NATGateway` `ErrorPortAllocation`) — only exists when NAT is enabled.
+- **Compliance posture**: default security group locked to deny-all; the flow-logs Checkov check is deliberately *not* skipped so dev deploys warn when they're off.
 
-### `postgres/` bundle ↔ `postgres` resource type
+### `aws-eks-cluster/` → `kubernetes-cluster`
 
-Produces a PostgreSQL instance, depends on a `network`.
+EKS control plane + managed node group. Depends on `aws-network` (region is derived from it — you can't land a cluster in the wrong region).
 
-- **Human-readable version selector** via `oneOf` + `const` + `title` (Postgres `12` is labelled "out of community support — upgrade soon"; `16` is labelled "current").
-- **`$md.enum`** on `subnet_filter` — populates a dropdown from the linked network's `.subnets`.
+- **Version selector** via `oneOf` + `const` + `title` ("1.31 (current)").
+- **T-shirt node sizing** with instance types and specs in the labels.
+- **Private-subnet placement** computed from the network artifact's subnet tiers.
+- **The resource type carries a kubeconfig `exports:` template** — developers download working cluster credentials from the resource in the UI.
+- **Alarm**: etcd storage (`apiserver_storage_size_bytes`) at 6 GiB of the hard 8 GiB limit.
+
+### `aws-ecr-repo/` → `container-registry`
+
+Image repository with a keep-last-N lifecycle policy. The registry the Claude Code plugin pushes app images to.
+
+- **`image_tag_mutability`** oneOf with the risk spelled out in the MUTABLE label.
+- **`$md.immutable`** on `region` and `repository_name` (they're part of the image URL).
+- **README includes the `docker login`/`push` snippet** built from the artifact's fields.
+
+### `aws-rds-postgres/` → `postgres-database`
+
+RDS PostgreSQL, depends on `aws-network`.
+
+- **`$md.enum`** on `placement_subnet` — a dropdown fed by the linked network's `.subnets`, wired to real AZ pinning in the Terraform.
 - **Multi-annotation combo** on `username`: `$md.immutable: true` + `$md.copyable: false` (won't change post-deploy, won't carry into a cloned env).
-- **`$md.sensitive: true`** on the resource-type's `auth.password` (masks the value in the UI and audit-logs every download).
-- **T-shirt sizing** (`xs`/`s`/`m`/`l`/`xl`), `allocated_storage_gb` with `multipleOf: 10`, `backup_retention_days` with `minimum`/`maximum`, conditional `multi_az_zones` when `high_availability: true`.
-- **Alarms**: `High Connections`, `Storage 80% Full`, and a conditional `Replication Lag` that only emits when HA is on.
+- **`$md.sensitive: true`** on the resource type's `auth.password` (masked in the UI; downloads audit-logged).
+- **T-shirt sizing**, `allocated_storage_gb` with `multipleOf: 10`, conditional `max_storage_gb` when `storage_autoscaling` is on.
+- **Alarms**: `High Connections`, `CPU High`, `Storage Low`, conditional `Replication Lag` when HA is on.
 
-### `mysql/` bundle ↔ `mysql` resource type
+### `aws-rds-mariadb/` → `mysql-database`
 
-Same shape as `postgres/`, with MySQL-specific touches:
+Same shape as `aws-rds-postgres`, MariaDB-flavored — this is the database behind `k8s-wordpress`.
 
-- **`character_set` and `collation`** enums, both `$md.immutable: true`.
-- **Conditional `slow_query_log_long_query_time_seconds`** required only when `slow_query_log_enabled: true`.
-- **`username` capped at 32 chars** via `maxLength` (MySQL's username limit).
-- **Alarms**: conditional `Slow Query Rate`, conditional `Replication Lag`, `Storage 80% Full`.
+- **`character_set` and `collation`** enums, both `$md.immutable: true`, applied through a real parameter group.
+- **Conditional `slow_query_log_seconds`** required only when `slow_query_log_enabled` is on.
+- **`username` capped at 32 chars** via `maxLength` (MySQL's limit).
 
-### `bucket/` bundle ↔ `bucket` resource type
+### `aws-s3-bucket/` → `object-storage`
 
-Object storage. No upstream connections.
+Object storage with **real IAM access policies** flowing through the artifact — the `policies` list carries actual IAM policy ARNs (Read / Read-Write) that consuming bundles attach to their workload roles.
 
-- **`access_level`** as `oneOf` with `title` labels ("Private — no anonymous access (recommended)", "Public Read+Write — rarely safe").
-- **`object_lock`** marked `$md.immutable: true` (one-way switch) with a `dependencies` block requiring `object_lock_retention_days` and `versioning_enabled` when on.
-- **`lifecycle_rules`** array (max 8, unique items) with per-rule transition + storage class enum; UI lets you reorder / add / remove rules.
-- **CORS origins** array with origin-URL pattern validation.
-- **Alarms**: `5xx Error Rate`, conditional `Anonymous Access Anomaly` (only when the bucket is private).
+- **`access`** oneOf with warning labels ("Public Read — … static assets/CDN origins only").
+- **`object_lock`** marked `$md.immutable: true` (a genuine one-way switch in S3) with a `dependencies` block requiring retention days when on.
+- **Versioning + noncurrent-version expiry** as simple, honest lifecycle controls.
 
-### `application/` bundle ↔ `application` resource type
+### `k8s-wordpress/` → `application`
 
-A containerized app that connects to a network + Postgres + (optional) bucket.
+The off-the-shelf app: DevOps publishes it once, then anyone can deploy WordPress by linking a `kubernetes-cluster` and a `mysql-database` on the canvas — connection data (hostnames, credentials) routes to the app automatically.
 
-- **Full `app:` block** showcasing both halves:
-  - **`app.envs`** — JQ expressions that lift connection values into env vars (`DATABASE_HOST`, `DATABASE_URL` via string-concat, `BUCKET_NAME` with `// ""` fallback when no bucket is linked).
-  - **`app.secrets`** — declares `JWT_SECRET` (`required: true`), `SENTRY_DSN` and `GOOGLE_OAUTH_CLIENT_SECRET` (optional). The UI blocks deploy until required secrets are set.
-- **`$md.enum`** on `database_policy` and `bucket_policy` — populates from the linked resource's `.policies` array.
-- **`environment` and `log_level`** as `oneOf` enums with explanatory `title` labels.
-- **`cpu_limit`/`memory_limit`** as plain `enum`s modeled on Kubernetes resource strings.
-- **`image` regex** that requires `image:tag` or `image@digest` (no implicit `:latest`).
-- **Alarms**: `Pod Restart Rate`, `5xx Error Rate`, `p95 Latency`.
+- **Full `app:` block**:
+  - **`app.envs`** — JQ expressions lifting the database connection into WordPress env vars (`WORDPRESS_DATABASE_HOST`, etc.).
+  - **`app.secrets`** — `WORDPRESS_ADMIN_PASSWORD` (`required: true` — the UI blocks deploy until it's set), `WORDPRESS_SMTP_PASSWORD` (optional).
+- **`$md.enum`** on `database_policy` — populates from the linked database's `.policies` array.
+- **Runs the Bitnami WordPress chart** via the Helm provider inside OpenTofu, so artifact emission works like every other bundle.
 
 ### `resource-types/*/instructions/`
 
-Each resource type ships per-source form-fill walkthroughs that render alongside the resource creation form in the Massdriver UI. They tell operators how to harvest each schema field from the matching cloud (`AWS RDS PostgreSQL.md`, `Azure VNet.md`, `GCP Cloud Storage.md`, etc.) or from a self-hosted setup. Same pattern as `platforms/<cloud>/instructions/` — replace or extend with your team's onboarding steps.
+Each resource type ships form-fill walkthroughs that render alongside the resource creation form in the Massdriver UI. They tell operators how to harvest each schema field from the AWS console or CLI (`AWS RDS PostgreSQL.md`, `Amazon EKS.md`, etc.) — the path for registering infrastructure that already exists outside Massdriver. Same pattern as `platforms/aws/instructions/` — replace or extend with your team's onboarding steps.
 
 > [!NOTE]
 > The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 1.4`. Reference these when you wire your real cloud resources up.
@@ -444,7 +454,7 @@ make all
 - Configure **parameters** to test what the developer experience feels like
 
 7. **Implement infrastructure code**
-   - When ready, replace placeholder code in `bundles/*/src/` with your OpenTofu/Terraform
+   - When ready, extend or replace the example code in `bundles/*/src/` with your OpenTofu/Terraform
    - Test locally with `tofu init` and `tofu plan` or run rapid infrastructure testing with [`mass bundle publish --development`](https://docs.massdriver.cloud/concepts/versions#rapid-infrastructure-testing)
    - Customize platform definitions to match your provider blocks, then publish them:
      ```bash
@@ -500,7 +510,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 > [!TIP]
 > Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed documentation on bundle and resource type development.
 
-1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
+1. Extend or replace the example OpenTofu/Terraform in `bundles/*/src/`
 2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
 4. Push to `main` to automatically publish bundles via GitHub Actions, or use `make all` for manual publishing
@@ -525,34 +535,27 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ├── README.md                           # This file
 ├── Makefile                            # Automation for publishing
 ├── preview.yaml                        # Preview environment fork config (see docs.massdriver.cloud/workflows/preview)
-├── resource-types/                     # Resource type contracts (formerly artifact definitions)
-│   ├── application/
-│   │   └── massdriver.yaml
-│   ├── bucket/
-│   │   └── massdriver.yaml
-│   ├── mysql/
-│   │   └── massdriver.yaml
-│   ├── network/
-│   │   └── massdriver.yaml
-│   └── postgres/
-│       └── massdriver.yaml
-├── bundles/                            # Infrastructure-as-Code modules
-│   ├── application/                    # Example Application
-│   ├── bucket/                         # Object storage
-│   ├── mysql/                          # MySQL database
-│   ├── network/                        # VPC/Network
-│   └── postgres/                       # PostgreSQL database
+├── resource-types/                     # Capability contracts (formerly artifact definitions)
+│   ├── application/                    # Deployed-app identity
+│   ├── aws-network/                    # VPC + subnets
+│   ├── container-registry/            # Image registry
+│   ├── kubernetes-cluster/            # Cluster + kubeconfig export
+│   ├── mysql-database/                # MySQL/MariaDB connection
+│   ├── object-storage/                # Bucket + IAM policies
+│   └── postgres-database/             # PostgreSQL connection
+├── bundles/                            # This org's AWS implementations (real minimal OpenTofu)
+│   ├── aws-ecr-repo/                   # → container-registry
+│   ├── aws-eks-cluster/                # → kubernetes-cluster
+│   ├── aws-rds-mariadb/                # → mysql-database
+│   ├── aws-rds-postgres/               # → postgres-database
+│   ├── aws-s3-bucket/                  # → object-storage
+│   ├── aws-vpc/                        # → aws-network
+│   └── k8s-wordpress/                  # → application
 ├── templates/                          # Bundle templates for mass bundle new
 │   ├── opentofu/                       # OpenTofu module template
-│   ├── terraform/                      # Terraform module template
-│   ├── bicep/                          # Azure Bicep template
 │   └── helm-chart/                     # External Helm chart template
 └── platforms/                          # Cloud-credential resource types (split out for discoverability)
-    ├── aws/                            # IAM Role
-    ├── azure/                          # Service Principal
-    ├── gcp/                            # Service Account
-    ├── kubernetes/                     # Namespace + kubeconfig
-    └── .../                            # + add any cloud your IaC supports
+    └── aws/                            # IAM Role (only platform on this branch)
 ```
 
 ## Customization Guide
@@ -592,7 +595,7 @@ Customize these schemas to match your desired developer experience. The schemas 
 
 ### Bundle Implementation
 
-When you're ready to implement the actual infrastructure provisioning, replace the placeholder OpenTofu/Terraform code in `bundles/*/src/`.
+When you're ready to adapt these bundles to your own standards, extend or replace the example OpenTofu code in `bundles/*/src/`.
 
 **How it works**: Massdriver bundles combine policy as code, IaC, and pipelines into a single deployable unit. They define the interface (inputs/outputs), dependencies (connections), and workflow steps—bringing compliance and security scanning into the bundle itself, instead of maintaining snowflake pipelines scattered across hundreds of repos. Massdriver automatically generates input variables from your params and connections schemas, then executes your IaC code with those values.
 
@@ -605,7 +608,7 @@ To implement a bundle:
    - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name prefix, instance ID, environment, default tags, etc.)
 5. **Output** resource data that matches your `artifacts:` schema (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires an `aws-network` resource named `network`, access its VPC ID as `var.network.vpc_id` — see `bundles/aws-eks-cluster/src/main.tf` for a working example.
 
 ## What's Next?
 

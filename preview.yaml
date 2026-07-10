@@ -2,7 +2,7 @@
 project: fancy
 
 # Required: the local segment of the env to fork from. The full parent
-# identifier is `<project>-<baseEnvironment>` → `fancy-claude`.
+# identifier is `<project>-<baseEnvironment>` → `fancy-production`.
 baseEnvironment: production
 
 # Optional fork-level macros. Default false.
@@ -18,44 +18,38 @@ attributes:
   branch: "${GITHUB_PR}"
   region: us-east-1
 
-# Optional: pin specific resources as defaults for this env. `resourceType` is
+# Optional: pin specific resources as defaults for this env, instead of cloning
+# them. Previews should reuse the shared EKS cluster and ECR repo rather than
+# spend 20 minutes (and ~$73/mo) creating their own. `resourceType` is
 # documentation for the reader; the CLI only sends `resourceId` to the API.
 environmentDefaults:
   - resourceType: kubernetes-cluster
-    resourceId: shared-produse1-k8s.kubernetes_cluster
+    resourceId: shared-produse1-eks.cluster
+  - resourceType: container-registry
+    resourceId: shared-produse1-ecr.registry
 
 # Optional: per-instance overrides. Listed instances with no overrides just
 # inherit from the fork's seed. Valid keys per instance: version, params, secrets.
 # Instance keys are the local segment of the instance ID (the part after
-# `<project>-<baseEnvironment>-`), as listed by `mass instance list fancy-claude`.
+# `<project>-<baseEnvironment>-`), as listed by `mass instance list fancy-production`.
 instances:
-  app:
+  wordpress:
     version: "latest+dev"   # `+dev` pulls from the development channel
     params:
-      image: nginx:stable
+      blog_title: "PR ${GITHUB_PR} Preview"
       replicas: 1
-      domain_name: app-pr${GITHUB_PR}.mdawssbx.com
-      cpu_limit: "100m"
-      memory_limit: "256Mi"
-      log_level: debug
+      service_type: ClusterIP
     secrets:
-      - name: JWT_SECRET
-        value: e56H5xb7PIWInazpKKsdCbsjXy0MP1eM5GIjOhypTgmoz1tRwg3nCJs4f0Rq5gosP7HMb1wbc3x1xEJ3r31Dtw==
-      - name: DATADOG_KEY
-        value: lmnopoh
+      - name: WORDPRESS_ADMIN_PASSWORD
+        value: preview-only-password-rotate-me
 
-  pg:
-    version: "latest+dev"   # stable channel; semver constraint
+  mariadb:
+    version: "latest+dev"
     params:
-      instance_size: s
-      backup_retention_days: 1
-      username: app
+      instance_size: xs
+      backup_retention_days: 0
+      high_availability: false
 
-  mysql:
-    version: "latest+dev"   # exact pin
-    params:
-      database_name: appdev_pr_${GITHUB_PR}
-
-  # # listed without overrides — inherit from the fork
-  # bucket:
-  # net:
+  # listed without overrides — inherit from the fork
+  # vpc:
+  # pg:

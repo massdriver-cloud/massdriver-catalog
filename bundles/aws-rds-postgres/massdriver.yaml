@@ -1,0 +1,207 @@
+name: aws-rds-postgres
+description: "PostgreSQL on AWS RDS: t-shirt sizing, optional Multi-AZ, storage autoscaling, and subnet placement driven by the connected network. The stateful workhorse behind most applications."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-rds-postgres
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (single-AZ, minimal retention)
+      db_version: "16"
+      database_name: "app"
+      username: "app_user"
+      instance_size: "xs"
+      allocated_storage_gb: 20
+      backup_retention_days: 1
+      high_availability: false
+      storage_autoscaling: false
+    - __name: Staging (single-AZ, week of backups)
+      db_version: "16"
+      database_name: "app"
+      username: "app_user"
+      instance_size: "s"
+      allocated_storage_gb: 100
+      backup_retention_days: 7
+      high_availability: false
+      storage_autoscaling: false
+    - __name: Production (HA, 35d backups, autoscaling storage)
+      db_version: "16"
+      database_name: "app"
+      username: "app_user"
+      instance_size: "l"
+      allocated_storage_gb: 500
+      backup_retention_days: 35
+      high_availability: true
+      storage_autoscaling: true
+      max_storage_gb: 2000
+  required:
+    - db_version
+    - database_name
+    - username
+    - instance_size
+    - allocated_storage_gb
+    - backup_retention_days
+    - high_availability
+    - storage_autoscaling
+  properties:
+    db_version:
+      title: PostgreSQL Version
+      description: PostgreSQL major version. AWS applies minor versions automatically.
+      type: string
+      default: "16"
+      $md.immutable: true
+      oneOf:
+        - const: "13"
+          title: "13"
+        - const: "14"
+          title: "14"
+        - const: "15"
+          title: "15"
+        - const: "16"
+          title: "16 (current)"
+    database_name:
+      title: Database Name
+      description: Name of the application database created on first deploy.
+      type: string
+      default: "app"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores. 1–63 characters."
+      $md.immutable: true
+    username:
+      title: Database Username
+      description: Application database user. The bundle generates the password and shares it through the database resource.
+      type: string
+      default: "app_user"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores. 1–63 characters."
+      $md.immutable: true
+      $md.copyable: false
+    instance_size:
+      title: Instance Size
+      description: T-shirt size mapped to an RDS instance class in the IaC.
+      type: string
+      default: "s"
+      oneOf:
+        - const: "xs"
+          title: "Extra Small (db.t4g.micro — dev only)"
+        - const: "s"
+          title: "Small (db.t4g.small)"
+        - const: "m"
+          title: "Medium (db.t4g.medium)"
+        - const: "l"
+          title: "Large (db.r6g.large)"
+    allocated_storage_gb:
+      title: Storage (GB)
+      description: Allocated storage in gibibytes. RDS grows storage online but can never shrink it.
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 1000
+      multipleOf: 10
+    storage_autoscaling:
+      title: Storage Autoscaling
+      description: Let RDS grow storage automatically before the disk fills.
+      type: boolean
+      default: false
+    max_storage_gb:
+      title: Maximum Storage (GB)
+      description: Upper limit storage autoscaling may grow to.
+      type: integer
+      default: 100
+      minimum: 100
+      maximum: 2000
+    backup_retention_days:
+      title: Backup Retention (days)
+      description: How long automatic backups are kept.
+      type: integer
+      default: 7
+      minimum: 0
+      maximum: 35
+    high_availability:
+      title: High Availability
+      description: Run a synchronous standby in a second availability zone (RDS Multi-AZ).
+      type: boolean
+      default: false
+    placement_subnet:
+      title: Placement Subnet
+      description: Which subnet from the connected network hosts the primary instance.
+      type: string
+      $md.enum:
+        connection: network
+        options: .subnets
+        value: .id
+
+dependencies:
+  storage_autoscaling:
+    oneOf:
+      - properties:
+          storage_autoscaling:
+            const: false
+      - properties:
+          storage_autoscaling:
+            const: true
+        required:
+          - max_storage_gb
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+    network:
+      $ref: aws-network
+      title: Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: postgres-database
+      title: PostgreSQL
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - db_version
+    - instance_size
+    - allocated_storage_gb
+    - storage_autoscaling
+    - max_storage_gb
+    - database_name
+    - username
+    - high_availability
+    - placement_subnet
+    - backup_retention_days
+    - "*"
+  db_version:
+    ui:help: "Major-version upgrades are a destroy/recreate in this bundle. Plan a maintenance window and a dump/restore before changing."
+  allocated_storage_gb:
+    ui:widget: updown
+    ui:help: "RDS grows storage online; shrinking requires a logical dump and restore into a new instance."
+  storage_autoscaling:
+    ui:help: "A safety net, not capacity planning — size allocated storage for real usage and let autoscaling absorb surprises."
+  max_storage_gb:
+    ui:widget: updown
+  backup_retention_days:
+    ui:widget: updown
+    ui:help: "0 disables backups entirely — never do that in production. Production: 35. Staging: 7. Dev: 1."
+  high_availability:
+    ui:help: "Required for production. Roughly 2× cost; failover usually completes in under 60 seconds."
+  placement_subnet:
+    ui:help: "Which subnet hosts the primary — pick a private one. Ignored when high availability is on; Multi-AZ manages placement across zones."

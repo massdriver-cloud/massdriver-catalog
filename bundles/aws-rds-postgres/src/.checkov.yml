@@ -1,0 +1,13 @@
+skip-check:
+  # CloudWatch log exports (postgresql/upgrade logs) — out of scope for demo catalog.
+  - CKV_AWS_129
+  # Enhanced monitoring agent — out of scope for demo catalog.
+  - CKV_AWS_118
+  # Performance Insights — out of scope for demo catalog.
+  - CKV_AWS_353
+  # Performance Insights customer-managed KMS key — out of scope for demo catalog.
+  - CKV_AWS_354
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV_AWS_157 (multi-AZ) — user-configurable via high_availability
+# - CKV_AWS_293 (deletion protection) — intentionally off in this demo catalog; see main.tf
+# - backup-retention checks — user-configurable via backup_retention_days

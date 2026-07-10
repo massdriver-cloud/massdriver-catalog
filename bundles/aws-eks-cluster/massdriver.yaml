@@ -1,0 +1,117 @@
+name: aws-eks-cluster
+description: "Amazon EKS cluster with a managed node group, placed on the private subnets of a connected VPC. Produces cluster credentials any Kubernetes workload bundle can consume."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-eks-cluster
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      kubernetes_version: "1.31"
+      node_instance_size: s
+      min_nodes: 1
+      max_nodes: 3
+      public_api_endpoint: true
+    - __name: Production
+      kubernetes_version: "1.31"
+      node_instance_size: m
+      min_nodes: 3
+      max_nodes: 10
+      public_api_endpoint: false
+  required:
+    - kubernetes_version
+    - node_instance_size
+    - min_nodes
+    - max_nodes
+    - public_api_endpoint
+  properties:
+    kubernetes_version:
+      title: Kubernetes Version
+      description: Kubernetes minor version for the control plane. EKS upgrades in place — no rebuild needed.
+      type: string
+      default: "1.31"
+      oneOf:
+        - const: "1.29"
+          title: "1.29"
+        - const: "1.30"
+          title: "1.30"
+        - const: "1.31"
+          title: "1.31 (current)"
+    node_instance_size:
+      title: Node Size
+      description: EC2 instance size for worker nodes. Changing this replaces nodes one at a time — workloads are moved, not dropped.
+      type: string
+      default: s
+      oneOf:
+        - const: s
+          title: "Small (t3.medium — 2 vCPU, 4 GiB)"
+        - const: m
+          title: "Medium (m6i.large — 2 vCPU, 8 GiB)"
+        - const: l
+          title: "Large (m6i.xlarge — 4 vCPU, 16 GiB)"
+    min_nodes:
+      title: Minimum Nodes
+      description: The node group never scales below this many workers.
+      type: integer
+      default: 1
+      minimum: 1
+      maximum: 10
+    max_nodes:
+      title: Maximum Nodes
+      description: The node group never scales above this many workers.
+      type: integer
+      default: 3
+      minimum: 1
+      maximum: 20
+    public_api_endpoint:
+      title: Public API Endpoint
+      description: Whether the Kubernetes API server is reachable from the internet. Private access from inside the VPC is always on.
+      type: boolean
+      default: true
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+    network:
+      $ref: aws-network
+      title: Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - cluster
+  properties:
+    cluster:
+      $ref: kubernetes-cluster
+      title: Cluster
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - kubernetes_version
+    - node_instance_size
+    - min_nodes
+    - max_nodes
+    - public_api_endpoint
+    - "*"
+  kubernetes_version:
+    ui:help: "Upgrade one minor version at a time (1.29 → 1.30 → 1.31) and let each finish before the next. EKS cannot downgrade."
+  node_instance_size:
+    ui:help: "Small is fine for dev. t3 instances burst — sustained CPU-heavy work belongs on Medium or Large."
+  min_nodes:
+    ui:widget: updown
+  max_nodes:
+    ui:widget: updown
+    ui:help: "Autoscalers move the live node count between Minimum and Maximum. Massdriver never scales the live count back down on deploy."
+  public_api_endpoint:
+    ui:help: "Production should turn this off and reach the API server from inside the VPC (VPN or bastion). Leaving it on surfaces a compliance warning."

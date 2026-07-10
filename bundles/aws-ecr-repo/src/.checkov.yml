@@ -1,0 +1,9 @@
+skip-check:
+  # Repository uses AWS-managed AES256 encryption; customer-managed KMS keys
+  # are an org-level decision out of scope for this catalog. Swap in your CMK
+  # and remove this skip if your compliance program requires it.
+  - CKV_AWS_136
+# Deliberately NOT skipped (defaults keep them green; changing the param
+# surfaces them as warnings in dev):
+# - CKV_AWS_51 (image tag immutability) — user-configurable via image_tag_mutability
+# - CKV_AWS_163 (scan on push) — user-configurable via scan_on_push

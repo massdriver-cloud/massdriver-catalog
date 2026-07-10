@@ -1,0 +1,7 @@
+skip-check:
+  # Flow-log group uses AWS-managed encryption; customer-managed KMS keys are
+  # an org-level decision out of scope for this catalog. Swap in your CMK and
+  # remove this skip if your compliance program requires it.
+  - CKV_AWS_158
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV2_AWS_11 (flow logs) — user-configurable via enable_flow_logs

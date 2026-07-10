@@ -1,0 +1,51 @@
+name: container-registry
+label: Container Registry
+icon: https://unpkg.com/lucide-static@0.562.0/icons/container.svg
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: registries
+  instructions:
+    - label: Amazon ECR
+      path: ./instructions/Amazon ECR.md
+
+schema:
+  title: Container Registry
+  description: A container image repository to push application images to. Produced by the `aws-ecr-repo` bundle; consumed by bundles (and CI) that build and deploy container images.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - registry_url
+    - repository_url
+    - repository_name
+    - region
+  properties:
+    id:
+      title: Repository ID
+      description: Unique identifier for the repository (on AWS, the ECR repository ARN).
+      type: string
+      minLength: 1
+      examples:
+        - "arn:aws:ecr:us-east-1:123456789012:repository/sales-dashboard"
+    registry_url:
+      title: Registry URL
+      description: Registry hostname used for `docker login`.
+      type: string
+      examples:
+        - "123456789012.dkr.ecr.us-east-1.amazonaws.com"
+    repository_url:
+      title: Repository URL
+      description: Full repository URL used for `docker push` / image references.
+      type: string
+      examples:
+        - "123456789012.dkr.ecr.us-east-1.amazonaws.com/sales-dashboard"
+    repository_name:
+      title: Repository Name
+      type: string
+    region:
+      title: Region
+      description: AWS region the registry lives in.
+      type: string
+      examples:
+        - us-east-1

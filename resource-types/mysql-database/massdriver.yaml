@@ -1,0 +1,98 @@
+name: mysql-database
+label: MySQL / MariaDB Database
+icon: https://unpkg.com/lucide-static@0.562.0/icons/database-zap.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: AWS RDS MariaDB
+      path: ./instructions/AWS RDS MariaDB.md
+
+schema:
+  title: MySQL / MariaDB Database
+  description: >-
+    A MySQL-compatible database with connection details and access policies. Produced by the `aws-rds-mariadb`
+    bundle; consumed by applications that speak the MySQL protocol (including WordPress).
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - auth
+    - policies
+  properties:
+    id:
+      title: Database ID
+      description: Unique identifier for the database instance (on AWS, the RDS instance ARN).
+      type: string
+      minLength: 1
+    version:
+      title: Server Version
+      description: Major.minor version of the running server.
+      type: string
+      examples:
+        - "11.4"
+    high_availability:
+      title: High Availability
+      description: Whether the instance runs with a standby replica.
+      type: boolean
+    auth:
+      title: Authentication
+      description: Database connection parameters.
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Host
+          description: Database server hostname.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: TCP port the database listens on.
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 3306
+        database:
+          title: Database
+          description: Default database name to connect to.
+          type: string
+          pattern: ^[a-zA-Z_][a-zA-Z0-9_$]*$
+          message:
+            pattern: "Must start with a letter or underscore, then letters, digits, underscores, or $."
+        username:
+          title: Username
+          description: Authentication username.
+          type: string
+          minLength: 1
+          maxLength: 32
+        password:
+          $md.sensitive: true
+          title: Password
+          description: Authentication password. Masked in the UI; downloads are audit-logged.
+          type: string
+    policies:
+      title: Access Policies
+      description: Access levels applications can request. Bundles use `$md.enum` against this list to offer a policy dropdown.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: Policy ID
+            type: string
+          name:
+            title: Policy Name
+            type: string

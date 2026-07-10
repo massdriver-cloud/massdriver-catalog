@@ -1,8 +1,7 @@
 .PHONY: all publish-all publish-bundles publish-resource-types publish-platforms create-bundle-repos build-bundles validate-bundles clean clean-variables clean-lock clean-terraform clean-state clean-schemas help
 
-# Enabled platforms - edit this list to enable additional platforms
-# Available: aws, gcp, azure, kubernetes, vercel, snowflake, ovh, upcloud, scaleway, digitalocean
-ENABLED_PLATFORMS ?= aws gcp azure kubernetes
+# Enabled platforms - this example-AWS-customer branch ships only the aws platform
+ENABLED_PLATFORMS ?= aws
 
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -28,12 +27,7 @@ help:
 	@echo ""
 	@echo "Configuration:"
 	@echo "  ENABLED_PLATFORMS           - Space-separated list of platforms to publish"
-	@echo "                                Default: aws gcp azure kubernetes"
-	@echo "                                Available: aws gcp azure kubernetes vercel snowflake ovh upcloud scaleway digitalocean"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make publish-platforms                                    # Publish default platforms"
-	@echo "  make publish-platforms ENABLED_PLATFORMS='aws gcp vercel' # Publish specific platforms"
+	@echo "                                Default: aws (this branch ships only the aws platform)"
 	@echo ""
 
 all:
