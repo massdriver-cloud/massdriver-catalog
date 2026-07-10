@@ -1,0 +1,54 @@
+name: azure-service-principal
+label: Azure Service Principal
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/azure/icon.png
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Azure CLI
+      path: ./instructions/Azure CLI.md
+    - label: Azure Console
+      path: ./instructions/Azure Console.md
+
+exports: []
+
+schema:
+  title: Azure Service Principal
+  description: Service principal credentials for Azure authentication
+  type: object
+  required:
+    - client_id
+    - tenant_id
+    - client_secret
+    - subscription_id
+  properties:
+    client_id:
+      title: Client ID
+      description: Application (client) identifier
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+    client_secret:
+      $md.sensitive: true
+      title: Client Secret
+      description: Authentication secret value
+      type: string
+      pattern: "[-_.~a-zA-Z0-9]{1,40}"
+      message:
+        pattern: Must be a valid Azure client secret
+    subscription_id:
+      title: Subscription ID
+      description: Target subscription for resource management
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e
+    tenant_id:
+      title: Tenant ID
+      description: Azure AD tenant identifier
+      type: string
+      format: uuid
+      examples:
+        - 123xyz99-ab34-56cd-e7f8-456abc1q2w3e

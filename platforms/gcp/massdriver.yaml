@@ -1,0 +1,91 @@
+name: gcp-service-account
+label: GCP Service Account
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Google Cloud CLI
+      path: ./instructions/Google Cloud CLI.md
+    - label: Google Cloud Console
+      path: ./instructions/Google Cloud Console.md
+
+exports: []
+
+schema:
+  title: GCP Service Account
+  description: Service account key for GCP authentication
+  type: object
+  required:
+    - auth_provider_x509_cert_url
+    - auth_uri
+    - client_email
+    - client_id
+    - client_x509_cert_url
+    - private_key
+    - private_key_id
+    - project_id
+    - token_uri
+    - type
+  properties:
+    type:
+      title: Type
+      description: Credential type identifier
+      type: string
+      default: service_account
+    project_id:
+      title: Project ID
+      description: GCP project identifier
+      type: string
+    private_key_id:
+      title: Private Key ID
+      description: Key pair identifier
+      type: string
+    private_key:
+      $md.sensitive: true
+      title: Private Key
+      description: PEM-encoded signing key
+      type: string
+    client_email:
+      title: Client Email
+      description: Service account email address
+      type: string
+      format: email
+      examples:
+        - my-service-account@my-project.iam.gserviceaccount.com
+    client_id:
+      title: Client ID
+      description: Service account numeric identifier
+      type: string
+    auth_uri:
+      title: Auth URI
+      description: OAuth 2.0 authorization endpoint
+      type: string
+      pattern: ^https://.*$
+      default: https://accounts.google.com/o/oauth2/auth
+      examples:
+        - https://accounts.google.com/o/oauth2/auth
+    token_uri:
+      title: Token URI
+      description: OAuth 2.0 token endpoint
+      type: string
+      pattern: ^https://.*$
+      default: https://oauth2.googleapis.com/token
+      examples:
+        - https://oauth2.googleapis.com/token
+    auth_provider_x509_cert_url:
+      title: Provider Cert URL
+      description: Auth provider public certificate URL
+      type: string
+      pattern: ^https://.*$
+      default: https://www.googleapis.com/oauth2/v1/certs
+      examples:
+        - https://www.googleapis.com/oauth2/v1/certs
+    client_x509_cert_url:
+      title: Client Cert URL
+      description: Service account public certificate URL
+      type: string
+      pattern: ^https://.*$
+      examples:
+        - https://www.googleapis.com/robot/v1/metadata/x509/my-service-account%40my-project.iam.gserviceaccount.com

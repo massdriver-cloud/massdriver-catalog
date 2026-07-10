@@ -236,7 +236,13 @@ The `artifact` variable is the resource's payload itself — fields sit at the t
 
 **Included platforms**:
 
-- `aws/` - AWS IAM Role authentication (this example-AWS-customer branch ships only this one; the `main` branch has Azure, GCP, Kubernetes, and more)
+- `aws/` - AWS IAM Role authentication (the only one enabled by default on this AWS-example branch)
+- `azure/` - Azure Service Principal authentication
+- `gcp/` - GCP Service Account authentication
+- `kubernetes/` - Kubernetes namespace + kubeconfig
+- plus `vercel/`, `snowflake/`, `ovh/`, `upcloud/`, `scaleway/`, `digitalocean/`
+
+To expand this catalog beyond AWS, add the platform to `ENABLED_PLATFORMS` (Makefile / repo variable) and publish it — the definitions are already here.
 
 **Extending Massdriver**: Your platform team can support any cloud or SaaS platform by creating a new platform directory and defining its `massdriver.yaml`. Design the `schema` section to match your OpenTofu provider or Helm authentication configuration. Massdriver captures those credential values and securely passes them to your automation workflows.
 
@@ -580,7 +586,11 @@ This catalog is designed for a three-phase approach: model your architecture, im
 │   ├── aws-lambda/                     # Lambda function bundle template
 │   └── helm-chart/                     # External Helm chart template
 └── platforms/                          # Cloud-credential resource types (split out for discoverability)
-    └── aws/                            # IAM Role (only platform on this branch)
+    ├── aws/                            # IAM Role (enabled by default on this branch)
+    ├── azure/                          # Service Principal
+    ├── gcp/                            # Service Account
+    ├── kubernetes/                     # Namespace + kubeconfig
+    └── .../                            # + vercel, snowflake, ovh, upcloud, scaleway, digitalocean
 ```
 
 ## Customization Guide
