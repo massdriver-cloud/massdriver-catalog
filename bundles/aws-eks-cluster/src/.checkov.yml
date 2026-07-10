@@ -1,0 +1,12 @@
+skip-check:
+  # Secrets envelope encryption with a customer-managed KMS key; key management
+  # is an org-level decision out of scope for this catalog. Add an
+  # encryption_config block with your CMK and remove this skip if your
+  # compliance program requires it.
+  - CKV_AWS_58
+  # Wants all five control plane log types. This catalog deliberately ships the
+  # three security-relevant ones (api, audit, authenticator); controllerManager
+  # and scheduler add CloudWatch cost with little audit value.
+  - CKV_AWS_37
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV_AWS_38 / CKV_AWS_39 (public API endpoint) — user-configurable via public_api_endpoint

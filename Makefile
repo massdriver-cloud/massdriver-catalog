@@ -2,7 +2,8 @@
 
 # Enabled platforms - edit this list to enable additional platforms
 # Available: aws, gcp, azure, kubernetes, vercel, snowflake, ovh, upcloud, scaleway, digitalocean
-ENABLED_PLATFORMS ?= aws gcp azure kubernetes
+# (this example-AWS-customer branch enables only aws by default)
+ENABLED_PLATFORMS ?= aws
 
 # Dynamic discovery functions
 BUNDLES = $(shell find bundles -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -28,7 +29,7 @@ help:
 	@echo ""
 	@echo "Configuration:"
 	@echo "  ENABLED_PLATFORMS           - Space-separated list of platforms to publish"
-	@echo "                                Default: aws gcp azure kubernetes"
+	@echo "                                Default: aws (this branch's example customer is AWS-only)"
 	@echo "                                Available: aws gcp azure kubernetes vercel snowflake ovh upcloud scaleway digitalocean"
 	@echo ""
 	@echo "Examples:"

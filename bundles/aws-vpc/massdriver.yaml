@@ -1,0 +1,154 @@
+name: aws-vpc
+description: "AWS VPC with public/private subnets across availability zones, optional NAT, and optional flow logs. The foundational network everything else attaches to."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-vpc
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (2 AZs, no NAT)
+      region: us-east-1
+      cidr: "10.0.0.0/16"
+      availability_zones: 2
+      nat_gateway: none
+      enable_flow_logs: false
+    - __name: Staging (2 AZs, single NAT)
+      region: us-east-1
+      cidr: "10.1.0.0/16"
+      availability_zones: 2
+      nat_gateway: single
+      enable_flow_logs: true
+      flow_log_retention_days: 30
+    - __name: Production (3 AZs, HA NAT, flow logs)
+      region: us-east-1
+      cidr: "10.2.0.0/16"
+      availability_zones: 3
+      nat_gateway: per_az
+      enable_flow_logs: true
+      flow_log_retention_days: 90
+  required:
+    - region
+    - cidr
+    - availability_zones
+    - nat_gateway
+    - enable_flow_logs
+  properties:
+    region:
+      title: Region
+      description: AWS region the VPC is created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: "US East (N. Virginia) — us-east-1"
+        - const: us-east-2
+          title: "US East (Ohio) — us-east-2"
+        - const: us-west-2
+          title: "US West (Oregon) — us-west-2"
+        - const: eu-west-1
+          title: "Europe (Ireland) — eu-west-1"
+    cidr:
+      title: CIDR Block
+      description: Primary IPv4 range for the VPC. Size it for growth — a /16 gives ~65k addresses.
+      type: string
+      default: "10.0.0.0/16"
+      $md.immutable: true
+      pattern: ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/(?:1[6-9]|2[0-4])$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block between /16 and /24, like 10.0.0.0/16."
+    availability_zones:
+      title: Availability Zones
+      description: How many AZs to spread subnets across. Each AZ gets one public and one private subnet.
+      type: integer
+      default: 2
+      minimum: 2
+      maximum: 3
+    nat_gateway:
+      title: NAT Gateway
+      description: How private subnets reach the internet for outbound traffic (image pulls, package downloads).
+      type: string
+      default: none
+      oneOf:
+        - const: none
+          title: "None — private subnets have no internet egress (cheapest)"
+        - const: single
+          title: "Single — one NAT gateway shared by all AZs (~$32/mo)"
+        - const: per_az
+          title: "Per AZ — one NAT gateway per AZ, survives AZ failure (~$32/mo each)"
+    enable_flow_logs:
+      title: Enable Flow Logs
+      description: Capture network traffic metadata to CloudWatch Logs for security auditing and debugging.
+      type: boolean
+      default: false
+    flow_log_retention_days:
+      title: Flow Log Retention (days)
+      description: How long flow logs are kept before CloudWatch deletes them.
+      type: integer
+      default: 30
+      enum:
+        - 1
+        - 3
+        - 7
+        - 14
+        - 30
+        - 60
+        - 90
+        - 180
+        - 365
+
+dependencies:
+  enable_flow_logs:
+    oneOf:
+      - properties:
+          enable_flow_logs:
+            const: false
+      - properties:
+          enable_flow_logs:
+            const: true
+        required:
+          - flow_log_retention_days
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - network
+  properties:
+    network:
+      $ref: aws-network
+      title: Network
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - cidr
+    - availability_zones
+    - nat_gateway
+    - enable_flow_logs
+    - flow_log_retention_days
+    - "*"
+  cidr:
+    ui:help: "Locked after first deploy — re-IPing a VPC is a rebuild. Pick a range that doesn't overlap networks you may peer with later."
+  availability_zones:
+    ui:widget: updown
+    ui:help: "Production should use 3. You can grow this later; shrinking requires draining subnets first."
+  nat_gateway:
+    ui:help: "Start with None in dev if workloads run in public subnets. Anything pulling images from private subnets needs at least Single."
+  enable_flow_logs:
+    ui:help: "Compliance frameworks (SOC 2, PCI) usually require flow logs in production."
+  flow_log_retention_days:
+    ui:help: "Production: 90+. Dev: 7 is plenty."

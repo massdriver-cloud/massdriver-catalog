@@ -16,8 +16,9 @@ jobs:
       MASSDRIVER_ORG_ID: ${{ vars.MASSDRIVER_ORG_ID }}
       MASSDRIVER_URL: ${{ vars.MASSDRIVER_URL || 'https://api.massdriver.cloud' }}
       # Optional: space-separated list of platforms to publish
-      # Default: aws gcp azure kubernetes
-      ENABLED_PLATFORMS: ${{ vars.ENABLED_PLATFORMS || 'aws gcp azure kubernetes' }}
+      # Available: aws gcp azure kubernetes vercel snowflake ovh upcloud scaleway digitalocean
+      # (this example-AWS-customer branch enables only aws by default)
+      ENABLED_PLATFORMS: ${{ vars.ENABLED_PLATFORMS || 'aws' }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Massdriver CLI

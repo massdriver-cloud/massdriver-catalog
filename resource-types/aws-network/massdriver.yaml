@@ -1,0 +1,88 @@
+name: aws-network
+label: AWS Network (VPC)
+icon: https://unpkg.com/lucide-static@0.562.0/icons/network.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: networking
+  instructions:
+    - label: AWS Console
+      path: ./instructions/AWS Console.md
+
+schema:
+  title: AWS Network
+  description: An AWS VPC with its subnets. Produced by the `aws-vpc` bundle; consumed by anything that places resources on the network.
+  type: object
+  additionalProperties: false
+  required:
+    - vpc_id
+    - cidr
+    - region
+    - subnets
+  properties:
+    vpc_id:
+      title: VPC ID
+      description: The AWS VPC identifier.
+      type: string
+      pattern: ^vpc-[0-9a-f]{8,17}$
+      message:
+        pattern: "Must be a VPC ID like vpc-0a1b2c3d4e5f67890."
+    cidr:
+      title: CIDR Block
+      description: The VPC's primary IPv4 CIDR block.
+      type: string
+      pattern: ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/(?:[0-9]|[12][0-9]|3[012])$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+    region:
+      title: Region
+      description: AWS region the VPC lives in.
+      type: string
+      examples:
+        - us-east-1
+        - us-west-2
+    default_security_group_id:
+      title: Default Security Group
+      description: Security group applied to resources that don't bring their own.
+      type: string
+      pattern: ^sg-[0-9a-f]{8,17}$
+      message:
+        pattern: "Must be a security group ID like sg-0a1b2c3d4e5f67890."
+    subnets:
+      title: Subnets
+      description: Subnets available for placing resources. Bundles use `$md.enum` against this list to offer placement dropdowns.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+          - cidr
+          - tier
+          - availability_zone
+        properties:
+          id:
+            title: Subnet ID
+            type: string
+            pattern: ^subnet-[0-9a-f]{8,17}$
+          name:
+            title: Name
+            type: string
+          cidr:
+            title: CIDR
+            type: string
+            pattern: ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/(?:[0-9]|[12][0-9]|3[012])$
+          tier:
+            title: Tier
+            description: Public subnets route to an internet gateway; private subnets do not.
+            type: string
+            enum:
+              - public
+              - private
+          availability_zone:
+            title: Availability Zone
+            type: string
+            examples:
+              - us-east-1a

@@ -1,0 +1,146 @@
+name: k8s-wordpress
+description: >-
+  WordPress on Kubernetes via the Bitnami Helm chart. Link it to a Kubernetes
+  cluster and a MySQL-compatible database on the canvas and deploy — no YAML,
+  no kubectl. Shows off the `app:` block (env vars lifted from connections,
+  a required secret that gates deploys) and the `$md.enum` policy picker.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/k8s-wordpress
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Marketing Site
+      blog_title: "Acme Marketing"
+      admin_username: "marketing_admin"
+      admin_email: "marketing@example.com"
+      replicas: 1
+      service_type: LoadBalancer
+    - __name: Development
+      blog_title: "Dev Blog"
+      admin_username: "admin_user"
+      admin_email: "dev@example.com"
+      replicas: 1
+      service_type: ClusterIP
+  required:
+    - blog_title
+    - admin_username
+    - admin_email
+    - replicas
+    - database_policy
+    - service_type
+  properties:
+    blog_title:
+      title: Blog Title
+      description: The site title shown in the browser tab and page header. You can change it any time.
+      type: string
+      default: "Our Blog"
+      minLength: 1
+      maxLength: 100
+    admin_username:
+      title: Admin Username
+      description: Username for the WordPress admin account. Locked after the first deploy.
+      type: string
+      default: "admin_user"
+      $md.immutable: true
+      $md.copyable: false
+      pattern: ^[a-z0-9_]+$
+      message:
+        pattern: "Use only lowercase letters, numbers, and underscores — no spaces or capitals."
+    admin_email:
+      title: Admin Email
+      description: Email address for the WordPress admin account. Password resets and site notifications go here.
+      type: string
+      format: email
+    replicas:
+      title: Replicas
+      description: Number of WordPress pods to run.
+      type: integer
+      default: 1
+      minimum: 1
+      maximum: 5
+    database_policy:
+      title: Database Access Policy
+      description: Access level WordPress requests from the linked database. Options come from the database you link.
+      type: string
+      $md.enum:
+        connection: database
+        options: .policies
+        value: .id
+    service_type:
+      title: Exposure
+      description: How the site is reachable.
+      type: string
+      default: LoadBalancer
+      oneOf:
+        - const: LoadBalancer
+          title: "LoadBalancer — public URL via cloud load balancer"
+        - const: ClusterIP
+          title: "ClusterIP — internal only (front with your own ingress)"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - kubernetes_cluster
+    - database
+  properties:
+    kubernetes_cluster:
+      $ref: kubernetes-cluster
+      title: Kubernetes Cluster
+    database:
+      $ref: mysql-database
+      title: Database
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - app
+  properties:
+    app:
+      $ref: application
+      title: WordPress Site
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+app:
+  envs:
+    WORDPRESS_DATABASE_HOST: .connections.database.auth.hostname
+    WORDPRESS_DATABASE_PORT: .connections.database.auth.port | tostring
+    WORDPRESS_DATABASE_NAME: .connections.database.auth.database
+    WORDPRESS_DATABASE_USER: .connections.database.auth.username
+    WORDPRESS_DATABASE_PASSWORD: .connections.database.auth.password
+    WORDPRESS_BLOG_NAME: .params.blog_title
+    WORDPRESS_USERNAME: .params.admin_username
+    WORDPRESS_EMAIL: .params.admin_email
+    WORDPRESS_DATABASE_POLICY: .params.database_policy
+  secrets:
+    WORDPRESS_ADMIN_PASSWORD:
+      title: WordPress Admin Password
+      description: Password for the WordPress admin account. Required — the platform blocks deploys until it is set for the environment.
+      required: true
+    WORDPRESS_SMTP_PASSWORD:
+      title: SMTP Password
+      description: Password for the outgoing-mail (SMTP) account, if the site sends email. Optional.
+      required: false
+
+ui:
+  ui:order:
+    - blog_title
+    - admin_username
+    - admin_email
+    - replicas
+    - database_policy
+    - service_type
+    - "*"
+  admin_username:
+    ui:help: "Locked after the first deploy — WordPress stores the admin account in the database."
+  replicas:
+    ui:widget: updown
+    ui:help: "More than 1 replica needs storage the whole cluster can share (ReadWriteMany). Keep this at 1 unless your platform team says the cluster supports it."
+  database_policy:
+    ui:help: "The access level WordPress requests from the database. Pick read-write — WordPress writes posts, comments, and settings."
+  service_type:
+    ui:help: "LoadBalancer gives the site a public URL. ClusterIP keeps it internal — you bring your own ingress."

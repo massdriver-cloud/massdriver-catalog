@@ -1,0 +1,33 @@
+skip-check:
+  # Reserved concurrency is a per-workload tuning decision, not something a
+  # demo catalog should hardcode.
+  - CKV_AWS_115
+  # No dead-letter queue: this API is synchronous (function URL); async
+  # retries with a DLQ don't apply.
+  - CKV_AWS_116
+  # Not VPC-attached: the function only talks to DynamoDB over public AWS
+  # endpoints and serves a public URL.
+  - CKV_AWS_117
+  # Env vars hold only the table name (not a secret); customer-managed KMS
+  # keys are an org-level decision out of scope for this catalog.
+  - CKV_AWS_173
+  # Code signing requires an org-wide signing profile — out of scope for a
+  # demo catalog.
+  - CKV_AWS_272
+  # X-Ray tracing is a per-workload observability choice; CloudWatch alarms
+  # cover the demo's needs.
+  - CKV_AWS_50
+  # The function URL is public by design so the demo works with a bare curl.
+  # Front it with IAM auth or an API gateway in real use.
+  - CKV_AWS_258
+  # No point-in-time recovery: the table lives and dies with the bundle and
+  # demo data is disposable.
+  - CKV_AWS_28
+  # Table uses AWS-owned encryption at rest; customer-managed KMS keys are an
+  # org-level decision out of scope for this catalog.
+  - CKV_AWS_119
+  # Log group uses AWS-managed encryption; swap in your CMK and remove this
+  # skip if your compliance program requires it.
+  - CKV_AWS_158
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV_AWS_338 (1-year log retention) — user-configurable via log_retention_days

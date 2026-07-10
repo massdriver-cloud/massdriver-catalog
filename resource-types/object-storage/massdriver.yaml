@@ -1,0 +1,59 @@
+name: object-storage
+label: Object Storage
+icon: https://unpkg.com/lucide-static@0.562.0/icons/archive.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: storage
+  instructions:
+    - label: AWS S3
+      path: ./instructions/AWS S3.md
+
+schema:
+  title: Object Storage
+  description: An object storage bucket with access policies. Produced by the `aws-s3-bucket` bundle; consumed by applications that store files, assets, or uploads.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - bucket_name
+    - region
+    - policies
+  properties:
+    id:
+      title: Bucket ID
+      description: Unique identifier for the bucket (on AWS, the S3 bucket ARN).
+      type: string
+      minLength: 1
+      examples:
+        - "arn:aws:s3:::my-app-assets"
+    bucket_name:
+      title: Bucket Name
+      type: string
+      minLength: 3
+      maxLength: 63
+    region:
+      title: Region
+      description: AWS region the bucket lives in.
+      type: string
+      examples:
+        - us-east-1
+    policies:
+      title: Access Policies
+      description: IAM policies applications can request to access the bucket. Bundles use `$md.enum` against this list to offer a policy dropdown.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: Policy ID
+            description: On AWS, the IAM policy ARN to attach to the consumer's role.
+            type: string
+          name:
+            title: Policy Name
+            type: string

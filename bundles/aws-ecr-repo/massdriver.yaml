@@ -1,0 +1,115 @@
+name: aws-ecr-repo
+description: "Private Amazon ECR repository for container images, with vulnerability scanning on push and a lifecycle policy that keeps storage costs from creeping."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-ecr-repo
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: us-east-1
+      image_tag_mutability: MUTABLE
+      scan_on_push: true
+      keep_last_images: 10
+    - __name: Production
+      region: us-east-1
+      image_tag_mutability: IMMUTABLE
+      scan_on_push: true
+      keep_last_images: 50
+  required:
+    - region
+    - repository_name
+    - image_tag_mutability
+    - scan_on_push
+    - keep_last_images
+  properties:
+    region:
+      title: Region
+      description: AWS region the repository is created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: "US East (N. Virginia) — us-east-1"
+        - const: us-east-2
+          title: "US East (Ohio) — us-east-2"
+        - const: us-west-2
+          title: "US West (Oregon) — us-west-2"
+        - const: eu-west-1
+          title: "Europe (Ireland) — eu-west-1"
+    repository_name:
+      title: Repository Name
+      description: Name of the ECR repository, like `sales-dashboard` or `team-a/api`.
+      type: string
+      $md.immutable: true
+      minLength: 2
+      maxLength: 200
+      pattern: ^[a-z][a-z0-9._/-]*$
+      message:
+        pattern: "Must start with a lowercase letter and contain only lowercase letters, numbers, dots, underscores, slashes, and hyphens — like sales-dashboard or team-a/api."
+    image_tag_mutability:
+      title: Image Tag Mutability
+      description: Whether a tag (like `v1.2.3`) can be pushed again with a different image behind it.
+      type: string
+      default: IMMUTABLE
+      oneOf:
+        - const: IMMUTABLE
+          title: "Immutable — tags can never be overwritten (recommended)"
+        - const: MUTABLE
+          title: "Mutable — tags can be re-pushed (risky for prod)"
+    scan_on_push:
+      title: Scan Images on Push
+      description: Scan every pushed image for known vulnerabilities (CVEs).
+      type: boolean
+      default: true
+    keep_last_images:
+      title: Images to Keep
+      description: How many of the most recent images to keep. Older images are deleted automatically.
+      type: integer
+      default: 20
+      minimum: 1
+      maximum: 500
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - registry
+  properties:
+    registry:
+      $ref: container-registry
+      title: Registry
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - repository_name
+    - image_tag_mutability
+    - scan_on_push
+    - keep_last_images
+    - "*"
+  repository_name:
+    ui:help: "Becomes part of the image URL: <account>.dkr.ecr.<region>.amazonaws.com/<this name>. Locked after first deploy — renaming a repository is a rebuild."
+  image_tag_mutability:
+    ui:help: "Immutable means a tag always points at the exact image it was first pushed as — deploys are reproducible. Use Mutable only where teams rely on re-pushing tags like `latest` in dev."
+  scan_on_push:
+    ui:help: "AWS scans each pushed image against known CVE databases and reports findings in the ECR console. Basic scanning is free — leave it on."
+  keep_last_images:
+    ui:widget: updown
+    ui: >-
+      help: "A lifecycle policy expires images beyond this count (any tag status), newest first. Keeps storage costs
+      flat as CI pushes pile up. Make sure it's larger than the number of image versions you might roll back to."

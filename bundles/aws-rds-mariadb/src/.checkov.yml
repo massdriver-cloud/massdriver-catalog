@@ -1,0 +1,13 @@
+skip-check:
+  # CloudWatch log exports: the slow-query log is controlled via the parameter
+  # group; a log-export pipeline is out of scope for this catalog.
+  - CKV_AWS_129
+  # Enhanced monitoring adds a per-instance IAM role and agent cost; standard
+  # CloudWatch metrics plus the instance alarms cover this catalog's needs.
+  - CKV_AWS_118
+  # Storage and Performance Insights use the AWS-managed RDS key;
+  # customer-managed KMS keys are an org-level decision out of scope here.
+  - CKV_AWS_354
+# Deliberately NOT skipped (so dev deploys surface them as warnings):
+# - CKV_AWS_293 (deletion protection) — hardcoded off for demo tear-downs
+# - CKV_AWS_157 (multi-AZ) — user-configurable via high_availability

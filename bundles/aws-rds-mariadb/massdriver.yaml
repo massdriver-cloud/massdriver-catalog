@@ -1,0 +1,220 @@
+name: aws-rds-mariadb
+description: >-
+  MariaDB on AWS RDS: private-subnet placement, character-set and collation locked at create time, t-shirt
+  instance sizing, optional Multi-AZ and slow-query logging. The database behind the org's WordPress
+  deployments.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-rds-mariadb
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      db_version: "11.4"
+      database_name: app
+      username: app_user
+      character_set: utf8mb4
+      collation: utf8mb4_unicode_ci
+      instance_size: xs
+      allocated_storage_gb: 20
+      backup_retention_days: 1
+      high_availability: false
+      slow_query_log_enabled: false
+    - __name: Production
+      db_version: "11.4"
+      database_name: app
+      username: app_user
+      character_set: utf8mb4
+      collation: utf8mb4_unicode_ci
+      instance_size: l
+      allocated_storage_gb: 100
+      backup_retention_days: 35
+      high_availability: true
+      slow_query_log_enabled: true
+      slow_query_log_seconds: 1
+  required:
+    - db_version
+    - database_name
+    - username
+    - character_set
+    - collation
+    - instance_size
+    - allocated_storage_gb
+    - backup_retention_days
+    - high_availability
+    - slow_query_log_enabled
+  properties:
+    db_version:
+      title: MariaDB Version
+      description: MariaDB major.minor version. Changing the major version later means a destroy and recreate.
+      type: string
+      default: "11.4"
+      $md.immutable: true
+      oneOf:
+        - const: "10.11"
+          title: "10.11 (LTS)"
+        - const: "11.4"
+          title: "11.4 (current LTS)"
+    database_name:
+      title: Database Name
+      description: Name of the database created on first deploy. Applications (like WordPress) connect to this database.
+      type: string
+      default: app
+      maxLength: 64
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a lowercase letter, then lowercase letters, digits, or underscores. Up to 64 characters."
+      $md.immutable: true
+    username:
+      title: Admin Username
+      description: The database user applications connect as. The password is generated automatically and shared through the resource, never typed by hand.
+      type: string
+      default: app_user
+      maxLength: 32
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a lowercase letter, then lowercase letters, digits, or underscores. Up to 32 characters."
+      $md.immutable: true
+      $md.copyable: false
+    character_set:
+      title: Character Set
+      description: Default character set for new tables. Locked after first deploy — changing it later does not convert existing data.
+      type: string
+      default: utf8mb4
+      $md.immutable: true
+      oneOf:
+        - const: utf8mb4
+          title: "utf8mb4 — full Unicode incl. emoji (recommended)"
+        - const: latin1
+          title: "latin1 — legacy apps only"
+    collation:
+      title: Collation
+      description: How text is sorted and compared. Locked after first deploy.
+      type: string
+      default: utf8mb4_unicode_ci
+      $md.immutable: true
+      oneOf:
+        - const: utf8mb4_unicode_ci
+          title: "utf8mb4_unicode_ci (recommended)"
+        - const: utf8mb4_general_ci
+          title: "utf8mb4_general_ci — faster, less accurate sorting"
+    instance_size:
+      title: Instance Size
+      description: T-shirt size mapped to an RDS instance class.
+      type: string
+      default: s
+      oneOf:
+        - const: xs
+          title: "Extra Small (db.t4g.micro — dev only)"
+        - const: s
+          title: "Small (db.t4g.small)"
+        - const: m
+          title: "Medium (db.t4g.medium)"
+        - const: l
+          title: "Large (db.r6g.large)"
+    allocated_storage_gb:
+      title: Storage (GB)
+      description: Disk allocated to the database. You can grow this later; shrinking requires a rebuild.
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 1000
+      multipleOf: 10
+    backup_retention_days:
+      title: Backup Retention (days)
+      description: How long automated backups are kept. 0 turns backups off entirely — never do that in production.
+      type: integer
+      default: 7
+      minimum: 0
+      maximum: 35
+    high_availability:
+      title: High Availability
+      description: Run a standby copy in a second availability zone with automatic failover.
+      type: boolean
+      default: false
+    slow_query_log_enabled:
+      title: Slow Query Log
+      description: Record queries that run longer than the threshold below.
+      type: boolean
+      default: false
+    slow_query_log_seconds:
+      title: Slow Query Threshold (seconds)
+      description: Queries running longer than this are logged.
+      type: number
+      default: 2
+      minimum: 0.1
+      maximum: 10
+
+dependencies:
+  slow_query_log_enabled:
+    oneOf:
+      - properties:
+          slow_query_log_enabled:
+            const: false
+      - properties:
+          slow_query_log_enabled:
+            const: true
+        required:
+          - slow_query_log_seconds
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+    network:
+      $ref: aws-network
+      title: Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: mysql-database
+      title: MariaDB
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - db_version
+    - database_name
+    - username
+    - character_set
+    - collation
+    - instance_size
+    - allocated_storage_gb
+    - backup_retention_days
+    - high_availability
+    - slow_query_log_enabled
+    - slow_query_log_seconds
+    - "*"
+  db_version:
+    ui:help: "A major-version change is a destroy/recreate — plan a maintenance window and take a backup first."
+  username:
+    ui:help: "MySQL-protocol servers cap usernames at 32 characters. Locked after first deploy."
+  character_set:
+    ui:help: "utf8mb4 unless you are migrating a legacy latin1 database as-is. WordPress expects utf8mb4."
+  collation:
+    ui:help: "unicode_ci sorts correctly across languages. general_ci is marginally faster but mis-sorts some accented characters."
+  instance_size:
+    ui:help: "Extra Small is burstable and fine for dev. Move to Large (memory-optimized) when the working set no longer fits in cache."
+  allocated_storage_gb:
+    ui:widget: updown
+  backup_retention_days:
+    ui:widget: updown
+    ui:help: "Production: 35. Dev: 1 is plenty."
+  high_availability:
+    ui:help: "Roughly 2x cost. Failover usually completes in under 60 seconds. Required for production."
+  slow_query_log_seconds:
+    ui:widget: updown
+    ui:help: "2 seconds catches genuinely slow queries. Drop toward 0.5 when hunting a specific regression."

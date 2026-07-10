@@ -1,0 +1,87 @@
+name: kubernetes-cluster
+label: Kubernetes Cluster
+icon: https://unpkg.com/lucide-static@0.562.0/icons/boxes.svg
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: runtimes
+  instructions:
+    - label: Amazon EKS
+      path: ./instructions/Amazon EKS.md
+
+exports:
+  - downloadButtonText: Kube Config
+    fileFormat: yaml
+    templatePath: ./exports/kubeconfig.yaml.liquid
+    templateLang: liquid
+
+schema:
+  title: Kubernetes Cluster
+  description: A Kubernetes cluster and credentials to deploy onto it. Produced by the `aws-eks-cluster` bundle; consumed by any bundle that runs workloads on Kubernetes.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - authentication
+  properties:
+    id:
+      title: Cluster ID
+      description: Unique identifier for the cluster (on AWS, the EKS cluster ARN).
+      type: string
+      minLength: 1
+      examples:
+        - "arn:aws:eks:us-east-1:123456789012:cluster/platform"
+    name:
+      title: Cluster Name
+      type: string
+    version:
+      title: Kubernetes Version
+      description: Kubernetes minor version the control plane is running.
+      type: string
+      examples:
+        - "1.31"
+    oidc_issuer_url:
+      title: OIDC Issuer URL
+      description: OIDC identity provider URL, used to grant pods IAM permissions (IRSA on EKS).
+      type: string
+      format: uri
+    authentication:
+      title: Authentication
+      description: Cluster access credentials.
+      type: object
+      additionalProperties: false
+      required:
+        - cluster
+        - user
+      properties:
+        cluster:
+          title: Cluster
+          description: API server connection details.
+          type: object
+          additionalProperties: false
+          required:
+            - server
+            - certificate-authority-data
+          properties:
+            server:
+              title: Server
+              description: API server endpoint URL.
+              type: string
+              format: uri
+            certificate-authority-data:
+              title: CA Data
+              description: Base64-encoded CA certificate.
+              type: string
+        user:
+          title: User
+          description: Client credentials.
+          type: object
+          additionalProperties: false
+          required:
+            - token
+          properties:
+            token:
+              $md.sensitive: true
+              title: Token
+              description: Bearer authentication token.
+              type: string
