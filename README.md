@@ -101,6 +101,8 @@ This branch includes bundles with complete schemas and real, minimal AWS OpenTof
 - `aws-rds-postgres/` - RDS PostgreSQL → produces `postgres-database`
 - `aws-rds-mariadb/` - RDS MariaDB (backs WordPress) → produces `mysql-database`
 - `aws-s3-bucket/` - S3 bucket with real IAM access policies → produces `object-storage`
+- `aws-s3-static-site/` - Static website hosting with a sample site → produces `application`
+- `aws-lambda-api/` - Serverless API (ships a working TODO API) → produces `application`
 - `k8s-wordpress/` - Off-the-shelf WordPress onto a cluster + MariaDB → produces `application`
 
 Each bundle includes:
@@ -128,7 +130,10 @@ Available templates:
 | Template | Provisioner | Description |
 |----------|-------------|-------------|
 | `opentofu` | OpenTofu | OpenTofu module template |
+| `aws-lambda` | OpenTofu | Lambda function bundle (function URL + logs + IAM wired) |
 | `helm-chart` | Helm | Deploy external Helm charts |
+
+The two application paths each have a scaffold: **serverless** apps start from `aws-lambda`, **containerized** apps deploy charts onto a `kubernetes-cluster` via `helm-chart` (or write their own OpenTofu from `opentofu`).
 
 **Usage with the CLI:**
 
@@ -330,6 +335,23 @@ Object storage with **real IAM access policies** flowing through the artifact �
 - **`access`** oneOf with warning labels ("Public Read — … static assets/CDN origins only").
 - **`object_lock`** marked `$md.immutable: true` (a genuine one-way switch in S3) with a `dependencies` block requiring retention days when on.
 - **Versioning + noncurrent-version expiry** as simple, honest lifecycle controls.
+
+### `aws-lambda-api/` → `application`
+
+The serverless path: a Lambda function with a public function URL, shipping a small working TODO API (Node.js 20 + its own DynamoDB table) so it deploys and responds out of the box. Replace `src/function/index.mjs` with your app.
+
+- **Self-contained state on purpose** — the DynamoDB table lives and dies with the bundle, the right scoping for a demo API's disposable data.
+- **Memory selector** as `oneOf` with plain-language labels ("CPU scales with memory").
+- **Alarms**: `Errors` and `Throttles` on real `AWS/Lambda` metrics.
+- **Honest checkov posture**: the public function URL is skipped with a "public by design — front with IAM/API Gateway in real use" comment.
+
+### `aws-s3-static-site/` → `application`
+
+Static website hosting on S3 with a sample site included — the fastest deploy in the catalog, which makes it the live-demo favorite. Replace `src/site/` with your build output.
+
+- **Website-specific S3 posture**: public access is *on* by design here (contrast with `aws-s3-bucket`, where it's locked down) — the checkov skips say so explicitly.
+- **`cache_max_age_seconds`** sets `Cache-Control` on uploaded objects; 0 while iterating, raise it for launch.
+- **No TLS on the S3 website endpoint** — the README says to front it with CloudFront + ACM for production.
 
 ### `k8s-wordpress/` → `application`
 
@@ -546,13 +568,16 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ├── bundles/                            # This org's AWS implementations (real minimal OpenTofu)
 │   ├── aws-ecr-repo/                   # → container-registry
 │   ├── aws-eks-cluster/                # → kubernetes-cluster
+│   ├── aws-lambda-api/                 # → application (serverless TODO API)
 │   ├── aws-rds-mariadb/                # → mysql-database
 │   ├── aws-rds-postgres/               # → postgres-database
 │   ├── aws-s3-bucket/                  # → object-storage
+│   ├── aws-s3-static-site/             # → application (static website)
 │   ├── aws-vpc/                        # → aws-network
 │   └── k8s-wordpress/                  # → application
 ├── templates/                          # Bundle templates for mass bundle new
 │   ├── opentofu/                       # OpenTofu module template
+│   ├── aws-lambda/                     # Lambda function bundle template
 │   └── helm-chart/                     # External Helm chart template
 └── platforms/                          # Cloud-credential resource types (split out for discoverability)
     └── aws/                            # IAM Role (only platform on this branch)

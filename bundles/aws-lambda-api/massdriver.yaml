@@ -1,0 +1,115 @@
+name: aws-lambda-api
+description: >-
+  An AWS Lambda function with a public function URL and its own DynamoDB table. Ships a working
+  TODO API out of the box — replace the handler in src/function/ with your own application.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-lambda-api
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: us-east-1
+      memory_mb: 128
+      timeout_seconds: 10
+      log_retention_days: 7
+    - __name: Production
+      region: us-east-1
+      memory_mb: 512
+      timeout_seconds: 30
+      log_retention_days: 90
+  required:
+    - region
+    - memory_mb
+    - timeout_seconds
+    - log_retention_days
+  properties:
+    region:
+      title: Region
+      description: AWS region the function is created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: "US East (N. Virginia) — us-east-1"
+        - const: us-east-2
+          title: "US East (Ohio) — us-east-2"
+        - const: us-west-2
+          title: "US West (Oregon) — us-west-2"
+        - const: eu-west-1
+          title: "Europe (Ireland) — eu-west-1"
+    memory_mb:
+      title: Memory
+      description: Memory allocated to each invocation. Lambda CPU scales linearly with memory.
+      type: integer
+      default: 256
+      oneOf:
+        - const: 128
+          title: "128 MB — cheapest"
+        - const: 256
+          title: "256 MB (recommended)"
+        - const: 512
+          title: "512 MB"
+        - const: 1024
+          title: "1 GB — CPU scales with memory"
+    timeout_seconds:
+      title: Timeout (seconds)
+      description: How long a single invocation may run before Lambda kills it.
+      type: integer
+      default: 10
+      minimum: 1
+      maximum: 900
+    log_retention_days:
+      title: Log Retention (days)
+      description: How long function logs are kept before CloudWatch deletes them.
+      type: integer
+      default: 30
+      enum:
+        - 1
+        - 3
+        - 7
+        - 14
+        - 30
+        - 60
+        - 90
+        - 180
+        - 365
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - app
+  properties:
+    app:
+      $ref: application
+      title: API
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - memory_mb
+    - timeout_seconds
+    - log_retention_days
+    - "*"
+  timeout_seconds:
+    ui:widget: updown
+    ui:help: >-
+      Function URL callers time out around 30 seconds, so a higher value only helps background work.
+      Long-running jobs belong in a queue — this catalog doesn't have a queue bundle yet, ask DevOps.
+  log_retention_days:
+    ui:help: "Production: 90+. Dev: 7 is plenty."

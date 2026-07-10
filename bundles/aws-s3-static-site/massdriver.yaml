@@ -1,0 +1,98 @@
+name: aws-s3-static-site
+description: >-
+  Static website hosted on S3. Ships with a tiny sample site so it renders out of the box —
+  replace the files in src/site/ with your build output. The fastest deploy in the catalog.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-s3-static-site
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: us-east-1
+      index_document: index.html
+      error_document: error.html
+      cache_max_age_seconds: 0
+    - __name: Production
+      region: us-east-1
+      index_document: index.html
+      error_document: error.html
+      cache_max_age_seconds: 3600
+  required:
+    - region
+    - index_document
+    - error_document
+    - cache_max_age_seconds
+  properties:
+    region:
+      title: Region
+      description: AWS region the website bucket is created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: "US East (N. Virginia) — us-east-1"
+        - const: us-east-2
+          title: "US East (Ohio) — us-east-2"
+        - const: us-west-2
+          title: "US West (Oregon) — us-west-2"
+        - const: eu-west-1
+          title: "Europe (Ireland) — eu-west-1"
+    index_document:
+      title: Index Document
+      description: File served when visitors request the site root or any folder path.
+      type: string
+      default: index.html
+      pattern: ^[a-zA-Z0-9._-]+$
+      message:
+        pattern: "Must be a plain file name like index.html — letters, numbers, dots, dashes, and underscores only (no slashes)."
+    error_document:
+      title: Error Document
+      description: File served when a visitor requests a page that doesn't exist.
+      type: string
+      default: error.html
+      pattern: ^[a-zA-Z0-9._-]+$
+      message:
+        pattern: "Must be a plain file name like error.html — letters, numbers, dots, dashes, and underscores only (no slashes)."
+    cache_max_age_seconds:
+      title: Cache Max Age (seconds)
+      description: How long browsers and proxies may cache each file before re-fetching it.
+      type: integer
+      default: 3600
+      minimum: 0
+      maximum: 86400
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - app
+  properties:
+    app:
+      $ref: application
+      title: Website
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - index_document
+    - error_document
+    - cache_max_age_seconds
+    - "*"
+  cache_max_age_seconds:
+    ui:widget: updown
+    ui:help: "Sets the Cache-Control header on every uploaded file. 0 disables caching — good while iterating on the site; raise it for launch so repeat visitors load instantly."

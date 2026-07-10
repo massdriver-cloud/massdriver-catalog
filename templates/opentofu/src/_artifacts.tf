@@ -1,12 +1,12 @@
-# Use massdriver_artifact resources to emit artifacts for other bundles to consume.
-# The artifact data must match your artifact definition schema.
+# Use massdriver_resource to emit resources for other bundles to consume.
+# (massdriver_resource replaces the deprecated massdriver_artifact.)
+# The payload must match your resource type's schema.
 #
-# resource "massdriver_artifact" "my_artifact" {
-#   field                = "my_artifact"
-#   provider_resource_id = aws_instance.main.arn  # or other unique resource ID
-#   name                 = "My Artifact (${var.md_metadata.name_prefix})"
-#   artifact = jsonencode({
-#     # Fields matching your artifact definition schema
+# resource "massdriver_resource" "my_resource" {
+#   field = "my_resource"
+#   name  = "My Resource (${var.md_metadata.name_prefix})"
+#   resource = jsonencode({
+#     # Fields matching your resource type's schema
 #     endpoint = aws_instance.main.public_ip
 #     port     = 443
 #   })

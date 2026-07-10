@@ -1,0 +1,23 @@
+skip-check:
+  # Public by design — static website hosting. Every "block public access"
+  # control is off on purpose; the bucket's only job is serving pages to the
+  # internet.
+  - CKV_AWS_53 # block public ACLs — public by design, static website hosting
+  - CKV_AWS_54 # block public policy — public by design, static website hosting
+  - CKV_AWS_55 # ignore public ACLs — public by design, static website hosting
+  - CKV_AWS_56 # restrict public buckets — public by design, static website hosting
+  - CKV2_AWS_6 # public access block config — present, but deliberately all-off
+  - CKV_AWS_70 # policy allows * principal — the public-read policy IS the website
+  # Cross-region replication is a DR architecture decision out of scope here.
+  - CKV_AWS_144
+  # SSE-S3 only: S3 website endpoints can't serve KMS-encrypted objects, so a
+  # CMK here is genuinely architectural, not a config toggle.
+  - CKV_AWS_145
+  # Access logging needs a second, dedicated log bucket — out of scope for a
+  # demo catalog. CloudFront in front is the production answer anyway.
+  - CKV_AWS_18
+  # Versioning: site content is redeployable from git — state lives in your
+  # repo, not the bucket.
+  - CKV_AWS_21
+  # Event notifications are an application concern, not a website's.
+  - CKV2_AWS_62
