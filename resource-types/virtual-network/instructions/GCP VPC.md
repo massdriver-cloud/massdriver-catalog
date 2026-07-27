@@ -1,4 +1,4 @@
-# Register an existing GCP VPC as a Network resource
+# Register an existing GCP VPC as a Virtual Network resource
 
 Use this form to bring a Google Cloud VPC network into Massdriver so other bundles in the environment can attach to it.
 

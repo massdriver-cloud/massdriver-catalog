@@ -137,8 +137,8 @@ artifacts:
     - bucket
   properties:
     bucket:
-      $ref: bucket
-      title: Storage Bucket
+      $ref: object-storage
+      title: Object Storage
 
 steps:
   - path: src

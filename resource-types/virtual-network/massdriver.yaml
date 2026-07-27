@@ -1,5 +1,5 @@
-name: network
-label: Network
+name: virtual-network
+label: Virtual Network
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/network/icon.svg
 
 ui:
@@ -14,7 +14,7 @@ ui:
       path: ./instructions/GCP VPC.md
 
 schema:
-  title: Network
+  title: Virtual Network
   description: Virtual network with subnet allocations that other infrastructure attaches to.
   type: object
   additionalProperties: false

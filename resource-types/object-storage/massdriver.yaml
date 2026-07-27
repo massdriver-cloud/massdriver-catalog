@@ -1,5 +1,5 @@
-name: bucket
-label: Storage Bucket
+name: object-storage
+label: Object Storage
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
 
 ui:
@@ -14,8 +14,8 @@ ui:
       path: ./instructions/GCP Cloud Storage.md
 
 schema:
-  title: Storage Bucket
-  description: Object storage bucket with access policies.
+  title: Object Storage
+  description: Object storage (bucket/container) with access policies.
   type: object
   additionalProperties: false
   required:

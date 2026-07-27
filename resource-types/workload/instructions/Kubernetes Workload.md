@@ -1,4 +1,4 @@
-# Register a Kubernetes workload as an application
+# Register a Kubernetes workload as a Workload resource
 
 Use this form to register a Deployment, StatefulSet, or other Kubernetes workload that already runs in a cluster — typically one you didn't ship through a Massdriver bundle — so other bundles in the environment can reference it.
 

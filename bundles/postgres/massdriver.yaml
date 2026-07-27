@@ -148,8 +148,8 @@ connections:
     - network
   properties:
     network:
-      $ref: network
-      title: Network
+      $ref: virtual-network
+      title: Virtual Network
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
 # `artifacts:` until a backward-compatible rename ships.
@@ -158,8 +158,8 @@ artifacts:
     - database
   properties:
     database:
-      $ref: postgres
-      title: PostgreSQL
+      $ref: postgres-database
+      title: PostgreSQL Database
 
 steps:
   - path: src

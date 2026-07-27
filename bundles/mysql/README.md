@@ -1,6 +1,6 @@
 # MySQL
 
-A MySQL instance with sizing, HA, character set, and slow-query controls. Depends on a `network`.
+A MySQL instance with sizing, HA, character set, and slow-query controls. Depends on a `virtual-network`.
 
 > [!NOTE]
 > This is a **placeholder bundle**. It ships with a complete schema and a stub `random_pet` IaC so you can poke at the developer experience on the Massdriver canvas before writing any real Terraform/OpenTofu. Once the shape feels right, swap the stub for your real database module.

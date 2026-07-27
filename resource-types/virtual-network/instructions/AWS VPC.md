@@ -1,4 +1,4 @@
-# Register an existing AWS VPC as a Network resource
+# Register an existing AWS VPC as a Virtual Network resource
 
 Use this form to bring an already-provisioned AWS VPC into Massdriver so other bundles in the environment can connect to it without re-provisioning.
 
