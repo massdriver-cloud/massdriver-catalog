@@ -1,6 +1,6 @@
-# Register an external application
+# Register an external service as a Workload resource
 
-Use this form to register an application that lives **outside** Massdriver — a SaaS endpoint, a workload deployed by another tool, or anything you want other bundles in the environment to be aware of (and link to).
+Use this form to register a workload that lives **outside** Massdriver — a SaaS endpoint, a service deployed by another tool, or anything you want other bundles in the environment to be aware of (and link to).
 
 You only need a name plus the URLs that identify and probe the service.
 

@@ -1,4 +1,4 @@
-# Register an existing Azure VNet as a Network resource
+# Register an existing Azure VNet as a Virtual Network resource
 
 Use this form to bring an already-provisioned Azure Virtual Network into Massdriver so other bundles in the environment can attach to it.
 

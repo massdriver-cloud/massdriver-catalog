@@ -163,14 +163,14 @@ connections:
     # - bucket
   properties:
     network:
-      $ref: network
-      title: Network
+      $ref: virtual-network
+      title: Virtual Network
     database:
-      $ref: postgres
-      title: PostgreSQL
+      $ref: postgres-database
+      title: PostgreSQL Database
     bucket:
-      $ref: bucket
-      title: Storage Bucket
+      $ref: object-storage
+      title: Object Storage
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
 # `artifacts:` until a backward-compatible rename ships.
@@ -179,8 +179,8 @@ artifacts:
     - application
   properties:
     application:
-      $ref: application
-      title: Application
+      $ref: workload
+      title: Workload
 
 steps:
   - path: src

@@ -158,8 +158,8 @@ artifacts:
     - network
   properties:
     network:
-      $ref: network
-      title: Network
+      $ref: virtual-network
+      title: Virtual Network
 
 steps:
   - path: src

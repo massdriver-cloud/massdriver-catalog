@@ -38,7 +38,7 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 - **Parameters (params)**: User-configurable inputs for a bundle, like instance sizes, database names, or feature flags. These define what developers can customize when deploying infrastructure.
 
-- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `network` resource, you must link it to a bundle that produces a network resource.
+- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `virtual-network` resource, you must link it to a bundle that produces a virtual-network resource.
 
 - **Project**: A logical grouping of related infrastructure, like "ecommerce-platform" or "data-pipeline". Projects contain one or more environments.
 
@@ -58,16 +58,16 @@ Each resource type is a directory containing a `massdriver.yaml` file:
 
 ```
 resource-types/
-├── network/
+├── virtual-network/
 │   └── massdriver.yaml    # Network/VPC contract
-├── postgres/
+├── postgres-database/
 │   └── massdriver.yaml    # PostgreSQL connection contract
-├── mysql/
+├── mysql-database/
 │   └── massdriver.yaml    # MySQL connection contract
-├── bucket/
+├── object-storage/
 │   └── massdriver.yaml    # Object storage contract
-└── application/
-    └── massdriver.yaml    # Application metadata contract
+└── workload/
+    └── massdriver.yaml    # Workload metadata contract
 ```
 
 > **💡 Note on Sensitive Fields**: Resource types support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All resource data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
@@ -276,7 +276,7 @@ The bundles and resource types ship pre-wired with realistic shapes so you can p
 > [!TIP]
 > The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + connections on every `mass bundle build`, so you can change the schema and your variables stay in sync.
 
-### `network/` bundle ↔ `network` resource type
+### `network/` bundle ↔ `virtual-network` resource type
 
 Produces a virtual network with subnets that other bundles attach to.
 
@@ -288,9 +288,9 @@ Produces a virtual network with subnets that other bundles attach to.
 - **UI**: `ui:widget: updown` on retention, `ui:help` on every non-obvious field, `ui:options.orderable/addable/removable` on the subnets array.
 - **Alarms** (`src/alarms.tf`): `Egress Throughput Anomaly`, `NAT Port Exhaustion`.
 
-### `postgres/` bundle ↔ `postgres` resource type
+### `postgres/` bundle ↔ `postgres-database` resource type
 
-Produces a PostgreSQL instance, depends on a `network`.
+Produces a PostgreSQL instance, depends on a `virtual-network`.
 
 - **Human-readable version selector** via `oneOf` + `const` + `title` (Postgres `12` is labelled "out of community support — upgrade soon"; `16` is labelled "current").
 - **`$md.enum`** on `subnet_filter` — populates a dropdown from the linked network's `.subnets`.
@@ -299,7 +299,7 @@ Produces a PostgreSQL instance, depends on a `network`.
 - **T-shirt sizing** (`xs`/`s`/`m`/`l`/`xl`), `allocated_storage_gb` with `multipleOf: 10`, `backup_retention_days` with `minimum`/`maximum`, conditional `multi_az_zones` when `high_availability: true`.
 - **Alarms**: `High Connections`, `Storage 80% Full`, and a conditional `Replication Lag` that only emits when HA is on.
 
-### `mysql/` bundle ↔ `mysql` resource type
+### `mysql/` bundle ↔ `mysql-database` resource type
 
 Same shape as `postgres/`, with MySQL-specific touches:
 
@@ -308,7 +308,7 @@ Same shape as `postgres/`, with MySQL-specific touches:
 - **`username` capped at 32 chars** via `maxLength` (MySQL's username limit).
 - **Alarms**: conditional `Slow Query Rate`, conditional `Replication Lag`, `Storage 80% Full`.
 
-### `bucket/` bundle ↔ `bucket` resource type
+### `bucket/` bundle ↔ `object-storage` resource type
 
 Object storage. No upstream connections.
 
@@ -318,7 +318,7 @@ Object storage. No upstream connections.
 - **CORS origins** array with origin-URL pattern validation.
 - **Alarms**: `5xx Error Rate`, conditional `Anonymous Access Anomaly` (only when the bucket is private).
 
-### `application/` bundle ↔ `application` resource type
+### `application/` bundle ↔ `workload` resource type
 
 A containerized app that connects to a network + Postgres + (optional) bucket.
 
@@ -526,15 +526,15 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ├── Makefile                            # Automation for publishing
 ├── preview.yaml                        # Preview environment fork config (see docs.massdriver.cloud/workflows/preview)
 ├── resource-types/                     # Resource type contracts (formerly artifact definitions)
-│   ├── application/
+│   ├── mysql-database/
 │   │   └── massdriver.yaml
-│   ├── bucket/
+│   ├── object-storage/
 │   │   └── massdriver.yaml
-│   ├── mysql/
+│   ├── postgres-database/
 │   │   └── massdriver.yaml
-│   ├── network/
+│   ├── virtual-network/
 │   │   └── massdriver.yaml
-│   └── postgres/
+│   └── workload/
 │       └── massdriver.yaml
 ├── bundles/                            # Infrastructure-as-Code modules
 │   ├── application/                    # Example Application
@@ -576,7 +576,7 @@ Each bundle's `massdriver.yaml` defines the complete contract for that infrastru
 
 - **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code. They provide extra UI controls and validations not available in most IaC tools.
 
-- **connections** (the v1 key, surfaced in the v2 product as **dependencies**): Input resources that this bundle depends on. For example, a database bundle might require a connection to a network resource. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible resources can be connected.
+- **connections** (the v1 key, surfaced in the v2 product as **dependencies**): Input resources that this bundle depends on. For example, a database bundle might require a connection to a virtual-network resource. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible resources can be connected.
 
 - **artifacts** (the v1 key, surfaced in the v2 product as **resources**): Output resources that this bundle produces for other bundles to consume. For example, a database bundle produces a database resource containing connection details. You populate these in your IaC code's outputs.
 
@@ -605,7 +605,7 @@ To implement a bundle:
    - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name prefix, instance ID, environment, default tags, etc.)
 5. **Output** resource data that matches your `artifacts:` schema (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `virtual-network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
 
 ## What's Next?
 
