@@ -2,7 +2,7 @@
 
 {{ description }}
 
-> Replace this placeholder with a real mustache-templated runbook
+> Replace this placeholder with a mustache-templated runbook
 > (`templating: mustache` front matter, `{% raw %}{{slug}}{% endraw %}` /
-> `{% raw %}{{params.*}}{% endraw %}` interpolation) once this app has real
-> behavior worth documenting triage steps for.
+> `{% raw %}{{params.*}}{% endraw %}` interpolation) documenting this
+> app's triage steps: symptom, diagnostic commands, resolution.

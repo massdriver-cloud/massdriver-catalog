@@ -1,22 +1,21 @@
 # Queues
 
-Message queues for background work — anything your app wants to hand off and process later instead of making a user wait for it (sending an email, resizing an image, transcoding a video).
+Provisions a named set of SQS queues for background work: sending email, resizing images, transcoding video, or anything else an app hands off for asynchronous processing. Emits one `queue` resource per entry, so an app that needs ten queues is one deploy with ten entries, not ten deploys.
 
-## Why one bundle can hold many queues
+## What it provisions, per queue
 
-Some apps need one queue. Some need ten. Instead of making you deploy this bundle once per queue, you list every queue you need in a single deploy, and each one shows up as its own connectable thing on the canvas — so a heavy queue user isn't ten separate deploys to keep track of, just one deploy with ten entries.
+- An SQS queue, encrypted at rest.
+- An optional dead-letter queue with a configurable receive limit, so repeatedly failing messages are set aside instead of retried indefinitely.
+- Two IAM access policies, send-only and send-receive, that consuming apps attach through their service account's IAM role. No shared access keys.
 
-Add or remove an entry and redeploy — the queues you keep are left alone; only what changed gets touched.
+## Parameters worth knowing
 
-## What you get, per queue
+- Entries in the `queues` list can be added or removed on redeploy; the remaining queues are untouched.
+- `visibility_timeout_seconds` should exceed the consumer's worst-case processing time, or messages will be redelivered while still being processed.
+- Without a dead-letter queue, a message that keeps failing is retried until retention expires and is then dropped.
 
-- A real SQS queue, encrypted at rest.
-- An optional dead-letter queue, for messages that keep failing instead of retrying forever.
-- Two ready-made access levels — send-only and send-receive — your app picks up through its own scoped identity, no shared access key.
+## Operational notes
 
-## Customize it
-
-1. Edit `massdriver.yaml`'s `queues` default/examples to match what you're actually shipping.
-2. `src/main.tf` fans every entry in the `queues` list out into a real `aws_sqs_queue` (and, if requested, its dead-letter queue) plus scoped IAM policies — nothing here is a placeholder.
+- `src/main.tf` fans each entry in the `queues` list out into an `aws_sqs_queue` (plus its dead-letter queue, if enabled) and the scoped IAM policies.
 
 See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

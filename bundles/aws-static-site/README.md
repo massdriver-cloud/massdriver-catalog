@@ -1,27 +1,27 @@
 # Marketing Static Site
 
-A plain static website — HTML, CSS, JS you built ahead of time, no server rendering anything per-request. Fast, cheap, and there's very little that can break at 2am because there's no application server to crash.
+Provisions hosting for a prebuilt static site (HTML, CSS, JS): a private S3 origin, a CloudFront distribution with Origin Access Control, path-based redirects, and a security response-headers policy. It emits no resource and connects only to AWS authentication; there is no network or cluster dependency.
 
-## What you get
+## What it provisions
 
-- A private storage bucket nobody can reach directly — every visitor goes through CloudFront, never straight to the bucket.
-- A global CDN in front of it, so visitors load your site from a location near them instead of one single server far away.
-- Redirects for old URLs (moving from your old platform means some links people already have will point at paths that no longer exist) — handled at the edge, before the request even reaches your bucket.
-- The trailing-slash behavior you're used to from most static site generators (`/about/` and `/about` both find the right page) preserved automatically.
-- A baseline of security response headers (HSTS, no-sniff, clickjacking protection) applied to every response, without you having to configure your site generator to add them.
+- A private origin bucket. Visitors reach content only through CloudFront, never the bucket directly.
+- A CloudFront distribution serving the site from edge locations, with TLS from an ACM certificate you supply.
+- A CloudFront Function that applies the `redirects` list at the edge (useful for preserving old URLs after a platform migration) and normalizes trailing slashes so `/about` and `/about/` resolve to the same page.
+- A response-headers policy adding HSTS, no-sniff, and clickjacking protection to every response.
 
-## Things you can't change later
+## Parameters worth knowing
 
-The custom domain name is locked in once deployed — changing it means a new distribution and a new DNS cutover, not a quick edit.
+- `domain_name` is immutable. Changing it means a new distribution and a DNS cutover.
+- `acm_certificate_arn` must be an issued certificate in us-east-1; CloudFront requires that region regardless of where the rest of your infrastructure runs.
+- `price_class` controls which edge locations serve the site. Fewer locations cost less.
 
 ## One manual step after deploy
 
-Point your DNS provider's CNAME (or ALIAS/ANAME, if you're on Route 53 or similar) at the CloudFront distribution's domain name, shown in the instance panel after deploy. This bundle can't do that step for you unless it also owns your DNS zone.
+Point a CNAME (or ALIAS/ANAME) record at the CloudFront distribution's domain name, shown in the instance panel after deploy. This bundle does not manage your DNS zone.
 
-## Customize it
+## Operational notes
 
-1. Edit the `redirects` list in `massdriver.yaml`'s examples to match your actual old-platform → new-site path mapping.
-2. `src/main.tf` provisions the real S3 bucket, CloudFront distribution, Origin Access Control, response headers policy, and CloudFront Function — nothing here is a placeholder.
-3. Upload your built site (and a `404.html`) to the bucket through your normal deploy pipeline — this bundle provisions the infrastructure, not your build output.
+- This bundle provisions infrastructure only. Upload the built site (including a `404.html`) to the bucket through your deploy pipeline.
+- `src/main.tf` provisions the bucket, distribution, Origin Access Control, response-headers policy, and CloudFront Function.
 
 See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

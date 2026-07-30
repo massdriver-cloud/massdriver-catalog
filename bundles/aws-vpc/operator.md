@@ -4,34 +4,11 @@ templating: mustache
 
 # AWS Network Runbook
 
-> **Templating context:** `slug`, `params`, `artifacts.<name>`.
-
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| VPC ID | `{{artifacts.network.vpc_id}}` |
-| Region | `{{artifacts.network.region}}` |
-| CIDR | `{{artifacts.network.cidr}}` |
-| NAT gateway | `{{artifacts.network.nat_gateway_id}}` |
-| Flow logs | `{{params.enable_flow_logs}}` (retention: `{{params.flow_log_retention_days}}d`) |
-
-### Subnets
-
-| ID | CIDR | Type | AZ |
-|----|------|------|----|
-{{#artifacts.network.subnets}}
-| `{{id}}` | `{{cidr}}` | `{{type}}` | `{{availability_zone}}` |
-{{/artifacts.network.subnets}}
-
----
-
-## Active alarms — what they mean
+## Alarms
 
 ### NAT gateway port exhaustion
 
-The shared NAT gateway (`{{artifacts.network.nat_gateway_id}}`) is out of ephemeral ports. New outbound connections from private subnets start failing for every workload behind it — cluster nodes, apps pulling from third-party APIs, everything.
+The shared NAT gateway is out of ephemeral ports. New outbound connections from private subnets fail for every workload behind it.
 
 ```bash
 aws cloudwatch get-metric-statistics \
@@ -43,11 +20,11 @@ aws cloudwatch get-metric-statistics \
   --period 300 --statistics Sum
 ```
 
-Immediate relief: identify and throttle the noisiest workload. Longer term: this bundle is single-NAT by design to keep cost down — if one AZ's traffic is consistently saturating it, that's a signal to split the network bundle per-AZ NAT, which is a real re-architecture, not a param flip.
+Immediate relief: identify and throttle the noisiest workload. If one AZ's traffic consistently saturates the gateway, plan a move to per-AZ NAT gateways; that is a network redesign, not a parameter change.
 
-### Interface endpoint (ECR) unhealthy
+### ECR interface endpoint unhealthy
 
-If image pulls start timing out cluster-wide, check the ECR interface endpoints before assuming it's ECR itself:
+If image pulls time out cluster-wide, check the ECR interface endpoints before assuming ECR itself is down:
 
 ```bash
 aws ec2 describe-vpc-endpoints \
@@ -55,13 +32,11 @@ aws ec2 describe-vpc-endpoints \
   --query 'VpcEndpoints[].{Id:VpcEndpointId,State:State}'
 ```
 
-If an endpoint shows anything other than `available`, check the endpoint security group (`{{artifacts.network.vpc_id}}`) still allows port 443 from the VPC CIDR — a manual security group edit is the most common cause.
-
----
+If an endpoint shows anything other than `available`, verify the endpoint security group in `{{artifacts.network.vpc_id}}` still allows port 443 from the VPC CIDR. A manual security group edit is the most common cause.
 
 ## Common operations
 
-### Confirm S3/ECR traffic isn't hitting the NAT
+### Confirm S3/ECR traffic is not transiting the NAT
 
 ```bash
 # NAT gateway bytes processed — should stay flat even under heavy image-pull
@@ -78,7 +53,7 @@ aws cloudwatch get-metric-statistics \
 ### Flow log queries
 
 {{#params.enable_flow_logs}}
-Flow logs are enabled (retention `{{params.flow_log_retention_days}}d`). Useful starter query — most-rejected traffic in the last hour, which usually surfaces a misconfigured security group:
+Flow logs are enabled with {{params.flow_log_retention_days}}-day retention. To find the most-rejected traffic in the last hour, which usually surfaces a misconfigured security group:
 
 ```bash
 aws logs start-query \
@@ -93,20 +68,18 @@ aws logs start-query \
 ```
 {{/params.enable_flow_logs}}
 {{^params.enable_flow_logs}}
-**Flow logs are disabled on this network.** Turn them on and redeploy before you need to troubleshoot connectivity or investigate a security incident — you can't retroactively see traffic that already happened.
+Flow logs are disabled on this network. Traffic that occurred before enabling them cannot be queried retroactively; enable the parameter and redeploy to begin capture.
 {{/params.enable_flow_logs}}
-
----
 
 ## Disaster recovery
 
-This bundle's CIDR (`{{params.cidr}}`) and AZ count are **immutable**. To re-IP or add capacity, deploy a new network instance, migrate every dependent bundle to point at it, then decommission this one.
+The CIDR (`{{params.cidr}}`) and AZ count are immutable. To re-IP or add capacity, deploy a new network instance, migrate every dependent bundle to it, then decommission this one.
 
-### Pre-migration checklist
+Before migrating:
 
-1. Snapshot every dependent resource (databases, cache).
+1. Snapshot every dependent stateful resource (databases, cache).
 2. Note anything with a hardcoded reference to `{{artifacts.network.vpc_id}}` outside of Massdriver (peering, VPN, manual security group rules).
-3. Communicate the cutover window — expect a few minutes of disruption while the cluster's ingress load balancer and any stateful connections re-establish.
+3. Schedule a cutover window; expect a few minutes of disruption while the cluster's ingress load balancer and stateful connections re-establish.
 
 ---
 

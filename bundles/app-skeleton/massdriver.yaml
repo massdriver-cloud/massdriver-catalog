@@ -10,7 +10,7 @@
 # connections it actually needs.
 
 name: "app-skeleton"
-description: "Skeleton app bundle exercising every data-service connection from the AWS migration template — Kubernetes Deployment/Service/Ingress, no application logic."
+description: "Skeleton app bundle that connects to every data-service resource type in this catalog. Deploys a Kubernetes Deployment, Service, and Ingress with no application logic."
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/app-skeleton
 version: 0.1.0
 
@@ -37,7 +37,7 @@ params:
     image:
       type: string
       title: Container Image
-      description: Container image reference, including a tag or digest. Avoid `:latest` outside of development.
+      description: Container image reference, including a tag or digest.
       default: "public.ecr.aws/docker/library/nginx:stable"
       minLength: 1
       pattern: "^[^[:space:]]+:[^[:space:]]+$"
@@ -110,7 +110,7 @@ params:
     cronjobs:
       type: array
       title: Scheduled Jobs (CronJobs)
-      description: Background jobs that run on a schedule using the same container image, inside this same app bundle.
+      description: Background jobs that run on a schedule using this bundle's container image.
       default: []
       maxItems: 20
       uniqueItems: true
@@ -233,7 +233,7 @@ ui:
     - cronjobs
     - "*"
   image:
-    ui:help: "Pin to a tag or digest. Pulling `:latest` makes rollbacks ambiguous."
+    ui:help: "Pin to a specific tag or digest; `:latest` makes rollbacks ambiguous."
   replicas:
     ui:widget: updown
   container_port:

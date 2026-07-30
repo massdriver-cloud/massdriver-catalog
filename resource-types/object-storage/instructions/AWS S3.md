@@ -16,4 +16,4 @@ Use this when you already have an S3 bucket and want Massdriver to know about it
 
 ## Notes
 
-- This bucket type is for private, application-owned storage. If you need public asset serving, put a CDN (CloudFront) in front of it rather than making the bucket itself public.
+- This resource type represents private, application-owned storage. For public asset serving, put a CDN (CloudFront) in front of a bucket rather than making the bucket itself public.

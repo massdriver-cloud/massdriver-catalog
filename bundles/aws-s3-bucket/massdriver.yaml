@@ -1,64 +1,72 @@
 name: aws-s3-bucket
-description: >-
-  Private S3 bucket encrypted with a dedicated SSE-KMS key, with read-only
-  and read-write IAM policies apps attach via IRSA instead of static keys.
-  Not for public asset serving — put CloudFront in front for that.
+description: Private S3 bucket encrypted with a dedicated SSE-KMS key, with read-only and read-write IAM
+  policies apps attach via IRSA instead of static keys. Public asset serving is handled by the aws-static-site
+  bundle instead.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-s3-bucket
 version: 0.1.0
-
 params:
   examples:
     - __name: Development (versioning on, easy teardown)
-      bucket_name: "acme-app-assets-dev"
+      bucket_name: acme-app-assets-dev
       enable_versioning: true
       force_destroy: true
+      region: us-east-1
     - __name: Production (versioning on, protected)
-      bucket_name: "acme-app-assets-prod"
+      bucket_name: acme-app-assets-prod
       enable_versioning: true
       force_destroy: false
+      region: us-east-1
   required:
+    - region
     - bucket_name
     - enable_versioning
     - force_destroy
   properties:
+    region:
+      title: Region
+      description: AWS region the resources are created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: US East (N. Virginia) — us-east-1
+        - const: us-east-2
+          title: US East (Ohio) — us-east-2
+        - const: us-west-2
+          title: US West (Oregon) — us-west-2
+        - const: eu-west-1
+          title: Europe (Ireland) — eu-west-1
     bucket_name:
       title: Bucket Name
-      description: Must be globally unique across all of AWS. Can't be changed after the bucket is created.
+      description: S3 bucket name. Must be globally unique across all of AWS and cannot be changed after
+        creation.
       type: string
-      default: "acme-app-assets"
+      default: acme-app-assets
       minLength: 3
       maxLength: 63
       pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
       message:
-        pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
+        pattern: Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter
+          or digit.
       $md.immutable: true
     enable_versioning:
       title: Enable Versioning
-      description: Keep previous versions of every object. Protects against accidental overwrite/delete; adds storage cost proportional to churn.
+      description: Retain previous versions of objects when they are overwritten or deleted.
       type: boolean
       default: true
     force_destroy:
       title: Force Destroy
-      description: Allow this bucket to be deleted even if it still has objects in it. Only for throwaway dev/test buckets.
+      description: Allow the bucket to be destroyed even if it still contains objects.
       type: boolean
       default: false
-
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
 connections:
   required:
     - aws_authentication
-    - network
   properties:
     aws_authentication:
       $ref: aws-iam-role
       title: AWS Authentication
-    network:
-      $ref: aws-network
-      title: AWS Network
-
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required:
     - bucket
@@ -66,18 +74,17 @@ artifacts:
     bucket:
       $ref: object-storage
       title: Object Storage
-
 steps:
   - path: src
     provisioner: opentofu:1.10
-
 ui:
   ui:order:
+    - region
     - bucket_name
     - enable_versioning
     - force_destroy
-    - "*"
+    - '*'
   bucket_name:
-    ui:placeholder: "acme-app-assets"
+    ui:placeholder: acme-app-assets
   force_destroy:
-    ui:help: "Only turn this on for dev/test buckets you're comfortable losing entirely — production buckets should require manual emptying before delete."
+    ui:help: When off, the bucket must be emptied manually before it can be deleted.

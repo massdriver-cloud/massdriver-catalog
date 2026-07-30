@@ -1,10 +1,9 @@
 name: aws-static-site
 description: >-
-  Pure static site — private S3 origin behind CloudFront with Origin
-  Access Control, an ACM certificate, path-based redirects and
+  Static site served from a private S3 origin behind CloudFront with
+  Origin Access Control, an ACM certificate, path-based redirects and
   trailing-slash handling via a CloudFront Function, and a security
-  response-headers policy. No SSR, no cluster, no VPC — this bundle
-  stands alone.
+  response-headers policy. Does not connect to a network or cluster.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-static-site
 version: 0.1.0
 
@@ -46,10 +45,8 @@ params:
     region:
       title: AWS Region
       description: >-
-        Region the origin bucket lives in. This bundle doesn't connect to
-        a network (CloudFront and S3 aren't VPC resources), so it's the
-        one other place in the catalog, besides aws-vpc, that asks for a
-        region directly instead of deriving it.
+        AWS region the origin bucket is created in. This bundle does not
+        connect to a network, so the region is set directly here.
       type: string
       default: "us-east-1"
       $md.immutable: true
@@ -58,7 +55,7 @@ params:
         - "us-west-2"
     domain_name:
       title: Domain Name
-      description: Custom domain CloudFront serves this site on. Point your DNS provider's CNAME/ALIAS at the distribution after deploy.
+      description: Custom domain CloudFront serves this site on. A DNS CNAME or ALIAS record must point at the distribution after deploy.
       type: string
       pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$
       message:
@@ -75,10 +72,10 @@ params:
       type: string
       pattern: "^arn:aws:acm:us-east-1:"
       message:
-        pattern: "Must be an ACM certificate ARN in us-east-1 — CloudFront requires it."
+        pattern: "Must be an ACM certificate ARN in us-east-1. CloudFront requires certificates in that region."
     price_class:
       title: Price Class
-      description: Which CloudFront edge locations serve this site. Fewer regions costs less.
+      description: Set of CloudFront edge locations that serve this site. Fewer locations cost less.
       type: string
       default: "PriceClass_100"
       oneOf:
@@ -90,7 +87,7 @@ params:
           title: "All edge locations (best global performance)"
     redirects:
       title: Redirects
-      description: Path-based redirects evaluated before falling through to the site's own content, via a CloudFront Function.
+      description: Path-based redirects evaluated by a CloudFront Function before the request reaches the site's content.
       type: array
       default: []
       maxItems: 20
@@ -112,7 +109,7 @@ params:
           to:
             type: string
             title: Redirect To
-            description: Absolute URL or site-relative path to send visitors to instead.
+            description: Absolute URL or site-relative path to redirect to.
           status_code:
             type: integer
             title: Status Code
@@ -156,7 +153,7 @@ ui:
   domain_name:
     ui:placeholder: "www.example.com"
   acm_certificate_arn:
-    ui:help: "Issue/validate this in ACM under us-east-1 before deploying, then paste its ARN here."
+    ui:help: "The certificate must be issued and validated in ACM in us-east-1 before deploy."
     ui:placeholder: "arn:aws:acm:us-east-1:123456789012:certificate/..."
   redirects:
     ui:options:

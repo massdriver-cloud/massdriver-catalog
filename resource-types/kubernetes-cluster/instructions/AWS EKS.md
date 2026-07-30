@@ -20,4 +20,4 @@ Use this when you already have an EKS cluster and want Massdriver to know about 
 
 ## Notes
 
-- Workloads assume IAM roles via this cluster's OIDC provider (IRSA) — double check the OIDC provider ARN and URL match exactly, or role assumption will fail with `AccessDenied` at pod startup.
+- Workloads assume IAM roles via this cluster's OIDC provider (IRSA). Verify the OIDC provider ARN and URL match exactly; a mismatch causes role assumption to fail with `AccessDenied` at pod startup.

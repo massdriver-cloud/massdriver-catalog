@@ -19,4 +19,4 @@ Use this when you already have a VPC in the AWS console and want Massdriver to k
 
 ## Notes
 
-- Everything downstream (the cluster, data services) expects one shared NAT gateway per network — don't import a VPC with per-AZ NAT gateways without adjusting consuming bundles' cost expectations.
+- Downstream bundles expect one shared NAT gateway per network, and the schema records a single `nat_gateway_id`. If the VPC uses per-AZ NAT gateways, record the primary one.

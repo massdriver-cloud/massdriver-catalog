@@ -4,49 +4,34 @@ templating: mustache
 
 # Email Runbook
 
-> **Templating context:** `slug`, `params`, `artifacts.<name>`.
+## Sending fails: domain not verified
 
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Domain | `{{artifacts.email.domain}}` |
-| SMTP host | `{{artifacts.email.smtp.host}}` |
-| SMTP port | `{{artifacts.email.smtp.port}}` |
-| Configuration set | `{{artifacts.email.configuration_set}}` |
-
----
-
-## First-deploy setup: verify the domain
-
-SES can't send from `{{artifacts.email.domain}}` until DNS proves you own it.
+SES cannot send from `{{artifacts.email.domain}}` until DNS verification completes.
 
 ```bash
 aws ses get-identity-verification-attributes --identities {{artifacts.email.domain}}
 aws ses get-identity-dkim-attributes --identities {{artifacts.email.domain}}
 ```
 
-Take the three DKIM tokens from that second command and add them at your DNS provider as:
+Take the three DKIM tokens from the second command and add them at your DNS provider as:
 
 ```
 <token>._domainkey.{{artifacts.email.domain}}.  CNAME  <token>.dkim.amazonses.com.
 ```
 
-Verification usually completes within a few minutes to a few hours after the records propagate. Until then, `SendEmail`/`SendRawEmail` calls will fail.
+Verification usually completes within a few minutes to a few hours after the records propagate. Until then, `SendEmail`/`SendRawEmail` calls fail.
 
-{{#params.domain}}
-### New AWS accounts start in the SES sandbox
+## Sending fails: account still in the SES sandbox
 
-You can only send to verified addresses until you request production access. Check:
+New AWS accounts can only send to verified addresses until production access is granted.
+
 ```bash
 aws sesv2 get-account | grep -A2 ProductionAccessEnabled
 ```
-{{/params.domain}}
 
----
+If `ProductionAccessEnabled` is false, request production access in the SES console.
 
-## Active alarms — what they mean
+## Alarms
 
 ### Bounce or complaint rate climbing
 
@@ -57,9 +42,7 @@ aws cloudwatch get-metric-statistics \
   --period 3600 --statistics Maximum
 ```
 
-AWS suspends sending if bounce/complaint rates cross their thresholds. Check what's generating bounces (bad list hygiene, typo'd addresses) before it escalates.
-
----
+AWS suspends sending when bounce or complaint rates cross its thresholds. Identify the source of the bounces (stale lists, mistyped addresses) before that happens.
 
 ## Common operations
 
@@ -74,7 +57,7 @@ aws ses send-email \
 
 ### Rotate SMTP credentials
 
-Redeploy this instance — a fresh IAM access key (and derived SMTP password) is generated each time the underlying `aws_iam_access_key` is replaced. Update the app's stored credential immediately after.
+Redeploy this instance. A fresh IAM access key (and derived SMTP password) is generated when the underlying `aws_iam_access_key` is replaced. Update the app's stored credential immediately after.
 
 ---
 

@@ -18,4 +18,4 @@ Use this when you already have an ElastiCache (Valkey or Redis OSS) cluster and 
 
 ## Notes
 
-- This resource type is intentionally engine-agnostic (Valkey or Redis) — nothing about it is AWS-proprietary, so a consuming app can move to another provider's Redis-compatible cache without changing its connection code.
+- This resource type is engine-agnostic (Valkey or Redis OSS). A consuming app can move to another provider's Redis-compatible cache without changing its connection code.

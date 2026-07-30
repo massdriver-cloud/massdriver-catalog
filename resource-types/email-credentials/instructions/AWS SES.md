@@ -16,4 +16,4 @@ Use this when you already have a verified SES domain identity and SMTP credentia
 
 ## Notes
 
-- SMTP credentials are used deliberately over the native SES API so the app's outbound-mail code isn't locked to AWS — the same SMTP integration works against any other provider's SMTP endpoint if you migrate later.
+- SMTP credentials are used rather than the native SES API so the app's outbound-mail code is not tied to AWS; the same SMTP integration works against any other provider's SMTP endpoint.

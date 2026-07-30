@@ -36,7 +36,7 @@ params:
     image:
       type: string
       title: Container Image
-      description: Container image reference, including a tag or digest. Avoid `:latest` outside of development.
+      description: Container image reference, including a tag or digest.
       default: "public.ecr.aws/docker/library/nginx:stable"
       minLength: 1
       pattern: "^[^[:space:]]+:[^[:space:]]+$"
@@ -109,7 +109,7 @@ params:
     cronjobs:
       type: array
       title: Scheduled Jobs (CronJobs)
-      description: Background jobs that run on a schedule using the same container image, inside this same app bundle.
+      description: Background jobs that run on a schedule using this bundle's container image.
       default: []
       maxItems: 20
       uniqueItems: true
@@ -227,7 +227,7 @@ ui:
     - cronjobs
     - "*"
   image:
-    ui:help: "Pin to a tag or digest. Pulling `:latest` makes rollbacks ambiguous."
+    ui:help: "Pin to a specific tag or digest; `:latest` makes rollbacks ambiguous."
   replicas:
     ui:widget: updown
   container_port:

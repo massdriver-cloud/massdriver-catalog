@@ -1,9 +1,7 @@
 name: aws-rds-postgres
 description: >-
-  Provisioned Amazon RDS for PostgreSQL — private subnet group, encrypted
-  storage, optional Multi-AZ standby. Deliberately provisioned RDS rather
-  than Aurora Serverless v2; see README for the cost comparison behind
-  that choice.
+  Amazon RDS for PostgreSQL with a private subnet group, encrypted
+  storage, and an optional Multi-AZ standby.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-rds-postgres
 version: 0.1.0
 
@@ -40,7 +38,7 @@ params:
   properties:
     db_version:
       title: PostgreSQL Version
-      description: PostgreSQL major version. Major-version upgrades require a maintenance window.
+      description: PostgreSQL major version.
       type: string
       default: "16"
       $md.immutable: true
@@ -92,7 +90,7 @@ params:
           title: "Large — db.t4g.large (2 vCPU burstable, 8 GiB)"
     allocated_storage_gb:
       title: Storage (GB)
-      description: Allocated storage in gibibytes. RDS grows this online but can't shrink it.
+      description: Allocated storage in gibibytes. Storage can be increased online but not decreased.
       type: integer
       default: 20
       minimum: 20
@@ -100,24 +98,24 @@ params:
       multipleOf: 10
     backup_retention_days:
       title: Backup Retention (days)
-      description: How long automated backups are kept. 0 disables backups entirely — don't use in production.
+      description: Number of days automated backups are retained. 0 disables automated backups.
       type: integer
       default: 7
       minimum: 0
       maximum: 35
     multi_az:
       title: Multi-AZ
-      description: Run a synchronous standby in a second AZ. Roughly doubles cost; enables sub-minute automatic failover.
+      description: Run a synchronous standby in a second availability zone with automatic failover.
       type: boolean
       default: false
     deletion_protection:
       title: Deletion Protection
-      description: Block accidental deletion of this database. Turn off only for short-lived dev/test instances you intend to tear down.
+      description: Block deletion of this instance until this setting is disabled.
       type: boolean
       default: true
     skip_final_snapshot:
       title: Skip Final Snapshot on Destroy
-      description: When destroying this instance, skip taking a final snapshot. Leave off for anything holding real data.
+      description: Skip the final snapshot when this instance is destroyed.
       type: boolean
       default: false
 
@@ -162,16 +160,11 @@ ui:
     - skip_final_snapshot
     - "*"
   db_version:
-    ui:help: "Major-version upgrade needs a maintenance window. Plan ahead."
+    ui:help: "Major-version upgrades require a maintenance window."
   allocated_storage_gb:
     ui:widget: updown
-    ui:help: "RDS grows storage online; shrinking needs a logical dump and restore."
+    ui:help: "Decreasing storage requires a logical dump and restore to a new instance."
   backup_retention_days:
     ui:widget: updown
-    ui:help: "Production: 35 days. Staging: 7. Dev: 1."
   multi_az:
-    ui:help: "Roughly 2× cost; failover usually completes in under 60 seconds. Required for production."
-  deletion_protection:
-    ui:help: "Keep this on for anything that isn't a throwaway dev database."
-  skip_final_snapshot:
-    ui:help: "Only turn this on for short-lived dev/test databases you're comfortable losing entirely."
+    ui:help: "A standby roughly doubles instance cost; failover typically completes in under 60 seconds."

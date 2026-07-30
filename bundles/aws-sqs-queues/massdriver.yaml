@@ -1,99 +1,116 @@
 name: aws-sqs-queues
-description: >-
-  A named set of SQS queues provisioned in one deploy, each with its own
-  optional dead-letter queue and scoped IAM policies — built for apps
-  that need many queues (10, 5, whatever) without one deploy per queue.
+description: A named set of SQS queues provisioned in one deploy, each with an optional dead-letter queue
+  and scoped IAM policies. Emits one queue resource per entry, so apps that need many queues need only
+  one deploy.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-sqs-queues
 version: 0.1.0
-
 params:
   examples:
     - __name: Small app (5 queues, one with a DLQ)
       queues:
-        - name: "emails"
+        - name: emails
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "webhooks"
+        - name: webhooks
           enable_dlq: true
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "notifications"
+        - name: notifications
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "exports"
+        - name: exports
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 60
           message_retention_seconds: 345600
-        - name: "cleanup"
+        - name: cleanup
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 86400
+      region: us-east-1
     - __name: Heavy queue user (10 queues)
       queues:
-        - name: "images-resize"
+        - name: images-resize
           enable_dlq: true
           max_receive_count: 5
           visibility_timeout_seconds: 60
           message_retention_seconds: 345600
-        - name: "images-thumbnail"
+        - name: images-thumbnail
           enable_dlq: true
           max_receive_count: 5
           visibility_timeout_seconds: 60
           message_retention_seconds: 345600
-        - name: "video-transcode"
+        - name: video-transcode
           enable_dlq: true
           max_receive_count: 3
           visibility_timeout_seconds: 300
           message_retention_seconds: 345600
-        - name: "notifications"
+        - name: notifications
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "webhooks-outbound"
+        - name: webhooks-outbound
           enable_dlq: true
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "search-index"
+        - name: search-index
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "email-send"
+        - name: email-send
           enable_dlq: true
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "analytics-events"
+        - name: analytics-events
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 345600
-        - name: "billing-events"
+        - name: billing-events
           enable_dlq: true
           max_receive_count: 3
           visibility_timeout_seconds: 30
           message_retention_seconds: 1209600
-        - name: "cache-invalidate"
+        - name: cache-invalidate
           enable_dlq: false
           max_receive_count: 5
           visibility_timeout_seconds: 30
           message_retention_seconds: 86400
+      region: us-east-1
   required:
+    - region
     - queues
   properties:
+    region:
+      title: Region
+      description: AWS region the resources are created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: US East (N. Virginia) — us-east-1
+        - const: us-east-2
+          title: US East (Ohio) — us-east-2
+        - const: us-west-2
+          title: US West (Oregon) — us-west-2
+        - const: eu-west-1
+          title: Europe (Ireland) — eu-west-1
     queues:
       type: array
       title: Queues
-      description: One entry per named queue this app needs. Add or remove entries and redeploy — existing queues you keep are left alone.
+      description: One entry per named queue. Entries can be added or removed on redeploy without affecting
+        the remaining queues.
       minItems: 1
       maxItems: 25
       uniqueItems: true
@@ -105,28 +122,31 @@ params:
           name:
             type: string
             title: Queue Name
-            description: Logical name. Becomes part of the real queue name and the value apps match on when they pick this queue from the dropdown.
+            description: Logical queue name. Included in the provisioned queue name and used by apps to
+              select this queue.
             minLength: 1
             maxLength: 80
             pattern: ^[a-zA-Z0-9_-]+$
             message:
-              pattern: "Must be letters, digits, hyphens, or underscores."
+              pattern: Must be letters, digits, hyphens, or underscores.
           enable_dlq:
             type: boolean
             title: Dead-Letter Queue
-            description: Route messages that fail processing repeatedly to a dedicated dead-letter queue instead of retrying forever.
+            description: Route messages that exceed the receive limit to a dedicated dead-letter queue.
             default: false
           max_receive_count:
             type: integer
             title: Max Receives Before DLQ
-            description: Only used when this queue has a dead-letter queue.
+            description: Number of receives before a message moves to the dead-letter queue. Applies only
+              when the dead-letter queue is enabled.
             default: 5
             minimum: 1
             maximum: 1000
           visibility_timeout_seconds:
             type: integer
             title: Visibility Timeout (seconds)
-            description: How long a received message is hidden from other consumers before it's considered failed and redelivered.
+            description: How long a received message stays hidden from other consumers before it becomes
+              visible for redelivery.
             default: 30
             minimum: 0
             maximum: 43200
@@ -136,23 +156,13 @@ params:
             default: 345600
             minimum: 60
             maximum: 1209600
-
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
 connections:
   required:
     - aws_authentication
-    - network
   properties:
     aws_authentication:
       $ref: aws-iam-role
       title: AWS Authentication
-    network:
-      $ref: aws-network
-      title: AWS Network
-
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required:
     - queues
@@ -160,15 +170,14 @@ artifacts:
     queues:
       $ref: queue
       title: Queues
-
 steps:
   - path: src
     provisioner: opentofu:1.10
-
 ui:
   ui:order:
+    - region
     - queues
-    - "*"
+    - '*'
   queues:
     ui:options:
       orderable: true

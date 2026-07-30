@@ -18,4 +18,4 @@ Use this when you already have an SQS queue and want Massdriver to know about it
 
 ## Notes
 
-- One `queue` resource represents a single named queue. A producing bundle can emit many of these — one per name in its named set — so heavy queue users don't need one deploy per queue.
+- One `queue` resource represents a single named queue. A producing bundle can emit many of these, one per name in its named set, so an app that uses many queues does not need one deploy per queue.

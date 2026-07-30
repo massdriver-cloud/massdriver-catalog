@@ -1,9 +1,9 @@
 name: aws-eks-cluster
 description: >-
   Amazon EKS cluster with worker nodes in private subnets, an IAM OIDC
-  provider for IRSA, and the AWS Load Balancer Controller so app Ingress
-  resources get ACM-backed TLS at the load balancer they provision. Apps
-  share one cluster since the control plane carries a fixed hourly charge.
+  provider for IRSA, and the AWS Load Balancer Controller, which provisions
+  an ACM-backed TLS load balancer for each app Ingress. Apps share one
+  cluster and one node pool.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-eks-cluster
 version: 0.1.0
 
@@ -41,7 +41,7 @@ params:
     cluster_version:
       type: string
       title: Kubernetes Version
-      description: EKS control-plane version. Confirm this is still on AWS's supported list before deploying.
+      description: EKS control plane version.
       default: "1.31"
       oneOf:
         - const: "1.29"
@@ -67,7 +67,7 @@ params:
     node_desired_size:
       type: integer
       title: Desired Node Count
-      description: Starting node count. Every app on this cluster shares this node pool.
+      description: Initial node count for the shared node group.
       default: 2
       minimum: 1
       maximum: 20
@@ -80,19 +80,19 @@ params:
     node_max_size:
       type: integer
       title: Maximum Node Count
-      description: Ceiling the cluster autoscaler (if installed) can scale nodes up to.
+      description: Maximum node count the node group can scale up to.
       default: 4
       minimum: 1
       maximum: 40
     endpoint_public_access:
       type: boolean
       title: Public API Endpoint
-      description: Allow the Kubernetes API to be reached from outside the VPC. Still IAM-authenticated either way — this only controls network reachability.
+      description: Allow the Kubernetes API endpoint to be reached from outside the VPC. Access is IAM-authenticated regardless of this setting.
       default: true
     public_access_cidrs:
       type: array
       title: Allowed Public CIDRs
-      description: CIDR blocks allowed to reach the public API endpoint, if enabled. Restrict this to your office/VPN range in production.
+      description: CIDR blocks allowed to reach the public API endpoint, when it is enabled.
       default:
         - "0.0.0.0/0"
       minItems: 1
@@ -106,8 +106,8 @@ params:
       title: Ingress ACM Certificate ARN
       description: >-
         Existing ACM certificate ARN the ingress controller uses to
-        terminate TLS at each app's load balancer. Leave blank to run
-        ingress over HTTP only — fine for early dev, not beyond.
+        terminate TLS at each app's load balancer. Leave blank to serve
+        ingress over HTTP only.
       default: ""
 
 dependencies:
@@ -162,16 +162,16 @@ ui:
     - acm_certificate_arn
     - "*"
   cluster_version:
-    ui:help: "Major-version upgrades happen in place but should go through a staging cluster first."
+    ui:help: "Upgrades are applied in place, one minor version at a time."
   node_instance_size:
-    ui:help: "All apps on this cluster share this node pool — size for the busiest app, not the average."
+    ui:help: "All apps on this cluster share this node pool."
   endpoint_public_access:
-    ui:help: "Disabling this means you need a VPN, bastion, or Cloud9-in-VPC to run kubectl. Most small teams leave it on and restrict public_access_cidrs instead."
+    ui:help: "When disabled, the API endpoint is reachable only from inside the VPC, for example over a VPN or bastion."
   public_access_cidrs:
     ui:options:
       orderable: true
       addable: true
       removable: true
   acm_certificate_arn:
-    ui:help: "Issue/validate the certificate in ACM first (DNS validation needs your domain's zone), then paste its ARN here."
+    ui:help: "The certificate must already be issued and DNS-validated in ACM."
     ui:placeholder: "arn:aws:acm:us-east-1:123456789012:certificate/..."

@@ -18,4 +18,4 @@ Use this when you already have an RDS or Aurora PostgreSQL instance and want Mas
 
 ## Notes
 
-- The password is masked everywhere in the UI except at deploy time, and can't be copied out of a cloned environment.
+- The password is masked everywhere in the UI except at deploy time, and cannot be copied out of a cloned environment.

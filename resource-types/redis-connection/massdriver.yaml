@@ -13,9 +13,8 @@ schema:
   title: Redis Connection
   description: >-
     Connection details for a Redis-wire-protocol-compatible cache. Backs
-    session state, KV-style caching, and pub/sub. Portable across
-    Redis/Valkey-compatible providers — deliberately not tied to any
-    AWS-proprietary cache API.
+    session state, key-value caching, and pub/sub. Portable across
+    Redis- and Valkey-compatible providers.
   type: object
   additionalProperties: false
   required:

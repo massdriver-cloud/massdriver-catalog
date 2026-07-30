@@ -4,34 +4,18 @@ templating: mustache
 
 # Postgres Runbook
 
-> **Templating context:** `slug`, `params`, `artifacts.<name>`.
+## Alarms
 
-## At a glance
+### High connection count
 
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Host | `{{artifacts.database.auth.hostname}}` |
-| Port | `{{artifacts.database.auth.port}}` |
-| Database | `{{artifacts.database.auth.database}}` |
-| Version | `{{artifacts.database.version}}` |
-| Multi-AZ | `{{artifacts.database.high_availability}}` |
-| Backup retention | `{{params.backup_retention_days}}d` |
-
----
-
-## Active alarms — what they mean
-
-### High connections
-
-The connection count is approaching the instance class's limit. New connections will start failing with "too many clients already."
+The connection count is approaching the instance class's limit. New connections fail with "too many clients already."
 
 ```bash
 aws rds describe-db-instances --db-instance-identifier {{artifacts.database.id}} \
   --query 'DBInstances[0].{Class:DBInstanceClass,Status:DBInstanceStatus}'
 ```
 
-Quick relief: find and kill idle/leaked connections.
+Quick relief: find and terminate idle or leaked connections.
 
 ```sql
 SELECT pid, state, now() - state_change AS idle_for, query
@@ -40,7 +24,7 @@ WHERE state = 'idle' AND now() - state_change > interval '10 minutes'
 ORDER BY idle_for DESC;
 ```
 
-Root cause is almost always a connection pool misconfigured on the app side (too large a pool, or not returning connections). Longer term: size up the instance class or add PgBouncer in front.
+The usual root cause is an app-side connection pool that is oversized or not returning connections. Longer term: size up the instance class or add PgBouncer in front.
 
 ### Storage nearly full
 
@@ -52,7 +36,7 @@ aws cloudwatch get-metric-statistics \
   --period 300 --statistics Minimum
 ```
 
-`allocated_storage_gb` grows online — bump it and redeploy, no downtime. It can't shrink back down without a dump/restore.
+`allocated_storage_gb` grows online: raise it and redeploy, no downtime. Decreasing it requires a dump and restore.
 
 {{#params.multi_az}}
 ### Replication lag (Multi-AZ)
@@ -65,8 +49,6 @@ aws cloudwatch get-metric-statistics \
   --period 60 --statistics Maximum
 ```
 {{/params.multi_az}}
-
----
 
 ## Common operations
 
@@ -98,20 +80,18 @@ aws rds restore-db-instance-to-point-in-time \
   --restore-time <ISO8601 timestamp>
 ```
 
-Point apps at the restored instance only after verifying data — this creates a new instance rather than overwriting the existing one.
-
----
+This creates a new instance rather than overwriting the existing one. Point apps at the restored instance only after verifying its data.
 
 ## Disaster recovery
 
 {{#params.deletion_protection}}
-Deletion protection is **on** — nobody can accidentally `terraform destroy`/decommission this instance without turning it off first.
+Deletion protection is on. The instance cannot be decommissioned until the setting is disabled.
 {{/params.deletion_protection}}
 {{^params.deletion_protection}}
-**Deletion protection is off.** If this database holds anything you'd miss, turn it on before your next deploy.
+Deletion protection is off. Enable it before the next deploy if this database holds data you need to keep.
 {{/params.deletion_protection}}
 
-`database_name` and `username` are immutable. A rename means a new instance and a data migration, not a param change.
+`database_name` and `username` are immutable. A rename requires a new instance and a data migration, not a parameter change.
 
 ---
 

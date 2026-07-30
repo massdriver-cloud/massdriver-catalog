@@ -1,19 +1,19 @@
 # Cache
 
-A fast, in-memory store for anything your app needs to read quickly and doesn't want to hit a database for every time — session data, rate-limit counters, a cache in front of slower lookups, pub/sub between app instances.
+Provisions an ElastiCache replication group running Valkey, an in-memory store for session data, rate-limit counters, caching, and pub/sub between app instances. Emits a `redis-connection` resource with the endpoint and auth token.
 
 ## Why Valkey
 
-This runs Valkey, an open, Redis-compatible engine, instead of anything proprietary to AWS. Your app's code just talks the normal Redis wire protocol — if you move to another cloud later, you point at a different endpoint and nothing else changes.
+Valkey is an open, Redis-compatible engine. Apps talk the standard Redis wire protocol, so moving to another provider's Redis-compatible cache later means changing an endpoint, not application code.
 
-## What you get
+## What it provisions
 
-- Encrypted at rest and in transit, with a generated auth token — not configurable off, since session data is sensitive by default.
-- An optional second node with automatic failover for when you can't afford to lose the cache mid-request.
+- A replication group encrypted at rest and in transit, with a generated auth token. Encryption is not parameter-configurable.
+- An optional replica node with automatic failover (`high_availability`). A replica roughly doubles node cost.
 
-## Customize it
+## Operational notes
 
-1. Edit `massdriver.yaml` for a different node size or engine version.
-2. `src/main.tf` provisions a real ElastiCache replication group, not a placeholder.
+- Without a replica, losing the node loses every session and cached value it held. Apps should handle a cold cache (re-authenticate, re-fetch) rather than assume the cache survives.
+- `src/main.tf` provisions the ElastiCache replication group, subnet group, and security group.
 
 See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

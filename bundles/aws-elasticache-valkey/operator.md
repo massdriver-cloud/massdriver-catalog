@@ -4,25 +4,11 @@ templating: mustache
 
 # Cache Runbook
 
-> **Templating context:** `slug`, `params`, `artifacts.<name>`.
-
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Host | `{{artifacts.cache.auth.hostname}}` |
-| Port | `{{artifacts.cache.auth.port}}` |
-| Engine | `{{artifacts.cache.engine}}` `{{artifacts.cache.version}}` |
-| High availability | `{{params.high_availability}}` |
-
----
-
-## Active alarms — what they mean
+## Alarms
 
 ### Evictions climbing
 
-The cache is out of memory and dropping keys before they'd naturally expire — sessions or cached data disappearing under load.
+The cache is out of memory and dropping keys before they expire; sessions or cached data disappear under load.
 
 ```bash
 aws cloudwatch get-metric-statistics \
@@ -32,7 +18,7 @@ aws cloudwatch get-metric-statistics \
   --period 300 --statistics Sum
 ```
 
-Either size up `node_size`, or check whether something is caching data with no TTL that should have one.
+Either increase `node_size`, or check for keys being written without a TTL that should have one.
 
 ### Connections maxed out
 
@@ -44,9 +30,7 @@ aws cloudwatch get-metric-statistics \
   --period 300 --statistics Maximum
 ```
 
-Usually a connection-pooling bug on the app side (new client per request instead of a shared pool).
-
----
+The usual cause is an app opening a new client per request instead of using a shared connection pool.
 
 ## Common operations
 
@@ -64,15 +48,13 @@ redis-cli -h {{artifacts.cache.auth.hostname}} -p {{artifacts.cache.auth.port}} 
 redis-cli -h {{artifacts.cache.auth.hostname}} -p {{artifacts.cache.auth.port}} --tls -a '<token>' DBSIZE
 ```
 
----
-
 ## Disaster recovery
 
 {{#params.high_availability}}
-This cache has automatic failover — losing the primary node promotes the replica within seconds, no manual action needed. Verify afterward with `INFO replication`.
+Automatic failover is enabled. Losing the primary promotes the replica within seconds, with no manual action. Verify afterward with `INFO replication`.
 {{/params.high_availability}}
 {{^params.high_availability}}
-**No standby node.** Losing this node means every session and cached value it held is gone — apps need to handle a cold cache gracefully (re-authenticate, re-fetch), not assume the cache survives.
+There is no standby node. Losing this node loses every session and cached value it held; apps should handle a cold cache (re-authenticate, re-fetch) rather than assume the cache survives.
 {{/params.high_availability}}
 
 ---

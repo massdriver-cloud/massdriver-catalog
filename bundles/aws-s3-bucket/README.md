@@ -1,25 +1,27 @@
 # Object Storage
 
-A private bucket for your app to store files in — uploaded images, generated reports, backups, whatever isn't a fit for a database row.
+Provisions a private S3 bucket for application file storage: uploads, generated reports, backups. Emits an `object-storage` resource with the bucket details and its access policies.
 
-## What you get
+## What it provisions
 
-- A bucket that's locked down from the public internet, no matter what — this can't be changed by a parameter, on purpose.
-- Every object encrypted at rest with its own dedicated key (not the shared AWS default key), so you can control and audit exactly who's allowed to decrypt.
-- Two ready-made access levels — read-only and read-write — that your app picks up automatically through its own scoped identity. Nobody has to hand out or rotate an access key.
-- Optional versioning, so an accidental overwrite or delete isn't permanent.
+- A bucket with public access blocked at the account-policy level. This is not parameter-configurable.
+- Server-side encryption with a dedicated KMS key rather than the shared AWS default key, so decryption access can be scoped and audited per bucket.
+- Two IAM access policies, read-only and read-write, that consuming apps attach through their service account's IAM role (IRSA). No static access keys are issued.
+- Optional object versioning, so overwrites and deletes are recoverable.
 
 ## What this bucket is not for
 
-If you need to serve files directly to the public internet (product images on a marketing site, downloadable assets), don't make this bucket public — put a CDN in front of it instead. This catalog's static-site bundle shows that pattern.
+Serving files directly to the public internet. For public assets, put a CDN in front of a bucket instead of opening the bucket itself; the `aws-static-site` bundle implements that pattern.
 
-## Things you can't change later
+## Parameters worth knowing
 
-The bucket name is locked in once deployed, since S3 bucket names have to be globally unique across all of AWS — pick something you won't need to fight over later.
+- `bucket_name` is immutable, and S3 bucket names are globally unique across all of AWS.
+- `force_destroy` allows the bucket to be destroyed while it still contains objects. When off, the bucket must be emptied manually before deletion.
+- Versioning adds storage cost proportional to object churn.
 
-## Customize it
+## Operational notes
 
-1. Edit `massdriver.yaml` if you need more than the two access levels shipped here (e.g. a delete-only policy for a cleanup job).
-2. `src/main.tf` is real Terraform/OpenTofu — an actual bucket, KMS key, and IAM policies, not placeholders.
+- `src/main.tf` provisions the bucket, KMS key, and IAM policies.
+- Additional access levels (for example, a delete-only policy for a cleanup job) can be added in `massdriver.yaml` and `src/main.tf`.
 
 See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

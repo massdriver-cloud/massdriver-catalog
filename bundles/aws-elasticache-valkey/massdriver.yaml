@@ -1,8 +1,8 @@
 name: aws-elasticache-valkey
 description: >-
-  ElastiCache running Valkey — session storage, KV-style caching, and
-  pub/sub. Valkey (not an AWS-proprietary cache API) so a later move to
-  another cloud's Redis-compatible offering doesn't touch app code.
+  ElastiCache running Valkey for session storage, key-value caching, and
+  pub/sub. Valkey speaks the Redis wire protocol, so client code is
+  portable across Redis-compatible providers.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-elasticache-valkey
 version: 0.1.0
 
@@ -46,7 +46,7 @@ params:
           title: "Large — cache.t4g.large (2 vCPU burstable, 6.4 GiB)"
     high_availability:
       title: High Availability
-      description: Add a second node with automatic failover. Roughly doubles cost.
+      description: Add a replica node with automatic failover.
       type: boolean
       default: false
 
@@ -85,4 +85,4 @@ ui:
     - high_availability
     - "*"
   high_availability:
-    ui:help: "Required for production session/cache data you can't afford to lose on a node failure."
+    ui:help: "A replica roughly doubles node cost."

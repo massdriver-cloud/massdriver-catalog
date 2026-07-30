@@ -25,9 +25,8 @@ params:
       type: string
       title: AWS Region
       description: >-
-        Region the network is created in. Every downstream bundle (cluster,
-        databases, storage, cache, queues) inherits this region from the
-        connected network instead of asking for it again.
+        AWS region the network is created in. Downstream bundles inherit
+        this region through the network connection.
       default: "us-east-1"
       $md.immutable: true
       examples:
@@ -36,11 +35,11 @@ params:
     cidr:
       type: string
       title: VPC CIDR
-      description: IPv4 address range for the whole network. Can't be changed after the network is created.
+      description: IPv4 address range for the network. Cannot be changed after the network is created.
       default: "10.0.0.0/16"
       pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
       message:
-        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+        pattern: "Must be a valid IPv4 CIDR block, for example 10.0.0.0/16."
       $md.immutable: true
       examples:
         - "10.0.0.0/16"
@@ -49,9 +48,9 @@ params:
       type: integer
       title: Availability Zones
       description: >-
-        Number of AZs to spread public/private subnet pairs across. One
-        shared NAT gateway serves every private subnet regardless of AZ
-        count, so this only affects fault tolerance, not NAT cost.
+        Number of availability zones to spread public/private subnet pairs
+        across. A single shared NAT gateway serves all private subnets
+        regardless of AZ count.
       default: 2
       $md.immutable: true
       oneOf:
@@ -62,12 +61,12 @@ params:
     enable_flow_logs:
       type: boolean
       title: Enable Flow Logs
-      description: Capture network traffic metadata to CloudWatch Logs for security review and troubleshooting.
+      description: Capture network traffic metadata to CloudWatch Logs.
       default: true
     flow_log_retention_days:
       type: integer
       title: Flow Log Retention (days)
-      description: How long flow logs are kept before deletion.
+      description: Number of days flow logs are retained in CloudWatch Logs.
       default: 30
       minimum: 1
       maximum: 365
@@ -116,15 +115,10 @@ ui:
     - enable_flow_logs
     - flow_log_retention_days
     - "*"
-  region:
-    ui:help: "Pick the region your team is closest to and already has quota in."
   cidr:
-    ui:help: "Pick from a private range (RFC 1918): 10.0.0.0/8, 172.16.0.0/12, or 192.168.0.0/16."
+    ui:help: "Use a private (RFC 1918) range: 10.0.0.0/8, 172.16.0.0/12, or 192.168.0.0/16."
     ui:placeholder: "10.0.0.0/16"
-  az_count:
-    ui:help: "2 AZs is enough for dev/staging. Use 3 in production for better fault tolerance."
   enable_flow_logs:
-    ui:help: "Required by SOC 2 and HIPAA, but adds per-GB CloudWatch Logs cost."
+    ui:help: "Flow logs add per-GB CloudWatch Logs ingestion and storage charges."
   flow_log_retention_days:
     ui:widget: updown
-    ui:help: "30 days is enough for most security incident reviews; 90 for compliance audits."

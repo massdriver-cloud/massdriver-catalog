@@ -13,8 +13,8 @@ schema:
   title: Email Credentials
   description: >-
     SMTP sending credentials for a verified sending domain. SMTP is used
-    over a provider-proprietary send API so the app's outbound-mail code
-    stays portable to any SMTP-speaking provider.
+    rather than a provider-specific send API so the app's outbound-mail
+    code is portable to any SMTP provider.
   type: object
   additionalProperties: false
   required:

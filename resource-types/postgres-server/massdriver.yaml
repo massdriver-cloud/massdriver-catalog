@@ -12,7 +12,7 @@ ui:
 schema:
   title: Postgres Server
   description: >-
-    A PostgreSQL server — connection host, port, and credentials. Portable
+    Connection host, port, and credentials for a PostgreSQL server. Portable
     across any Postgres-wire-compatible engine (RDS, Aurora, Cloud SQL,
     Azure Database for PostgreSQL, self-hosted).
   type: object
