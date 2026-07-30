@@ -383,20 +383,22 @@ Each resource type ships per-source form-fill walkthroughs that render alongside
    - `MASSDRIVER_URL` - The API URL of your self-hosted Massdriver instance (e.g., `https://api.massdriver.yourdomain.com`). If not set, defaults to `https://api.massdriver.cloud`.
 
    Once configured, any push to the `main` branch will automatically:
-   - Publish all resource types in `resource-types/` (and any enabled platforms in `platforms/`)
+   - Ensure each resource type's OCI repository exists, then publish all resource types in `resource-types/` (and any enabled platforms in `platforms/`)
    - Ensure each bundle's OCI repository exists, then build and publish all bundles in `bundles/`
 
    > [!TIP]
    > To publish snapshot/dev versions on every PR push, enable [`publish-bundles-dev.yml.example`](./.github/workflows/publish-bundles-dev.yml.example) by renaming it. It runs `mass bundle publish --development` against any bundles changed in the PR.
 
-#### Bundle OCI repositories
+#### OCI repositories
 
-In Massdriver v2, every bundle is published into its own OCI repository, and **the repository must exist before `mass bundle publish` will succeed**. The CI workflow handles this automatically — it calls `mass bundle create <name>` for each bundle on every run and ignores the "already exists" error. Locally, `make create-bundle-repos` does the same thing.
+In Massdriver v2, every **bundle and every resource type** (platforms included) is published into its own OCI repository, and **the repository must exist before publish will succeed**. A repository is named exactly after the bundle or resource type it holds, and all repositories share a single namespace — so a bundle and a resource type cannot use the same name.
 
-If a bundle needs custom attributes (for example, `-a owner=data,service=database`), the workflow can't infer them. Create those repositories once by hand:
+The CI workflows handle creation automatically — they call `mass repository create <name> -t bundle` (or `-t resource-type`) before each publish and ignore the "already exists" error. Locally, `make create-repos` does the same thing for everything in the catalog.
+
+If a repository needs custom attributes (for example, `-a owner=data,service=database`), the workflow can't infer them. Create those repositories once by hand:
 
 ```bash
-mass bundle create my-bundle -a owner=data,service=database
+mass repository create my-bundle -t bundle -a owner=data,service=database
 ```
 
 After that, normal pushes will keep publishing into the same repo.
@@ -405,7 +407,7 @@ After that, normal pushes will keep publishing into the same repo.
 
 The service account behind `MASSDRIVER_API_KEY` needs to be able to:
 
-- **Create OCI repositories** — required for the idempotent `mass bundle create` step.
+- **Create OCI repositories** — required for the idempotent `mass repository create` step.
 - **Publish to OCI repositories** — required for `mass bundle publish`.
 - **Publish resource types** — required for `mass resource-type publish` (used for both `resource-types/` and `platforms/`).
 
@@ -468,8 +470,8 @@ make all
 
    This command will:
    - Clean up any previous build artifacts
+   - Ensure an OCI repository exists for every resource type and bundle (`make create-repos`)
    - Publish resource types to your Massdriver instance
-   - Ensure an OCI repository exists for each bundle (`make create-bundle-repos`)
    - Build all bundles (generates schema JSON files from `massdriver.yaml`)
    - Validate all bundles with OpenTofu, Helm, etc.
    - Publish all bundles to your Massdriver instance using your default `mass` CLI profile
