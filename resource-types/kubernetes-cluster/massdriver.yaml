@@ -40,6 +40,7 @@ schema:
       message:
         pattern: "Must start with https://."
     ca_certificate:
+      $md.sensitive: true
       title: Cluster CA Certificate
       description: Base64-encoded certificate authority data used to verify the API server's TLS certificate.
       type: string
