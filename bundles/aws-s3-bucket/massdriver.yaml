@@ -1,0 +1,83 @@
+name: aws-s3-bucket
+description: >-
+  Private S3 bucket encrypted with a dedicated SSE-KMS key, with read-only
+  and read-write IAM policies apps attach via IRSA instead of static keys.
+  Not for public asset serving — put CloudFront in front for that.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-s3-bucket
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (versioning on, easy teardown)
+      bucket_name: "acme-app-assets-dev"
+      enable_versioning: true
+      force_destroy: true
+    - __name: Production (versioning on, protected)
+      bucket_name: "acme-app-assets-prod"
+      enable_versioning: true
+      force_destroy: false
+  required:
+    - bucket_name
+    - enable_versioning
+    - force_destroy
+  properties:
+    bucket_name:
+      title: Bucket Name
+      description: Must be globally unique across all of AWS. Can't be changed after the bucket is created.
+      type: string
+      default: "acme-app-assets"
+      minLength: 3
+      maxLength: 63
+      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+      message:
+        pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
+      $md.immutable: true
+    enable_versioning:
+      title: Enable Versioning
+      description: Keep previous versions of every object. Protects against accidental overwrite/delete; adds storage cost proportional to churn.
+      type: boolean
+      default: true
+    force_destroy:
+      title: Force Destroy
+      description: Allow this bucket to be deleted even if it still has objects in it. Only for throwaway dev/test buckets.
+      type: boolean
+      default: false
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - bucket
+  properties:
+    bucket:
+      $ref: object-storage
+      title: Object Storage
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - bucket_name
+    - enable_versioning
+    - force_destroy
+    - "*"
+  bucket_name:
+    ui:placeholder: "acme-app-assets"
+  force_destroy:
+    ui:help: "Only turn this on for dev/test buckets you're comfortable losing entirely — production buckets should require manual emptying before delete."
