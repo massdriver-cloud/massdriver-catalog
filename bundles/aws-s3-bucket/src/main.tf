@@ -2,11 +2,23 @@ locals {
   name_prefix = var.md_metadata.name_prefix
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_kms_key" "bucket" {
   description             = "SSE-KMS key for ${var.bucket_name}"
   enable_key_rotation     = true
   deletion_window_in_days = 7
-  tags                    = var.md_metadata.default_tags
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowRootAccountFullAccess"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
+  tags = var.md_metadata.default_tags
 }
 
 resource "aws_kms_alias" "bucket" {
@@ -15,9 +27,41 @@ resource "aws_kms_alias" "bucket" {
 }
 
 resource "aws_s3_bucket" "main" {
-  bucket        = var.bucket_name
+  bucket = var.bucket_name
+  # checkov:skip=CKV_AWS_144: cross-region replication is a per-app DR
+  # decision, not a default for this shared bucket bundle. Add it (a second
+  # bucket + replication IAM role in another region) when a specific app's
+  # RPO/RTO actually requires it.
+  # checkov:skip=CKV_AWS_18: access logging needs a separate log-destination
+  # bucket, which this generic, standalone bucket bundle doesn't provision.
+  # Point logging at a shared logging bucket once one exists in the catalog.
+  # checkov:skip=CKV2_AWS_62: no downstream consumer for bucket change
+  # events in this catalog yet. Add an SNS/EventBridge notification when a
+  # consuming app actually needs to react to object creation/deletion.
   force_destroy = var.force_destroy
   tags          = var.md_metadata.default_tags
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = var.enable_versioning ? "Enabled" : "Disabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "main" {
