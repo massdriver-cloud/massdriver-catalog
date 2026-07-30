@@ -1,0 +1,68 @@
+name: aws-ses-email
+description: >-
+  SES domain identity verification plus SMTP sending credentials. SMTP is
+  used over the native SES API so the app's outbound-mail integration
+  stays portable to any other SMTP-speaking provider.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-ses-email
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      domain: "dev.example.com"
+    - __name: Production
+      domain: "example.com"
+  required:
+    - domain
+  properties:
+    domain:
+      title: Sending Domain
+      description: >-
+        Domain to verify for sending. After deploy, add the DKIM CNAME
+        records shown in the operator runbook — SES won't actually send
+        until DNS verification completes.
+      type: string
+      minLength: 1
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$
+      message:
+        pattern: "Must be a valid lowercase DNS name with at least one dot (e.g. example.com)."
+      $md.immutable: true
+      examples:
+        - "example.com"
+        - "mail.example.com"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - email
+  properties:
+    email:
+      $ref: email-credentials
+      title: Email Credentials
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - domain
+    - "*"
+  domain:
+    ui:help: "You'll need access to this domain's DNS zone to finish verification after deploy."
+    ui:placeholder: "example.com"
