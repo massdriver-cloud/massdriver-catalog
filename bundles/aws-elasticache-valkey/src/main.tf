@@ -33,7 +33,11 @@ resource "aws_security_group" "cache" {
     protocol    = "tcp"
     cidr_blocks = [var.network.cidr]
   }
+  # checkov:skip=CKV_AWS_382: attached to the cache cluster's ENIs (a
+  # managed AWS service, not attacker-controlled compute) — nothing runs
+  # here whose egress needs restricting beyond what ElastiCache itself needs.
   egress {
+    description = "All outbound - ElastiCache itself, no workload runs here"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -45,6 +49,25 @@ resource "aws_security_group" "cache" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_kms_key" "cache" {
+  description             = "Encrypts Valkey cache at rest for ${local.name_prefix}"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowRootAccountFullAccess"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
+  tags = var.md_metadata.default_tags
 }
 
 resource "aws_elasticache_replication_group" "main" {
@@ -63,6 +86,7 @@ resource "aws_elasticache_replication_group" "main" {
 
   # Not configurable, on purpose — session/cache data is sensitive by default.
   at_rest_encryption_enabled = true
+  kms_key_id                 = aws_kms_key.cache.arn
   transit_encryption_enabled = true
   auth_token                 = random_password.auth_token.result
 
