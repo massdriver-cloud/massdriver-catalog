@@ -25,10 +25,16 @@ jobs:
       - name: Publish Enabled Platforms
         # Platforms are resource types that model cloud-provider credentials.
         # We split them out from `resource-types/` for discoverability.
+        # Massdriver v2 requires an OCI repository (named exactly after the
+        # resource type declared in the platform's massdriver.yaml, e.g.
+        # aws-iam-role) to exist before publish; creation is idempotent.
         run: |
           for platform in $ENABLED_PLATFORMS; do
             platform_file="platforms/${platform}/massdriver.yaml"
             if [ -f "$platform_file" ]; then
+              name=$(grep -m1 '^name:' "$platform_file" | awk '{print $2}')
+              echo "Ensuring resource-type repository exists for $name..."
+              mass repository create "$name" -t resource-type 2>&1 || true
               echo "Publishing platform: $platform..."
               mass resource-type publish "$platform_file"
             else

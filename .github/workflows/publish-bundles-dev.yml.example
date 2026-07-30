@@ -50,7 +50,7 @@ jobs:
           for bundle_name in $CHANGED_BUNDLES; do
             bundle_dir="bundles/$bundle_name"
             echo "Ensuring bundle repository exists for $bundle_name..."
-            mass bundle create "$bundle_name" 2>&1 || true
+            mass repository create "$bundle_name" -t bundle 2>&1 || true
             echo "Publishing dev release for: $bundle_name..."
             mass bundle publish --development --bundle-directory "$bundle_dir"
           done

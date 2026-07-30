@@ -20,9 +20,15 @@ jobs:
       - name: Install Massdriver CLI
         uses: massdriver-cloud/actions/setup@v6
       - name: Publish All Resource Types
+        # Massdriver v2 requires an OCI repository (named exactly after the
+        # resource type) to exist before publish. `mass repository create` is
+        # idempotent against the API on a name match, so we attempt creation
+        # first and continue if it already exists.
         run: |
           for dir in resource-types/*/; do
             name=$(basename "$dir")
+            echo "Ensuring resource-type repository exists for $name..."
+            mass repository create "$name" -t resource-type 2>&1 || true
             echo "Publishing resource type $name..."
             mass resource-type publish "${dir}massdriver.yaml"
           done
