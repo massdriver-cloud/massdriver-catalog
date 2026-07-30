@@ -63,10 +63,14 @@ params:
 connections:
   required:
     - aws_authentication
+    - network
   properties:
     aws_authentication:
       $ref: aws-iam-role
       title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
 artifacts:
   required:
     - bucket
