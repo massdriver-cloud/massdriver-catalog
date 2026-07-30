@@ -129,7 +129,7 @@ variable "queue" {
 }
 variable "queue_policy" {
   type = string
-  default = null
+  default = "send-receive"
 }
 variable "replicas" {
   type = number
@@ -150,5 +150,5 @@ variable "storage" {
 }
 variable "storage_policy" {
   type = string
-  default = null
+  default = "read-write"
 }

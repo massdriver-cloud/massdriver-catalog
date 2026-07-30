@@ -1,51 +1,43 @@
-# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
-#
-# Generated from the templates/aws-eks-app runtime template. This skeleton
-# exists to exercise every data-service resource type end to end on the
-# canvas — postgres-server, object-storage, queue, redis-connection, and
-# email-credentials, plus kubernetes-cluster — before real migration work
-# starts. No application logic; the container image is a placeholder.
-# The three real apps are NOT built from this skeleton directly — each gets
-# its own bundle generated from templates/aws-eks-app, keeping only the
-# connections it actually needs.
-
-name: "app-skeleton"
-description: "Skeleton app bundle that connects to every data-service resource type in this catalog. Deploys a Kubernetes Deployment, Service, and Ingress with no application logic."
+name: app-skeleton
+description: Skeleton app bundle that connects to every data-service resource type in this catalog. Deploys a Kubernetes Deployment,
+  Service, and Ingress with no application logic.
 source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/app-skeleton
 version: 0.1.0
-
 params:
   examples:
-    - __name: Development
-      image: "public.ecr.aws/docker/library/nginx:stable"
-      replicas: 1
-      container_port: 8080
-      cpu_limit: "250m"
-      memory_limit: "256Mi"
-      health_check_path: "/healthz"
-      storage_policy: "read-write"
-      queue_policy: "send-receive"
-      cronjobs:
-        - name: "nightly-cleanup"
-          schedule: "0 2 * * *"
-          command: ["/bin/sh", "-c", "echo placeholder cleanup job"]
+  - __name: Development
+    image: public.ecr.aws/docker/library/nginx:stable
+    replicas: 1
+    container_port: 8080
+    cpu_limit: 250m
+    memory_limit: 256Mi
+    health_check_path: /healthz
+    storage_policy: read-write
+    queue_policy: send-receive
+    cronjobs:
+    - name: nightly-cleanup
+      schedule: 0 2 * * *
+      command:
+      - /bin/sh
+      - -c
+      - echo placeholder cleanup job
   required:
-    - image
-    - replicas
-    - container_port
+  - image
+  - replicas
+  - container_port
   properties:
     image:
       type: string
       title: Container Image
       description: Container image reference, including a tag or digest.
-      default: "public.ecr.aws/docker/library/nginx:stable"
+      default: public.ecr.aws/docker/library/nginx:stable
       minLength: 1
-      pattern: "^[^[:space:]]+:[^[:space:]]+$"
+      pattern: ^[^[:space:]]+:[^[:space:]]+$
       message:
-        pattern: "Must be image:tag or image@digest format (no spaces)."
+        pattern: Must be image:tag or image@digest format (no spaces).
       examples:
-        - "111111111111.dkr.ecr.us-east-1.amazonaws.com/app-skeleton:1.4.0"
-        - "111111111111.dkr.ecr.us-east-1.amazonaws.com/app-skeleton@sha256:7a2f3e9b..."
+      - 111111111111.dkr.ecr.us-east-1.amazonaws.com/app-skeleton:1.4.0
+      - 111111111111.dkr.ecr.us-east-1.amazonaws.com/app-skeleton@sha256:7a2f3e9b...
     replicas:
       type: integer
       title: Replicas
@@ -64,49 +56,50 @@ params:
       type: string
       title: CPU Limit
       description: Kubernetes-style CPU limit. `1000m` = 1 vCPU.
-      default: "250m"
+      default: 250m
       enum:
-        - "100m"
-        - "250m"
-        - "500m"
-        - "1000m"
-        - "2000m"
+      - 100m
+      - 250m
+      - 500m
+      - 1000m
+      - 2000m
     memory_limit:
       type: string
       title: Memory Limit
       description: Kubernetes-style memory limit.
-      default: "256Mi"
+      default: 256Mi
       enum:
-        - "128Mi"
-        - "256Mi"
-        - "512Mi"
-        - "1Gi"
-        - "2Gi"
-        - "4Gi"
+      - 128Mi
+      - 256Mi
+      - 512Mi
+      - 1Gi
+      - 2Gi
+      - 4Gi
     health_check_path:
       type: string
       title: Health Check Path
       description: HTTP path the ingress and readiness probe check for liveness.
-      default: "/healthz"
+      default: /healthz
       pattern: ^/[^\s]*$
       message:
-        pattern: "Must start with `/` and contain no spaces."
+        pattern: Must start with `/` and contain no spaces.
     storage_policy:
-      type: string
       title: Object Storage Access
-      description: Access level to grant this app on its connected object storage bucket. Populated from the linked bucket's policies.
-      $md.enum:
-        connection: storage
-        options: .policies
-        value: .name
-    queue_policy:
+      description: Access level to grant this app on its connected object storage bucket. Populated from the linked bucket's
+        policies.
       type: string
+      default: read-write
+      enum:
+      - read-only
+      - read-write
+    queue_policy:
       title: Queue Access
       description: Access level to grant this app on its connected queue. Populated from the linked queue's policies.
-      $md.enum:
-        connection: queue
-        options: .policies
-        value: .name
+      type: string
+      default: send-receive
+      enum:
+      - send-only
+      - send-receive
     cronjobs:
       type: array
       title: Scheduled Jobs (CronJobs)
@@ -117,24 +110,24 @@ params:
       items:
         type: object
         required:
-          - name
-          - schedule
-          - command
+        - name
+        - schedule
+        - command
         properties:
           name:
             type: string
             title: Job Name
             pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
             message:
-              pattern: "Must be lowercase alphanumerics and hyphens, starting and ending with a letter or digit."
+              pattern: Must be lowercase alphanumerics and hyphens, starting and ending with a letter or digit.
           schedule:
             type: string
             title: Cron Schedule
             description: Standard 5-field cron expression, evaluated in UTC.
-            default: "0 * * * *"
+            default: 0 * * * *
             pattern: ^(\S+\s+){4}\S+$
             message:
-              pattern: "Must be a 5-field cron expression, e.g. '0 * * * *'."
+              pattern: Must be a 5-field cron expression, e.g. '0 * * * *'.
           command:
             type: array
             title: Command
@@ -142,18 +135,15 @@ params:
             minItems: 1
             items:
               type: string
-
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
 connections:
   required:
-    - aws_authentication
-    - cluster
-    - database
-    - storage
-    - queue
-    - cache
-    - email
+  - aws_authentication
+  - cluster
+  - database
+  - storage
+  - queue
+  - cache
+  - email
   properties:
     aws_authentication:
       $ref: aws-iam-role
@@ -176,17 +166,12 @@ connections:
     email:
       $ref: email-credentials
       title: Email Credentials
-
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
 artifacts:
   required: []
   properties: {}
-
 steps:
-  - path: src
-    provisioner: opentofu:1.10
-
+- path: src
+  provisioner: opentofu:1.10
 app:
   envs:
     PORT: .params.container_port | tostring
@@ -196,13 +181,8 @@ app:
     DATABASE_NAME: .connections.database.auth.database
     DATABASE_USER: .connections.database.auth.username
     DATABASE_PASSWORD: .connections.database.auth.password
-    DATABASE_URL: >-
-      "postgresql://"
-      + .connections.database.auth.username + ":"
-      + .connections.database.auth.password + "@"
-      + .connections.database.auth.hostname + ":"
-      + (.connections.database.auth.port | tostring) + "/"
-      + .connections.database.auth.database
+    DATABASE_URL: '"postgresql://" + .connections.database.auth.username + ":" + .connections.database.auth.password + "@"
+      + .connections.database.auth.hostname + ":" + (.connections.database.auth.port | tostring) + "/" + .connections.database.auth.database'
     STORAGE_BUCKET: .connections.storage.name
     STORAGE_ENDPOINT: .connections.storage.endpoint
     STORAGE_REGION: .connections.storage.region
@@ -213,27 +193,26 @@ app:
     REDIS_HOST: .connections.cache.auth.hostname
     REDIS_PORT: .connections.cache.auth.port | tostring
     REDIS_PASSWORD: .connections.cache.auth.password
-    REDIS_TLS: "true"
+    REDIS_TLS: 'true'
     SMTP_HOST: .connections.email.smtp.host
     SMTP_PORT: .connections.email.smtp.port | tostring
     SMTP_USERNAME: .connections.email.smtp.username
     SMTP_PASSWORD: .connections.email.smtp.password
   secrets: {}
-
 ui:
   ui:order:
-    - image
-    - replicas
-    - container_port
-    - health_check_path
-    - cpu_limit
-    - memory_limit
-    - storage_policy
-    - queue_policy
-    - cronjobs
-    - "*"
+  - image
+  - replicas
+  - container_port
+  - health_check_path
+  - cpu_limit
+  - memory_limit
+  - storage_policy
+  - queue_policy
+  - cronjobs
+  - '*'
   image:
-    ui:help: "Pin to a specific tag or digest; `:latest` makes rollbacks ambiguous."
+    ui:help: Pin to a specific tag or digest; `:latest` makes rollbacks ambiguous.
   replicas:
     ui:widget: updown
   container_port:
@@ -245,6 +224,6 @@ ui:
       removable: true
     items:
       ui:order:
-        - name
-        - schedule
-        - command
+      - name
+      - schedule
+      - command
