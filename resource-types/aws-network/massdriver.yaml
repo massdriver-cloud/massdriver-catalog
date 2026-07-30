@@ -1,0 +1,97 @@
+name: aws-network
+label: AWS Network
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-vpc/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: networks
+  instructions:
+    - label: AWS VPC
+      path: ./instructions/AWS VPC.md
+
+schema:
+  title: AWS Network
+  description: >-
+    An AWS VPC with public and private subnets, a shared NAT gateway, and VPC
+    endpoints for S3 and ECR so image pulls and object traffic never transit
+    the NAT.
+  type: object
+  additionalProperties: false
+  required:
+    - vpc_id
+    - region
+    - cidr
+    - subnets
+  properties:
+    vpc_id:
+      title: VPC ID
+      description: The AWS VPC identifier.
+      type: string
+      pattern: ^vpc-[a-f0-9]+$
+      message:
+        pattern: "Must be an AWS VPC ID, like vpc-0123456789abcdef0."
+    region:
+      title: Region
+      description: AWS region the network lives in.
+      type: string
+      examples:
+        - "us-east-1"
+    cidr:
+      title: CIDR
+      description: Network address range in CIDR notation.
+      type: string
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+    subnets:
+      title: Subnets
+      description: Subnet allocations carved from this network.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - cidr
+          - type
+          - availability_zone
+        properties:
+          id:
+            title: ID
+            description: AWS subnet ID.
+            type: string
+            pattern: ^subnet-[a-f0-9]+$
+          cidr:
+            title: CIDR
+            description: Subnet address range in CIDR notation.
+            type: string
+            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+          type:
+            title: Type
+            description: Public subnets route to the internet gateway; private subnets route through the shared NAT gateway.
+            type: string
+            enum:
+              - public
+              - private
+          availability_zone:
+            title: Availability Zone
+            description: AWS availability zone the subnet lives in.
+            type: string
+            examples:
+              - "us-east-1a"
+    nat_gateway_id:
+      title: NAT Gateway ID
+      description: The single shared NAT gateway private subnets route their outbound traffic through.
+      type: string
+      pattern: ^nat-[a-f0-9]+$
+    s3_vpc_endpoint_id:
+      title: S3 VPC Endpoint ID
+      description: Gateway endpoint that keeps S3 object traffic off the NAT.
+      type: string
+    ecr_vpc_endpoint_ids:
+      title: ECR VPC Endpoint IDs
+      description: Interface endpoint IDs (ECR API + ECR Docker) that keep image pulls off the NAT.
+      type: array
+      items:
+        type: string

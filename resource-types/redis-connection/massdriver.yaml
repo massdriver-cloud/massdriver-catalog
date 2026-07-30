@@ -1,0 +1,79 @@
+name: redis-connection
+label: Redis Connection
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-elasticache-valkey/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: caches
+  instructions:
+    - label: AWS ElastiCache
+      path: ./instructions/AWS ElastiCache.md
+
+schema:
+  title: Redis Connection
+  description: >-
+    Connection details for a Redis-wire-protocol-compatible cache. Backs
+    session state, KV-style caching, and pub/sub. Portable across
+    Redis/Valkey-compatible providers — deliberately not tied to any
+    AWS-proprietary cache API.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - engine
+    - tls_enabled
+    - auth
+  properties:
+    id:
+      title: ID
+      description: Unique cache cluster identifier from the cloud provider.
+      type: string
+      minLength: 1
+    engine:
+      title: Engine
+      description: The underlying cache engine implementation.
+      type: string
+      oneOf:
+        - const: "valkey"
+          title: "Valkey"
+        - const: "redis"
+          title: "Redis OSS"
+    version:
+      title: Version
+      description: Engine version.
+      type: string
+    tls_enabled:
+      title: TLS Enabled
+      description: Whether in-transit encryption is required to connect.
+      type: boolean
+    region:
+      title: Region
+      description: Cloud region the cache lives in.
+      type: string
+    auth:
+      title: Authentication
+      description: Cache connection parameters.
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - port
+      properties:
+        hostname:
+          title: Host
+          description: Primary/cluster endpoint hostname.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: TCP port the cache listens on.
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 6379
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Auth Token
+          description: Auth token / password, if the cache requires one. Masked everywhere except in IaC at deploy time.
+          type: string
