@@ -31,22 +31,7 @@ variable "md_metadata" {
     })
   })
 }
-variable "network" {
-  type = object({
-    cidr                 = string
-    ecr_vpc_endpoint_ids = optional(list(string))
-    nat_gateway_id       = optional(string)
-    region               = string
-    s3_vpc_endpoint_id   = optional(string)
-    subnets = list(object({
-      availability_zone = string
-      cidr              = string
-      id                = string
-      type              = string
-    }))
-    vpc_id = string
-  })
-}
 variable "region" {
-  type = string
+  type    = string
+  default = "us-east-1"
 }
