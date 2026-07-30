@@ -33,9 +33,6 @@ resource "aws_security_group" "cache" {
     protocol    = "tcp"
     cidr_blocks = [var.network.cidr]
   }
-  # checkov:skip=CKV_AWS_382: attached to the cache cluster's ENIs (a
-  # managed AWS service, not attacker-controlled compute) — nothing runs
-  # here whose egress needs restricting beyond what ElastiCache itself needs.
   egress {
     description = "All outbound - ElastiCache itself, no workload runs here"
     from_port   = 0

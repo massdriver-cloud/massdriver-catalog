@@ -14,6 +14,10 @@ resource "aws_ses_domain_dkim" "main" {
 
 resource "aws_ses_configuration_set" "main" {
   name = "${local.name_prefix}-config"
+
+  delivery_options {
+    tls_policy = "Require"
+  }
 }
 
 resource "aws_iam_user" "smtp" {
@@ -35,15 +39,4 @@ resource "aws_iam_user_policy" "smtp_send" {
       Resource = aws_ses_domain_identity.main.arn
     }]
   })
-}
-
-# SES SMTP passwords aren't the raw IAM secret key — they're derived from it
-# via a fixed HMAC-SHA256 chain. No Terraform-native function does this, so
-# it's computed by a small local script instead.
-data "external" "smtp_password" {
-  program = ["python3", "${path.module}/scripts/ses_smtp_password.py"]
-  query = {
-    secret_access_key = aws_iam_access_key.smtp.secret
-    region            = var.network.region
-  }
 }

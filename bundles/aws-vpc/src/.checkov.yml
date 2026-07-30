@@ -1,0 +1,8 @@
+skip-check:
+  # Public subnets, by definition, need auto-assigned public IPs (private
+  # subnets don't set this).
+  - CKV_AWS_130
+  # SG is attached to VPC-endpoint interface ENIs (a managed AWS service,
+  # not attacker-controlled compute) — no workload's egress needs
+  # restricting here.
+  - CKV_AWS_382

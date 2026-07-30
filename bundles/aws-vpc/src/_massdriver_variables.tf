@@ -3,22 +3,24 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
 variable "az_count" {
   type = number
+  default = 2
 }
 variable "cidr" {
   type = string
+  default = "10.0.0.0/16"
 }
 variable "enable_flow_logs" {
-  type    = bool
+  type = bool
   default = true
 }
 variable "flow_log_retention_days" {
-  type    = number
+  type = number
   default = 30
 }
 variable "md_metadata" {
@@ -44,4 +46,5 @@ variable "md_metadata" {
 }
 variable "region" {
   type = string
+  default = "us-east-1"
 }

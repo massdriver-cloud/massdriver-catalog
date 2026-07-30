@@ -33,9 +33,6 @@ resource "aws_security_group" "cluster" {
   description = "EKS control plane ENIs"
   vpc_id      = var.network.vpc_id
 
-  # checkov:skip=CKV_AWS_382: attached to the control-plane ENIs (a managed
-  # AWS service) — the worker nodes get their own security group with its
-  # own rules; this one has no attacker-controlled compute behind it.
   egress {
     description = "All outbound - control plane ENIs, no workload runs here"
     from_port   = 0

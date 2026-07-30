@@ -1,7 +1,7 @@
 locals {
   name_prefix    = var.md_metadata.name_prefix
   queues_by_name = { for q in var.queues : q.name => q }
-  dlq_queues     = { for q in var.queues : q.name => q if q.enable_dlq }
+  dlq_queues     = { for q in var.queues : q.name => q if coalesce(q.enable_dlq, false) }
 }
 
 resource "aws_sqs_queue" "dlq" {
@@ -22,9 +22,9 @@ resource "aws_sqs_queue" "main" {
   message_retention_seconds  = each.value.message_retention_seconds
   sqs_managed_sse_enabled    = true
 
-  redrive_policy = each.value.enable_dlq ? jsonencode({
+  redrive_policy = coalesce(each.value.enable_dlq, false) ? jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq[each.key].arn
-    maxReceiveCount     = each.value.max_receive_count
+    maxReceiveCount     = coalesce(each.value.max_receive_count, 5)
   }) : null
 
   tags = merge(var.md_metadata.default_tags, { Name = "${local.name_prefix}-${each.key}" })

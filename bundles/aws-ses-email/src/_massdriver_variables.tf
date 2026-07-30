@@ -47,3 +47,7 @@ variable "network" {
     vpc_id = string
   })
 }
+variable "region" {
+  type    = string
+  default = "us-east-1"
+}

@@ -6,7 +6,7 @@ variable "acm_certificate_arn" {
 }
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
@@ -36,15 +36,17 @@ variable "md_metadata" {
 }
 variable "price_class" {
   type = string
+  default = "PriceClass_100"
 }
 variable "redirects" {
   type = list(object({
-    from        = string
+    from = string
     status_code = number
-    to          = string
+    to = string
   }))
   default = []
 }
 variable "region" {
   type = string
+  default = "us-east-1"
 }

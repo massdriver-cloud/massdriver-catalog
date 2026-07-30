@@ -53,3 +53,7 @@ variable "queues" {
     visibility_timeout_seconds = optional(number)
   }))
 }
+variable "region" {
+  type    = string
+  default = "us-east-1"
+}

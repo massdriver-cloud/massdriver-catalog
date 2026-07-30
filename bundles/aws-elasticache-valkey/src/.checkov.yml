@@ -1,0 +1,5 @@
+skip-check:
+  # SG is attached to ElastiCache's own ENIs (a managed AWS service, not
+  # attacker-controlled compute) — nothing runs here whose egress needs
+  # restricting beyond what ElastiCache itself needs.
+  - CKV_AWS_382

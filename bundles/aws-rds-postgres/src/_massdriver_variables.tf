@@ -3,28 +3,33 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "allocated_storage_gb" {
   type = number
+  default = 20
 }
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
 variable "backup_retention_days" {
   type = number
+  default = 7
 }
 variable "database_name" {
   type = string
+  default = "appdb"
 }
 variable "db_version" {
   type = string
+  default = "16"
 }
 variable "deletion_protection" {
-  type    = bool
+  type = bool
   default = true
 }
 variable "instance_size" {
   type = string
+  default = "xs"
 }
 variable "md_metadata" {
   type = object({
@@ -49,27 +54,29 @@ variable "md_metadata" {
 }
 variable "multi_az" {
   type = bool
+  default = false
 }
 variable "network" {
   type = object({
-    cidr                 = string
+    cidr = string
     ecr_vpc_endpoint_ids = optional(list(string))
-    nat_gateway_id       = optional(string)
-    region               = string
-    s3_vpc_endpoint_id   = optional(string)
+    nat_gateway_id = optional(string)
+    region = string
+    s3_vpc_endpoint_id = optional(string)
     subnets = list(object({
       availability_zone = string
-      cidr              = string
-      id                = string
-      type              = string
+      cidr = string
+      id = string
+      type = string
     }))
     vpc_id = string
   })
 }
 variable "skip_final_snapshot" {
-  type    = bool
+  type = bool
   default = false
 }
 variable "username" {
   type = string
+  default = "appuser"
 }

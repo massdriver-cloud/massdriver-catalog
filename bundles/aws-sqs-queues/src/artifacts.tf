@@ -12,7 +12,7 @@ resource "massdriver_resource" "queues" {
       name   = each.key
       url    = each.value.id
       arn    = each.value.arn
-      region = var.network.region
+      region = var.region
       policies = [
         { id = aws_iam_policy.send[each.key].arn, name = "send-only" },
         { id = aws_iam_policy.consume[each.key].arn, name = "send-receive" },

@@ -1,0 +1,13 @@
+skip-check:
+  # Cross-region replication is a per-app DR decision, not a default for
+  # this shared bucket bundle. Add it (a second bucket + replication IAM
+  # role in another region) when a specific app's RPO/RTO requires it.
+  - CKV_AWS_144
+  # Access logging needs a separate log-destination bucket, which this
+  # generic, standalone bucket bundle doesn't provision. Point logging at a
+  # shared logging bucket once one exists in the catalog.
+  - CKV_AWS_18
+  # No downstream consumer for bucket change events in this catalog yet.
+  # Add an SNS/EventBridge notification when a consuming app actually needs
+  # to react to object creation/deletion.
+  - CKV2_AWS_62

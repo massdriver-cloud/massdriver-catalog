@@ -8,13 +8,16 @@ variable "aws_authentication" {
   })
 }
 variable "bucket_name" {
-  type = string
+  type    = string
+  default = "acme-app-assets"
 }
 variable "enable_versioning" {
-  type = bool
+  type    = bool
+  default = true
 }
 variable "force_destroy" {
-  type = bool
+  type    = bool
+  default = false
 }
 variable "md_metadata" {
   type = object({
@@ -52,4 +55,8 @@ variable "network" {
     }))
     vpc_id = string
   })
+}
+variable "region" {
+  type    = string
+  default = "us-east-1"
 }

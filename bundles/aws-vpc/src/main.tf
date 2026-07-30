@@ -20,13 +20,10 @@ resource "aws_internet_gateway" "main" {
 }
 
 resource "aws_subnet" "public" {
-  count             = var.az_count
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = local.public_subnet_cidrs[count.index]
-  availability_zone = local.azs[count.index]
-  # checkov:skip=CKV_AWS_130: this is the public subnet, by definition — an
-  # ALB or NAT landing here needs an auto-assigned public IP. Private
-  # subnets (below) don't set this.
+  count                   = var.az_count
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = local.public_subnet_cidrs[count.index]
+  availability_zone       = local.azs[count.index]
   map_public_ip_on_launch = true
   tags = merge(var.md_metadata.default_tags, {
     Name                     = "${local.name_prefix}-public-${local.azs[count.index]}"
@@ -110,9 +107,6 @@ resource "aws_security_group" "vpc_endpoints" {
     protocol    = "tcp"
     cidr_blocks = [var.cidr]
   }
-  # checkov:skip=CKV_AWS_382: attached to interface endpoint ENIs (a managed
-  # AWS service, not attacker-controlled compute) — there's no workload here
-  # whose egress needs restricting.
   egress {
     description = "All outbound - no compute runs behind this SG"
     from_port   = 0

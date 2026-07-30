@@ -27,17 +27,9 @@ resource "aws_kms_alias" "bucket" {
 }
 
 resource "aws_s3_bucket" "main" {
-  bucket = var.bucket_name
-  # checkov:skip=CKV_AWS_144: cross-region replication is a per-app DR
-  # decision, not a default for this shared bucket bundle. Add it (a second
-  # bucket + replication IAM role in another region) when a specific app's
-  # RPO/RTO actually requires it.
-  # checkov:skip=CKV_AWS_18: access logging needs a separate log-destination
-  # bucket, which this generic, standalone bucket bundle doesn't provision.
-  # Point logging at a shared logging bucket once one exists in the catalog.
-  # checkov:skip=CKV2_AWS_62: no downstream consumer for bucket change
-  # events in this catalog yet. Add an SNS/EventBridge notification when a
-  # consuming app actually needs to react to object creation/deletion.
+  # Bucket names are global; prefix with the instance's unique name_prefix so
+  # the user-supplied name never collides across accounts or environments.
+  bucket        = lower(substr("${local.name_prefix}-${var.bucket_name}", 0, 63))
   force_destroy = var.force_destroy
   tags          = var.md_metadata.default_tags
 }

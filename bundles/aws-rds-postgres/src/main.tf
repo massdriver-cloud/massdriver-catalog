@@ -33,9 +33,6 @@ resource "aws_security_group" "db" {
     protocol    = "tcp"
     cidr_blocks = [var.network.cidr]
   }
-  # checkov:skip=CKV_AWS_382: attached to the RDS instance ENI (a managed
-  # AWS service, not attacker-controlled compute) — nothing runs here whose
-  # egress needs restricting beyond what RDS itself needs.
   egress {
     description = "All outbound - RDS itself, no workload runs here"
     from_port   = 0
@@ -115,14 +112,7 @@ resource "aws_db_instance" "main" {
   storage_type      = "gp3"
   storage_encrypted = true
 
-  db_name = var.database_name
-  # checkov:skip=CKV_AWS_161: this bundle authenticates via username/password
-  # by design - the postgres-server resource type's auth contract is
-  # hostname/port/database/username/password, and every consuming app in
-  # this catalog expects that shape. IAM database authentication would need
-  # a different resource type contract (short-lived tokens instead of a
-  # static password) and per-app token-refresh logic - a bigger change than
-  # a param flip, not something to half-adopt here.
+  db_name  = var.database_name
   username = var.username
   password = random_password.master.result
 

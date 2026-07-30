@@ -3,15 +3,17 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
 variable "engine_version" {
   type = string
+  default = "8.0"
 }
 variable "high_availability" {
   type = bool
+  default = false
 }
 variable "md_metadata" {
   type = object({
@@ -36,20 +38,21 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    cidr                 = string
+    cidr = string
     ecr_vpc_endpoint_ids = optional(list(string))
-    nat_gateway_id       = optional(string)
-    region               = string
-    s3_vpc_endpoint_id   = optional(string)
+    nat_gateway_id = optional(string)
+    region = string
+    s3_vpc_endpoint_id = optional(string)
     subnets = list(object({
       availability_zone = string
-      cidr              = string
-      id                = string
-      type              = string
+      cidr = string
+      id = string
+      type = string
     }))
     vpc_id = string
   })
 }
 variable "node_size" {
   type = string
+  default = "xs"
 }
