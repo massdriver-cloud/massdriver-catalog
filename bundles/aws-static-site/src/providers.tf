@@ -26,3 +26,17 @@ provider "aws" {
     tags = var.md_metadata.default_tags
   }
 }
+
+# WAFv2 web ACLs for CloudFront must be created in us-east-1 regardless of
+# where the rest of this bundle's resources live.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+  assume_role {
+    role_arn    = var.aws_authentication.arn
+    external_id = var.aws_authentication.external_id
+  }
+  default_tags {
+    tags = var.md_metadata.default_tags
+  }
+}

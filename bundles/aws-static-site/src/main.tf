@@ -28,6 +28,90 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "site" {
+  bucket = aws_s3_bucket.site.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+  }
+}
+
+# --- Shared logs bucket: S3 access logs + CloudFront standard logs ---
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "${local.name_prefix}-logs-${random_id.bucket_suffix.hex}"
+  tags   = var.md_metadata.default_tags
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket                  = aws_s3_bucket.logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = 90
+    }
+  }
+}
+
+# Both CloudFront standard logging and S3 server access logging still expect
+# the legacy log-delivery ACL grant on the destination bucket.
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "logs" {
+  depends_on = [aws_s3_bucket_ownership_controls.logs]
+  bucket     = aws_s3_bucket.logs.id
+  acl        = "log-delivery-write"
+}
+
+resource "aws_s3_bucket_logging" "site" {
+  bucket        = aws_s3_bucket.site.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "s3-access/"
+}
+
 # --- CloudFront: OAC-fronted S3 origin, redirects + trailing-slash handling
 #     via a CloudFront Function, security headers on every response ---
 
