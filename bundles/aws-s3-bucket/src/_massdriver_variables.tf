@@ -3,18 +3,21 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
 variable "bucket_name" {
   type = string
+  default = "acme-app-assets"
 }
 variable "enable_versioning" {
   type = bool
+  default = true
 }
 variable "force_destroy" {
   type = bool
+  default = false
 }
 variable "md_metadata" {
   type = object({
@@ -39,4 +42,5 @@ variable "md_metadata" {
 }
 variable "region" {
   type = string
+  default = "us-east-1"
 }

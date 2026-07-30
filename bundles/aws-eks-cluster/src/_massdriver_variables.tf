@@ -2,21 +2,21 @@
 // Any changes made directly to this file will be overwritten on the next build.
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "acm_certificate_arn" {
-  type    = string
+  type = string
   default = ""
 }
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
 variable "cluster_version" {
-  type    = string
+  type = string
   default = "1.31"
 }
 variable "endpoint_public_access" {
-  type    = bool
+  type = bool
   default = true
 }
 variable "md_metadata" {
@@ -42,37 +42,37 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    cidr                 = string
+    cidr = string
     ecr_vpc_endpoint_ids = optional(list(string))
-    nat_gateway_id       = optional(string)
-    region               = string
-    s3_vpc_endpoint_id   = optional(string)
+    nat_gateway_id = optional(string)
+    region = string
+    s3_vpc_endpoint_id = optional(string)
     subnets = list(object({
       availability_zone = string
-      cidr              = string
-      id                = string
-      type              = string
+      cidr = string
+      id = string
+      type = string
     }))
     vpc_id = string
   })
 }
 variable "node_desired_size" {
-  type    = number
+  type = number
   default = 2
 }
 variable "node_instance_size" {
-  type    = string
+  type = string
   default = "s"
 }
 variable "node_max_size" {
-  type    = number
+  type = number
   default = 4
 }
 variable "node_min_size" {
-  type    = number
+  type = number
   default = 2
 }
 variable "public_access_cidrs" {
-  type    = list(string)
+  type = list(string)
   default = ["0.0.0.0/0"]
 }

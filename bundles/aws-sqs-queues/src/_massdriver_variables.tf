@@ -3,7 +3,7 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
@@ -30,13 +30,14 @@ variable "md_metadata" {
 }
 variable "queues" {
   type = list(object({
-    enable_dlq                 = optional(bool)
-    max_receive_count          = optional(number)
-    message_retention_seconds  = optional(number)
-    name                       = string
+    enable_dlq = optional(bool)
+    max_receive_count = optional(number)
+    message_retention_seconds = optional(number)
+    name = string
     visibility_timeout_seconds = optional(number)
   }))
 }
 variable "region" {
   type = string
+  default = "us-east-1"
 }

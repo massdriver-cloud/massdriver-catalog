@@ -3,7 +3,7 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn         = string
+    arn = string
     external_id = string
   })
 }
@@ -33,4 +33,5 @@ variable "md_metadata" {
 }
 variable "region" {
   type = string
+  default = "us-east-1"
 }

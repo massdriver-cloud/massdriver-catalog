@@ -3,7 +3,7 @@
 // To opt a variable out of regeneration, move it to another file (e.g. variables.tf).
 variable "aws_authentication" {
   type = object({
-    arn = string
+    arn         = string
     external_id = string
   })
 }
@@ -12,40 +12,39 @@ variable "cache" {
     auth = object({
       hostname = string
       password = optional(string)
-      port = number
+      port     = number
     })
-    engine = string
-    id = string
-    region = optional(string)
+    engine      = string
+    id          = string
+    region      = optional(string)
     tls_enabled = bool
-    version = optional(string)
+    version     = optional(string)
   })
 }
 variable "cluster" {
   type = object({
-    ca_certificate = string
-    cluster_name = string
-    endpoint = string
+    ca_certificate          = string
+    cluster_name            = string
+    endpoint                = string
     ingress_certificate_arn = optional(string)
-    ingress_class_name = string
-    node_security_group_id = optional(string)
-    oidc_provider_arn = string
-    oidc_provider_url = string
-    region = string
+    ingress_class_name      = string
+    node_security_group_id  = optional(string)
+    oidc_provider_arn       = string
+    oidc_provider_url       = string
+    region                  = string
   })
 }
 variable "container_port" {
   type = number
-  default = 8080
 }
 variable "cpu_limit" {
-  type = string
+  type    = string
   default = "250m"
 }
 variable "cronjobs" {
   type = list(object({
-    command = list(string)
-    name = string
+    command  = list(string)
+    name     = string
     schedule = string
   }))
   default = []
@@ -56,36 +55,35 @@ variable "database" {
       database = string
       hostname = string
       password = string
-      port = number
+      port     = number
       username = string
     })
-    engine = string
+    engine            = string
     high_availability = optional(bool)
-    id = string
-    region = string
-    version = optional(string)
+    id                = string
+    region            = string
+    version           = optional(string)
   })
 }
 variable "email" {
   type = object({
     configuration_set = optional(string)
-    domain = string
-    region = string
+    domain            = string
+    region            = string
     smtp = object({
-      host = string
+      host     = string
       password = string
-      port = number
+      port     = number
       username = string
     })
   })
 }
 variable "health_check_path" {
-  type = string
+  type    = string
   default = "/healthz"
 }
 variable "image" {
   type = string
-  default = "public.ecr.aws/docker/library/nginx:stable"
 }
 variable "md_metadata" {
   type = object({
@@ -109,46 +107,45 @@ variable "md_metadata" {
   })
 }
 variable "memory_limit" {
-  type = string
+  type    = string
   default = "256Mi"
 }
 variable "queue" {
   type = object({
-    arn = string
+    arn     = string
     dlq_arn = optional(string)
     dlq_url = optional(string)
-    id = string
-    name = string
+    id      = string
+    name    = string
     policies = list(object({
-      id = string
+      id   = string
       name = string
     }))
     region = string
-    url = string
+    url    = string
   })
 }
 variable "queue_policy" {
-  type = string
+  type    = string
   default = "send-receive"
 }
 variable "replicas" {
   type = number
-  default = 2
 }
 variable "storage" {
   type = object({
-    endpoint = optional(string)
-    id = string
+    endpoint    = optional(string)
+    id          = string
     kms_key_arn = optional(string)
-    name = string
+    name        = string
     policies = list(object({
-      id = string
+      id   = string
       name = string
     }))
     region = string
   })
 }
 variable "storage_policy" {
-  type = string
+  type    = string
   default = "read-write"
 }
