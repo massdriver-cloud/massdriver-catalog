@@ -33,7 +33,11 @@ resource "aws_security_group" "cluster" {
   description = "EKS control plane ENIs"
   vpc_id      = var.network.vpc_id
 
+  # checkov:skip=CKV_AWS_382: attached to the control-plane ENIs (a managed
+  # AWS service) — the worker nodes get their own security group with its
+  # own rules; this one has no attacker-controlled compute behind it.
   egress {
+    description = "All outbound - control plane ENIs, no workload runs here"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -45,6 +49,25 @@ resource "aws_security_group" "cluster" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_kms_key" "eks_secrets" {
+  description             = "Encrypts EKS Kubernetes Secrets for ${local.name_prefix}"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowRootAccountFullAccess"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
+  tags = var.md_metadata.default_tags
 }
 
 resource "aws_eks_cluster" "main" {
@@ -64,6 +87,15 @@ resource "aws_eks_cluster" "main" {
   access_config {
     authentication_mode = "API_AND_CONFIG_MAP"
   }
+
+  encryption_config {
+    provider {
+      key_arn = aws_kms_key.eks_secrets.arn
+    }
+    resources = ["secrets"]
+  }
+
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
   tags       = var.md_metadata.default_tags
