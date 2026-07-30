@@ -1,0 +1,189 @@
+name: aws-sqs-queues
+description: >-
+  A named set of SQS queues provisioned in one deploy, each with its own
+  optional dead-letter queue and scoped IAM policies — built for apps
+  that need many queues (10, 5, whatever) without one deploy per queue.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-sqs-queues
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Small app (5 queues, one with a DLQ)
+      queues:
+        - name: "emails"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "webhooks"
+          enable_dlq: true
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "notifications"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "exports"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 60
+          message_retention_seconds: 345600
+        - name: "cleanup"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 86400
+    - __name: Heavy queue user (10 queues)
+      queues:
+        - name: "images-resize"
+          enable_dlq: true
+          max_receive_count: 5
+          visibility_timeout_seconds: 60
+          message_retention_seconds: 345600
+        - name: "images-thumbnail"
+          enable_dlq: true
+          max_receive_count: 5
+          visibility_timeout_seconds: 60
+          message_retention_seconds: 345600
+        - name: "video-transcode"
+          enable_dlq: true
+          max_receive_count: 3
+          visibility_timeout_seconds: 300
+          message_retention_seconds: 345600
+        - name: "notifications"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "webhooks-outbound"
+          enable_dlq: true
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "search-index"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "email-send"
+          enable_dlq: true
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "analytics-events"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 345600
+        - name: "billing-events"
+          enable_dlq: true
+          max_receive_count: 3
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 1209600
+        - name: "cache-invalidate"
+          enable_dlq: false
+          max_receive_count: 5
+          visibility_timeout_seconds: 30
+          message_retention_seconds: 86400
+  required:
+    - queues
+  properties:
+    queues:
+      type: array
+      title: Queues
+      description: One entry per named queue this app needs. Add or remove entries and redeploy — existing queues you keep are left alone.
+      minItems: 1
+      maxItems: 25
+      uniqueItems: true
+      items:
+        type: object
+        required:
+          - name
+        properties:
+          name:
+            type: string
+            title: Queue Name
+            description: Logical name. Becomes part of the real queue name and the value apps match on when they pick this queue from the dropdown.
+            minLength: 1
+            maxLength: 80
+            pattern: ^[a-zA-Z0-9_-]+$
+            message:
+              pattern: "Must be letters, digits, hyphens, or underscores."
+          enable_dlq:
+            type: boolean
+            title: Dead-Letter Queue
+            description: Route messages that fail processing repeatedly to a dedicated dead-letter queue instead of retrying forever.
+            default: false
+          max_receive_count:
+            type: integer
+            title: Max Receives Before DLQ
+            description: Only used when this queue has a dead-letter queue.
+            default: 5
+            minimum: 1
+            maximum: 1000
+          visibility_timeout_seconds:
+            type: integer
+            title: Visibility Timeout (seconds)
+            description: How long a received message is hidden from other consumers before it's considered failed and redelivered.
+            default: 30
+            minimum: 0
+            maximum: 43200
+          message_retention_seconds:
+            type: integer
+            title: Message Retention (seconds)
+            default: 345600
+            minimum: 60
+            maximum: 1209600
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - queues
+  properties:
+    queues:
+      $ref: queue
+      title: Queues
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - queues
+    - "*"
+  queues:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+    items:
+      ui:order:
+        - name
+        - enable_dlq
+        - max_receive_count
+        - visibility_timeout_seconds
+        - message_retention_seconds
+      max_receive_count:
+        ui:widget: updown
+      visibility_timeout_seconds:
+        ui:widget: updown
+      message_retention_seconds:
+        ui:widget: updown
