@@ -1,0 +1,177 @@
+name: aws-eks-cluster
+description: >-
+  Amazon EKS cluster with worker nodes in private subnets, an IAM OIDC
+  provider for IRSA, and the AWS Load Balancer Controller so app Ingress
+  resources get ACM-backed TLS at the load balancer they provision. Apps
+  share one cluster since the control plane carries a fixed hourly charge.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-eks-cluster
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (small nodes, open API endpoint)
+      cluster_version: "1.31"
+      node_instance_size: "s"
+      node_desired_size: 2
+      node_min_size: 2
+      node_max_size: 4
+      endpoint_public_access: true
+      public_access_cidrs:
+        - "0.0.0.0/0"
+      acm_certificate_arn: ""
+    - __name: Production (bigger nodes, restricted API endpoint)
+      cluster_version: "1.31"
+      node_instance_size: "m"
+      node_desired_size: 3
+      node_min_size: 3
+      node_max_size: 8
+      endpoint_public_access: true
+      public_access_cidrs:
+        - "203.0.113.0/24"
+      acm_certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  required:
+    - cluster_version
+    - node_instance_size
+    - node_desired_size
+    - node_min_size
+    - node_max_size
+    - endpoint_public_access
+    - public_access_cidrs
+  properties:
+    cluster_version:
+      type: string
+      title: Kubernetes Version
+      description: EKS control-plane version. Confirm this is still on AWS's supported list before deploying.
+      default: "1.31"
+      oneOf:
+        - const: "1.29"
+          title: "1.29"
+        - const: "1.30"
+          title: "1.30"
+        - const: "1.31"
+          title: "1.31 (current)"
+        - const: "1.32"
+          title: "1.32"
+    node_instance_size:
+      type: string
+      title: Node Instance Size
+      description: T-shirt size mapped to an EC2 instance type for worker nodes.
+      default: "s"
+      oneOf:
+        - const: "s"
+          title: "Small — t3.medium (2 vCPU, 4 GiB)"
+        - const: "m"
+          title: "Medium — t3.large (2 vCPU, 8 GiB)"
+        - const: "l"
+          title: "Large — m6i.xlarge (4 vCPU, 16 GiB)"
+    node_desired_size:
+      type: integer
+      title: Desired Node Count
+      description: Starting node count. Every app on this cluster shares this node pool.
+      default: 2
+      minimum: 1
+      maximum: 20
+    node_min_size:
+      type: integer
+      title: Minimum Node Count
+      default: 2
+      minimum: 1
+      maximum: 20
+    node_max_size:
+      type: integer
+      title: Maximum Node Count
+      description: Ceiling the cluster autoscaler (if installed) can scale nodes up to.
+      default: 4
+      minimum: 1
+      maximum: 40
+    endpoint_public_access:
+      type: boolean
+      title: Public API Endpoint
+      description: Allow the Kubernetes API to be reached from outside the VPC. Still IAM-authenticated either way — this only controls network reachability.
+      default: true
+    public_access_cidrs:
+      type: array
+      title: Allowed Public CIDRs
+      description: CIDR blocks allowed to reach the public API endpoint, if enabled. Restrict this to your office/VPN range in production.
+      default:
+        - "0.0.0.0/0"
+      minItems: 1
+      items:
+        type: string
+        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+        message:
+          pattern: "Must be a valid IPv4 CIDR block."
+    acm_certificate_arn:
+      type: string
+      title: Ingress ACM Certificate ARN
+      description: >-
+        Existing ACM certificate ARN the ingress controller uses to
+        terminate TLS at each app's load balancer. Leave blank to run
+        ingress over HTTP only — fine for early dev, not beyond.
+      default: ""
+
+dependencies:
+  endpoint_public_access:
+    oneOf:
+      - properties:
+          endpoint_public_access:
+            const: false
+      - properties:
+          endpoint_public_access:
+            const: true
+        required:
+          - public_access_cidrs
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - cluster
+  properties:
+    cluster:
+      $ref: kubernetes-cluster
+      title: Kubernetes Cluster
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - cluster_version
+    - node_instance_size
+    - node_desired_size
+    - node_min_size
+    - node_max_size
+    - endpoint_public_access
+    - public_access_cidrs
+    - acm_certificate_arn
+    - "*"
+  cluster_version:
+    ui:help: "Major-version upgrades happen in place but should go through a staging cluster first."
+  node_instance_size:
+    ui:help: "All apps on this cluster share this node pool — size for the busiest app, not the average."
+  endpoint_public_access:
+    ui:help: "Disabling this means you need a VPN, bastion, or Cloud9-in-VPC to run kubectl. Most small teams leave it on and restrict public_access_cidrs instead."
+  public_access_cidrs:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+  acm_certificate_arn:
+    ui:help: "Issue/validate the certificate in ACM first (DNS validation needs your domain's zone), then paste its ARN here."
+    ui:placeholder: "arn:aws:acm:us-east-1:123456789012:certificate/..."

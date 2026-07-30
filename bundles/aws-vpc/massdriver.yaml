@@ -1,0 +1,130 @@
+name: aws-vpc
+description: "AWS VPC with public and private subnets, a single shared NAT gateway, and VPC endpoints for S3 and ECR so image pulls and object traffic never transit the NAT."
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-vpc
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (2 AZ, no flow logs)
+      region: "us-east-1"
+      cidr: "10.0.0.0/16"
+      az_count: 2
+      enable_flow_logs: false
+    - __name: Production (3 AZ, flow logs on)
+      region: "us-east-1"
+      cidr: "10.20.0.0/16"
+      az_count: 3
+      enable_flow_logs: true
+      flow_log_retention_days: 90
+  required:
+    - region
+    - cidr
+    - az_count
+  properties:
+    region:
+      type: string
+      title: AWS Region
+      description: >-
+        Region the network is created in. Every downstream bundle (cluster,
+        databases, storage, cache, queues) inherits this region from the
+        connected network instead of asking for it again.
+      default: "us-east-1"
+      $md.immutable: true
+      examples:
+        - "us-east-1"
+        - "us-west-2"
+    cidr:
+      type: string
+      title: VPC CIDR
+      description: IPv4 address range for the whole network. Can't be changed after the network is created.
+      default: "10.0.0.0/16"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+      $md.immutable: true
+      examples:
+        - "10.0.0.0/16"
+        - "10.20.0.0/16"
+    az_count:
+      type: integer
+      title: Availability Zones
+      description: >-
+        Number of AZs to spread public/private subnet pairs across. One
+        shared NAT gateway serves every private subnet regardless of AZ
+        count, so this only affects fault tolerance, not NAT cost.
+      default: 2
+      $md.immutable: true
+      oneOf:
+        - const: 2
+          title: "2 AZs"
+        - const: 3
+          title: "3 AZs"
+    enable_flow_logs:
+      type: boolean
+      title: Enable Flow Logs
+      description: Capture network traffic metadata to CloudWatch Logs for security review and troubleshooting.
+      default: true
+    flow_log_retention_days:
+      type: integer
+      title: Flow Log Retention (days)
+      description: How long flow logs are kept before deletion.
+      default: 30
+      minimum: 1
+      maximum: 365
+
+dependencies:
+  enable_flow_logs:
+    oneOf:
+      - properties:
+          enable_flow_logs:
+            const: false
+      - properties:
+          enable_flow_logs:
+            const: true
+        required:
+          - flow_log_retention_days
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - network
+  properties:
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - cidr
+    - az_count
+    - enable_flow_logs
+    - flow_log_retention_days
+    - "*"
+  region:
+    ui:help: "Pick the region your team is closest to and already has quota in."
+  cidr:
+    ui:help: "Pick from a private range (RFC 1918): 10.0.0.0/8, 172.16.0.0/12, or 192.168.0.0/16."
+    ui:placeholder: "10.0.0.0/16"
+  az_count:
+    ui:help: "2 AZs is enough for dev/staging. Use 3 in production for better fault tolerance."
+  enable_flow_logs:
+    ui:help: "Required by SOC 2 and HIPAA, but adds per-GB CloudWatch Logs cost."
+  flow_log_retention_days:
+    ui:widget: updown
+    ui:help: "30 days is enough for most security incident reviews; 90 for compliance audits."
