@@ -6,3 +6,7 @@ skip-check:
   # not attacker-controlled compute) — no workload's egress needs
   # restricting here.
   - CKV_AWS_382
+  # Flow-log retention is set by the flow_log_retention_days parameter;
+  # retention shorter than one year is an accepted configuration here
+  # (skip added at the platform owner's direction).
+  - CKV_AWS_338
