@@ -1,0 +1,70 @@
+name: aws-ses-email
+description: SES domain identity plus SMTP sending credentials. SMTP is used rather than the native SES
+  API so the app's outbound-mail integration is portable to any other SMTP provider.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-ses-email
+version: 0.1.0
+params:
+  examples:
+    - __name: Development
+      domain: dev.example.com
+      region: us-east-1
+    - __name: Production
+      domain: example.com
+      region: us-east-1
+  required:
+    - region
+    - domain
+  properties:
+    region:
+      title: Region
+      description: AWS region the resources are created in.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: US East (N. Virginia) — us-east-1
+        - const: us-east-2
+          title: US East (Ohio) — us-east-2
+        - const: us-west-2
+          title: US West (Oregon) — us-west-2
+        - const: eu-west-1
+          title: Europe (Ireland) — eu-west-1
+    domain:
+      title: Sending Domain
+      description: Domain to verify for sending. SES cannot send until the domain's DKIM CNAME records,
+        listed in the operator runbook after deploy, are added and DNS verification completes.
+      type: string
+      minLength: 1
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$
+      message:
+        pattern: Must be a valid lowercase DNS name with at least one dot (e.g. example.com).
+      $md.immutable: true
+      examples:
+        - example.com
+        - mail.example.com
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+artifacts:
+  required:
+    - email
+  properties:
+    email:
+      $ref: email-credentials
+      title: Email Credentials
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+ui:
+  ui:order:
+    - region
+    - domain
+    - '*'
+  domain:
+    ui:help: Verification requires adding DNS records in this domain's zone after deploy.
+    ui:placeholder: example.com

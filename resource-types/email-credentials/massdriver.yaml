@@ -1,0 +1,69 @@
+name: email-credentials
+label: Email Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-ses-email/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: email
+  instructions:
+    - label: AWS SES
+      path: ./instructions/AWS SES.md
+
+schema:
+  title: Email Credentials
+  description: >-
+    SMTP sending credentials for a verified sending domain. SMTP is used
+    rather than a provider-specific send API so the app's outbound-mail
+    code is portable to any SMTP provider.
+  type: object
+  additionalProperties: false
+  required:
+    - domain
+    - region
+    - smtp
+  properties:
+    domain:
+      title: Sending Domain
+      description: Domain identity verified with the sending provider.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: Cloud region the sending identity is provisioned in.
+      type: string
+    configuration_set:
+      title: Configuration Set
+      description: Name of the configuration set used for delivery/bounce/complaint event tracking, if any.
+      type: string
+    smtp:
+      title: SMTP
+      description: SMTP connection parameters.
+      type: object
+      additionalProperties: false
+      required:
+        - host
+        - port
+        - username
+        - password
+      properties:
+        host:
+          title: Host
+          description: SMTP endpoint hostname.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: SMTP submission port.
+          type: integer
+          default: 587
+        username:
+          title: Username
+          description: SMTP username.
+          type: string
+          minLength: 1
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: SMTP password. Masked everywhere except in IaC at deploy time.
+          type: string

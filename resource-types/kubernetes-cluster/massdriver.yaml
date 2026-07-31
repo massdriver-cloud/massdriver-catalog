@@ -1,0 +1,78 @@
+name: kubernetes-cluster
+label: Kubernetes Cluster
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-eks-cluster/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: clusters
+  instructions:
+    - label: AWS EKS
+      path: ./instructions/AWS EKS.md
+
+schema:
+  title: Kubernetes Cluster
+  description: >-
+    A Kubernetes cluster's API endpoint and auth, plus the IAM OIDC provider
+    workloads need to assume scoped roles from their service accounts
+    (IRSA) instead of static keys, and the ingress class/certificate apps
+    use to get ACM-backed TLS at the load balancer.
+  type: object
+  additionalProperties: false
+  required:
+    - cluster_name
+    - endpoint
+    - ca_certificate
+    - region
+    - oidc_provider_arn
+    - oidc_provider_url
+    - ingress_class_name
+  properties:
+    cluster_name:
+      title: Cluster Name
+      description: Name of the Kubernetes cluster.
+      type: string
+      minLength: 1
+    endpoint:
+      title: API Endpoint
+      description: HTTPS endpoint for the cluster's Kubernetes API server.
+      type: string
+      pattern: ^https://
+      message:
+        pattern: "Must start with https://."
+    ca_certificate:
+      $md.sensitive: true
+      title: Cluster CA Certificate
+      description: Base64-encoded certificate authority data used to verify the API server's TLS certificate.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: Cloud region the cluster runs in.
+      type: string
+      examples:
+        - "us-east-1"
+    oidc_provider_arn:
+      title: OIDC Provider ARN
+      description: IAM OIDC identity provider ARN. Referenced in the trust policy of any IAM role a workload's service account assumes.
+      type: string
+      pattern: "^arn:aws:iam::"
+      message:
+        pattern: "Must be an IAM OIDC provider ARN."
+    oidc_provider_url:
+      title: OIDC Provider URL
+      description: OIDC issuer URL (without the https:// prefix), used as the federated principal in IRSA trust policies.
+      type: string
+      minLength: 1
+    node_security_group_id:
+      title: Node Security Group ID
+      description: Security group attached to worker nodes, for teams that need to add extra ingress/egress rules.
+      type: string
+    ingress_class_name:
+      title: Ingress Class
+      description: The IngressClass app bundles should target so their Ingress resources are picked up by the cluster's ingress controller.
+      type: string
+      default: "alb"
+    ingress_certificate_arn:
+      title: Ingress ACM Certificate ARN
+      description: ACM certificate ARN the ingress controller uses to terminate TLS at the load balancer it provisions per Ingress.
+      type: string

@@ -1,0 +1,7 @@
+skip-check:
+  # SES SMTP credentials are, by AWS's own design, an IAM user's access key
+  # run through a signature transform - there's no SSO-based way to get
+  # SMTP credentials. Trading SMTP portability for SSO would mean switching
+  # this bundle to the native SES API instead (see README for why SMTP was
+  # chosen).
+  - CKV_AWS_273

@@ -1,0 +1,170 @@
+name: aws-rds-postgres
+description: >-
+  Amazon RDS for PostgreSQL with a private subnet group, encrypted
+  storage, and an optional Multi-AZ standby.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-rds-postgres
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (single-AZ, minimal retention)
+      db_version: "16"
+      database_name: "appdev"
+      username: "appdev"
+      instance_size: "xs"
+      allocated_storage_gb: 20
+      backup_retention_days: 1
+      multi_az: false
+      deletion_protection: false
+      skip_final_snapshot: true
+    - __name: Production (Multi-AZ, 35d backups)
+      db_version: "16"
+      database_name: "appprod"
+      username: "appprod"
+      instance_size: "s"
+      allocated_storage_gb: 100
+      backup_retention_days: 35
+      multi_az: true
+      deletion_protection: true
+      skip_final_snapshot: false
+  required:
+    - db_version
+    - database_name
+    - username
+    - instance_size
+    - allocated_storage_gb
+    - backup_retention_days
+    - multi_az
+  properties:
+    db_version:
+      title: PostgreSQL Version
+      description: PostgreSQL major version.
+      type: string
+      default: "16"
+      $md.immutable: true
+      oneOf:
+        - const: "14"
+          title: "14"
+        - const: "15"
+          title: "15"
+        - const: "16"
+          title: "16 (current)"
+        - const: "17"
+          title: "17"
+    database_name:
+      title: Database Name
+      description: Name of the application database created on first deploy.
+      type: string
+      default: "appdb"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores."
+      $md.immutable: true
+    username:
+      title: Database Username
+      description: Application database user. The provisioner generates and rotates the password.
+      type: string
+      default: "appuser"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a letter, then lowercase letters / digits / underscores."
+      $md.immutable: true
+      $md.copyable: false
+    instance_size:
+      title: Instance Size
+      description: T-shirt size mapped to an RDS instance class.
+      type: string
+      default: "xs"
+      oneOf:
+        - const: "xs"
+          title: "Extra Small — db.t4g.micro (2 vCPU burstable, 1 GiB) — dev only"
+        - const: "s"
+          title: "Small — db.t4g.small (2 vCPU burstable, 2 GiB)"
+        - const: "m"
+          title: "Medium — db.t4g.medium (2 vCPU burstable, 4 GiB)"
+        - const: "l"
+          title: "Large — db.t4g.large (2 vCPU burstable, 8 GiB)"
+    allocated_storage_gb:
+      title: Storage (GB)
+      description: Allocated storage in gibibytes. Storage can be increased online but not decreased.
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 16384
+      multipleOf: 10
+    backup_retention_days:
+      title: Backup Retention (days)
+      description: Number of days automated backups are retained. 0 disables automated backups.
+      type: integer
+      default: 7
+      minimum: 0
+      maximum: 35
+    multi_az:
+      title: Multi-AZ
+      description: Run a synchronous standby in a second availability zone with automatic failover.
+      type: boolean
+      default: false
+    deletion_protection:
+      title: Deletion Protection
+      description: Block deletion of this instance until this setting is disabled.
+      type: boolean
+      default: true
+    skip_final_snapshot:
+      title: Skip Final Snapshot on Destroy
+      description: Skip the final snapshot when this instance is destroyed.
+      type: boolean
+      default: false
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - database
+  properties:
+    database:
+      $ref: postgres-server
+      title: PostgreSQL Database
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - db_version
+    - instance_size
+    - allocated_storage_gb
+    - database_name
+    - username
+    - multi_az
+    - backup_retention_days
+    - deletion_protection
+    - skip_final_snapshot
+    - "*"
+  db_version:
+    ui:help: "Major-version upgrades require a maintenance window."
+  allocated_storage_gb:
+    ui:widget: updown
+    ui:help: "Decreasing storage requires a logical dump and restore to a new instance."
+  backup_retention_days:
+    ui:widget: updown
+  multi_az:
+    ui:help: "A standby roughly doubles instance cost; failover typically completes in under 60 seconds."

@@ -1,0 +1,88 @@
+name: aws-elasticache-valkey
+description: >-
+  ElastiCache running Valkey for session storage, key-value caching, and
+  pub/sub. Valkey speaks the Redis wire protocol, so client code is
+  portable across Redis-compatible providers.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-elasticache-valkey
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development (single node)
+      engine_version: "8.0"
+      node_size: "xs"
+      high_availability: false
+    - __name: Production (replicated, automatic failover)
+      engine_version: "8.0"
+      node_size: "s"
+      high_availability: true
+  required:
+    - engine_version
+    - node_size
+    - high_availability
+  properties:
+    engine_version:
+      title: Valkey Version
+      type: string
+      default: "8.0"
+      oneOf:
+        - const: "7.2"
+          title: "7.2"
+        - const: "8.0"
+          title: "8.0 (current)"
+    node_size:
+      title: Node Size
+      description: T-shirt size mapped to an ElastiCache node type.
+      type: string
+      default: "xs"
+      oneOf:
+        - const: "xs"
+          title: "Extra Small — cache.t4g.micro (2 vCPU burstable, 0.5 GiB) — dev only"
+        - const: "s"
+          title: "Small — cache.t4g.small (2 vCPU burstable, 1.4 GiB)"
+        - const: "m"
+          title: "Medium — cache.t4g.medium (2 vCPU burstable, 3.1 GiB)"
+        - const: "l"
+          title: "Large — cache.t4g.large (2 vCPU burstable, 6.4 GiB)"
+    high_availability:
+      title: High Availability
+      description: Add a replica node with automatic failover.
+      type: boolean
+      default: false
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - network
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+    network:
+      $ref: aws-network
+      title: AWS Network
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - cache
+  properties:
+    cache:
+      $ref: redis-connection
+      title: Redis Connection
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - engine_version
+    - node_size
+    - high_availability
+    - "*"
+  high_availability:
+    ui:help: "A replica roughly doubles node cost."

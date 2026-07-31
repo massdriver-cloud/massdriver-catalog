@@ -1,0 +1,84 @@
+name: queue
+label: Queue
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-sqs-queues/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: queues
+  instructions:
+    - label: AWS SQS
+      path: ./instructions/AWS SQS.md
+
+schema:
+  title: Queue
+  description: >-
+    A single message queue out of a named set, with its URL and scoped IAM
+    access. Portable across SQS-like queue services.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - url
+    - arn
+    - region
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Unique queue identifier from the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: Logical queue name, as declared in the producing bundle's named set.
+      type: string
+      minLength: 1
+    url:
+      title: URL
+      description: Queue URL used by SDK clients to send/receive messages.
+      type: string
+      pattern: ^https://
+      message:
+        pattern: "Must start with https://."
+    arn:
+      title: ARN
+      description: Queue ARN.
+      type: string
+      pattern: "^arn:aws:sqs:"
+    region:
+      title: Region
+      description: Cloud region the queue lives in.
+      type: string
+    dlq_url:
+      title: Dead-Letter Queue URL
+      description: URL of this queue's dead-letter queue, if one was provisioned.
+      type: string
+    dlq_arn:
+      title: Dead-Letter Queue ARN
+      description: ARN of this queue's dead-letter queue, if one was provisioned.
+      type: string
+    policies:
+      title: Access Policies
+      description: >-
+        IAM policies scoped to this queue that a consuming workload's
+        service account (IRSA) can attach, such as send-only and send-receive.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy ARN.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: Human-readable policy name (e.g. "send-receive").
+            type: string
+            minLength: 1

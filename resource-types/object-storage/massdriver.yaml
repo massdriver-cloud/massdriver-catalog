@@ -1,6 +1,6 @@
 name: object-storage
 label: Object Storage
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/aws-s3-bucket/icon.svg
 
 ui:
   connectionOrientation: link
@@ -8,29 +8,29 @@ ui:
   instructions:
     - label: AWS S3
       path: ./instructions/AWS S3.md
-    - label: Azure Blob Storage
-      path: ./instructions/Azure Blob Storage.md
-    - label: GCP Cloud Storage
-      path: ./instructions/GCP Cloud Storage.md
 
 schema:
   title: Object Storage
-  description: Object storage (bucket/container) with access policies.
+  description: >-
+    Object storage (bucket/container) with scoped IAM access policies a
+    workload's service account can assume instead of static keys. Portable
+    across S3-API-compatible providers.
   type: object
   additionalProperties: false
   required:
     - id
     - name
+    - region
     - policies
   properties:
     id:
       title: ID
-      description: Unique resource identifier from the cloud provider (e.g. an ARN or selfLink).
+      description: Unique resource identifier from the cloud provider (e.g. an ARN).
       type: string
       minLength: 1
     name:
       title: Name
-      description: Storage bucket name (S3 bucket name, container name, etc.). Must be globally or account-unique depending on the provider.
+      description: Bucket name. Must be globally unique on AWS.
       type: string
       minLength: 3
       maxLength: 63
@@ -39,7 +39,7 @@ schema:
         pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
     endpoint:
       title: Endpoint
-      description: Storage API endpoint URL or virtual-hosted-style URL for the bucket.
+      description: S3 API endpoint URL for the bucket.
       type: string
       pattern: ^https?://
       message:
@@ -48,9 +48,15 @@ schema:
       title: Region
       description: Cloud region the bucket lives in.
       type: string
+    kms_key_arn:
+      title: KMS Key ARN
+      description: KMS key used for server-side encryption (SSE-KMS). Empty if using the provider's default managed key.
+      type: string
     policies:
       title: Access Policies
-      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      description: >-
+        IAM policies scoped to this bucket that a consuming workload's
+        service account (IRSA) can attach, such as read-only and read-write.
       type: array
       minItems: 1
       items:
@@ -62,11 +68,11 @@ schema:
         properties:
           id:
             title: ID
-            description: Policy identifier.
+            description: Policy ARN.
             type: string
             minLength: 1
           name:
             title: Name
-            description: Human-readable policy name.
+            description: Human-readable policy name (e.g. "read-write").
             type: string
             minLength: 1

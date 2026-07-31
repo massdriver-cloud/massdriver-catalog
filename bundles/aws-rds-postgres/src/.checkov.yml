@@ -1,0 +1,11 @@
+skip-check:
+  # SG is attached to the RDS instance's own ENI (a managed AWS service, not
+  # attacker-controlled compute) — nothing here whose egress needs
+  # restricting beyond what RDS itself needs.
+  - CKV_AWS_382
+  # This bundle authenticates via username/password by design, matching the
+  # postgres-server resource type's auth contract every consuming app
+  # expects. IAM database auth needs a different resource type contract
+  # (short-lived tokens, not a static password) and per-app token-refresh
+  # logic - a bigger change than a param flip.
+  - CKV_AWS_161

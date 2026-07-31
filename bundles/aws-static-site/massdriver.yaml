@@ -1,0 +1,167 @@
+name: aws-static-site
+description: >-
+  Static site served from a private S3 origin behind CloudFront with
+  Origin Access Control, an ACM certificate, path-based redirects and
+  trailing-slash handling via a CloudFront Function, and a security
+  response-headers policy. Does not connect to a network or cluster.
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/aws-static-site
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Development
+      region: "us-east-1"
+      domain_name: "dev.example.com"
+      acm_certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+      price_class: "PriceClass_100"
+      redirects:
+        - from: "/blog"
+          to: "/news"
+          status_code: 301
+    - __name: Production (with legacy redirects)
+      region: "us-east-1"
+      domain_name: "www.example.com"
+      acm_certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+      price_class: "PriceClass_All"
+      redirects:
+        - from: "/blog"
+          to: "/news"
+          status_code: 301
+        - from: "/old-pricing"
+          to: "/pricing"
+          status_code: 301
+        - from: "/docs"
+          to: "https://docs.example.com"
+          status_code: 302
+        - from: "/signup"
+          to: "/get-started"
+          status_code: 301
+  required:
+    - region
+    - domain_name
+    - acm_certificate_arn
+    - price_class
+  properties:
+    region:
+      title: AWS Region
+      description: >-
+        AWS region the origin bucket is created in. This bundle does not
+        connect to a network, so the region is set directly here.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      examples:
+        - "us-east-1"
+        - "us-west-2"
+    domain_name:
+      title: Domain Name
+      description: Custom domain CloudFront serves this site on. A DNS CNAME or ALIAS record must point at the distribution after deploy.
+      type: string
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$
+      message:
+        pattern: "Must be a valid lowercase DNS name with at least one dot (e.g. www.example.com)."
+      $md.immutable: true
+      examples:
+        - "www.example.com"
+    acm_certificate_arn:
+      title: ACM Certificate ARN
+      description: >-
+        Existing ACM certificate ARN covering domain_name. CloudFront
+        requires this certificate to be issued in us-east-1 regardless
+        of which region your other infrastructure runs in.
+      type: string
+      pattern: "^arn:aws:acm:us-east-1:"
+      message:
+        pattern: "Must be an ACM certificate ARN in us-east-1. CloudFront requires certificates in that region."
+    price_class:
+      title: Price Class
+      description: Set of CloudFront edge locations that serve this site. Fewer locations cost less.
+      type: string
+      default: "PriceClass_100"
+      oneOf:
+        - const: "PriceClass_100"
+          title: "US, Canada, Europe only (cheapest)"
+        - const: "PriceClass_200"
+          title: "+ Asia, Middle East, Africa"
+        - const: "PriceClass_All"
+          title: "All edge locations (best global performance)"
+    redirects:
+      title: Redirects
+      description: Path-based redirects evaluated by a CloudFront Function before the request reaches the site's content.
+      type: array
+      default: []
+      maxItems: 20
+      uniqueItems: true
+      items:
+        type: object
+        required:
+          - from
+          - to
+          - status_code
+        properties:
+          from:
+            type: string
+            title: From Path
+            description: Exact request path to match, e.g. /old-page.
+            pattern: ^/
+            message:
+              pattern: "Must start with /."
+          to:
+            type: string
+            title: Redirect To
+            description: Absolute URL or site-relative path to redirect to.
+          status_code:
+            type: integer
+            title: Status Code
+            default: 301
+            oneOf:
+              - const: 301
+                title: "301 — Permanent"
+              - const: 302
+                title: "302 — Temporary"
+              - const: 308
+                title: "308 — Permanent (preserves method)"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Authentication
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required: []
+  properties: {}
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - domain_name
+    - acm_certificate_arn
+    - price_class
+    - redirects
+    - "*"
+  domain_name:
+    ui:placeholder: "www.example.com"
+  acm_certificate_arn:
+    ui:help: "The certificate must be issued and validated in ACM in us-east-1 before deploy."
+    ui:placeholder: "arn:aws:acm:us-east-1:123456789012:certificate/..."
+  redirects:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+    items:
+      ui:order:
+        - from
+        - to
+        - status_code
