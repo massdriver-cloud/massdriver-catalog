@@ -88,10 +88,10 @@ connections:
 artifacts:
   properties: {}
   # required:
-  #   - my_artifact
+  #   - my_resource
   # properties:
-  #   my_artifact:
-  #     $ref: your-artifact-definition
+  #   my_resource:
+  #     $ref: your-resource-type
 
 ui:
   ui:order:

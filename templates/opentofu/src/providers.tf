@@ -3,7 +3,7 @@ terraform {
   required_providers {
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.3"
+      version = "~> 2.0"
     }
     # Uncomment the provider(s) you need:
     #

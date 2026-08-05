@@ -198,7 +198,7 @@ schema:                          # JSON Schema as YAML
 
 The `schema` section should match your OpenTofu/Terraform provider authentication configuration. For example, AWS IAM Role credentials match the `aws` provider's `assume_role` block, Azure Service Principal matches the `azurerm` provider config, etc.
 
-**Export Templates** (optional): The `exports/` directory enables self-service artifact downloads. Export templates allow developers to download pre-configured files based on deployed artifact data—like generating a kubeconfig file from a Kubernetes namespace, VPN configuration files with certificates, database connection strings, or environment variable files for local development.
+**Export Templates** (optional): The `exports/` directory enables self-service artifact downloads. Export templates allow developers to download pre-configured files based on deployed artifact data—like generating a kubeconfig file from a Kubernetes cluster credential, VPN configuration files with certificates, database connection strings, or environment variable files for local development.
 
 Templates use Liquid syntax and have access to the full artifact payload via the `artifact` variable. When a developer clicks the download button in Massdriver's UI, the template is rendered with their specific artifact data and downloaded as a ready-to-use configuration file.
 
@@ -336,7 +336,7 @@ A containerized app that connects to a network + Postgres + (optional) bucket.
 Each resource type ships per-source form-fill walkthroughs that render alongside the resource creation form in the Massdriver UI. They tell operators how to harvest each schema field from the matching cloud (`AWS RDS PostgreSQL.md`, `Azure VNet.md`, `GCP Cloud Storage.md`, etc.) or from a self-hosted setup. Same pattern as `platforms/<cloud>/instructions/` — replace or extend with your team's onboarding steps.
 
 > [!NOTE]
-> The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 1.4`. Reference these when you wire your real cloud resources up.
+> The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 2.0`. Reference these when you wire your real cloud resources up.
 
 ## Customizing Your Catalog
 
@@ -553,7 +553,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
     ├── aws/                            # IAM Role
     ├── azure/                          # Service Principal
     ├── gcp/                            # Service Account
-    ├── kubernetes/                     # Namespace + kubeconfig
+    ├── kubernetes/                     # Cluster auth + kubeconfig
     └── .../                            # + add any cloud your IaC supports
 ```
 

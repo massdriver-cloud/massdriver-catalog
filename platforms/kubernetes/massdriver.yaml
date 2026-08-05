@@ -1,5 +1,5 @@
-name: kubernetes-namespace
-label: Kubernetes Namespace
+name: kubernetes-cluster
+label: Kubernetes Cluster
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/kubernetes/icon.png
 
 ui:
@@ -15,16 +15,15 @@ exports:
     templateLang: liquid
 
 schema:
-  title: Kubernetes Namespace
-  description: Namespace with cluster authentication
+  title: Kubernetes Cluster
+  description: Authentication and configuration for a Kubernetes cluster
   type: object
   required:
     - authentication
-    - namespace
   properties:
     namespace:
       title: Namespace
-      description: Target namespace for workloads
+      description: Target namespace for workloads. This can either be a default namespace for a cluster-wide credential, or the specific namespace for a namespaced credential.
       type: string
       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
       examples:
