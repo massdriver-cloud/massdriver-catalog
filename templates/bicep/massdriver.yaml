@@ -76,7 +76,7 @@ params:
 # `connections:` until a backward-compatible rename ships.
 connections:
   required:
-  - azure_authentication
+    - azure_authentication
   {%- for conn in connections %}
     - {{ conn.name }}
   {%- endfor %}
