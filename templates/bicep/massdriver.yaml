@@ -75,20 +75,18 @@ params:
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:
-{%- if connections.size > 0 %}
   required:
+    - azure_authentication
   {%- for conn in connections %}
     - {{ conn.name }}
   {%- endfor %}
   properties:
+    azure_authentication:
+      $ref: azure-service-principal
   {%- for conn in connections %}
     {{ conn.name }}:
       $ref: {{ conn.artifact_definition }}
   {%- endfor %}
-{%- else %}
-  required: []
-  properties: {}
-{%- endif %}
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
 # `artifacts:` until a backward-compatible rename ships.

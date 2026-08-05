@@ -7,7 +7,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 1.4"
+      version = "~> 2.0"
     }
   }
 }
