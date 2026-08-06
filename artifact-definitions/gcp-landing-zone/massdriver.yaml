@@ -1,0 +1,144 @@
+name: gcp-landing-zone
+label: GCP Landing Zone
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# Landing zone scope:
+# This artifact represents the project-level governance layer — shared VPC, enabled APIs,
+# billing budget reference, and a summary of the project-level IAM bindings and org-policy
+# guardrails that the landing zone applied.
+#
+# It does NOT carry a workload service account. Each consumer bundle creates its own
+# runtime SA and binds it to the resources it owns. Use the artifact policy comments in
+# each data-resource artdef (gcp-pubsub-topic, gcp-bigquery-dataset, gcp-storage-bucket)
+# as the canonical role-binding reference.
+#
+# The network fields allow downstream bundles to place resources in the shared VPC:
+#   subnet_self_link = var.landing_zone.network.primary_subnet.self_link
+exports: []
+
+schema:
+  title: GCP Landing Zone
+  description: Environment governance artifact — carries the shared VPC network,
+    enabled API list, billing budget reference, and an informational summary of
+    project-level IAM bindings and org-policy guardrails applied by the landing zone.
+    Downstream bundles connect to this instead of wiring network separately, and each
+    creates its own runtime service account for its workload identity.
+  type: object
+  required:
+    - project_id
+    - network
+    - enabled_apis
+    - budget
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier for this environment
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    network:
+      title: Network
+      description: Shared VPC network for this environment
+      type: object
+      required:
+        - network_name
+        - network_self_link
+        - region
+        - primary_subnet
+      properties:
+        network_name:
+          title: Network Name
+          type: string
+          examples:
+            - data-platform-vpc
+        network_self_link:
+          title: Network Self Link
+          type: string
+          examples:
+            - https://www.googleapis.com/compute/v1/projects/my-project/global/networks/my-vpc
+        region:
+          title: Region
+          type: string
+          examples:
+            - us-central1
+        primary_subnet:
+          title: Primary Subnet
+          type: object
+          required:
+            - name
+            - cidr
+            - self_link
+          properties:
+            name:
+              title: Name
+              type: string
+            cidr:
+              title: CIDR
+              type: string
+            self_link:
+              title: Self Link
+              type: string
+
+    enabled_apis:
+      title: Enabled APIs
+      description: GCP service APIs enabled in this project by the landing zone
+      type: array
+      items:
+        type: string
+      examples:
+        - - compute.googleapis.com
+          - bigquery.googleapis.com
+          - run.googleapis.com
+
+    budget:
+      title: Budget
+      description: Billing budget reference for this environment. enabled=false when no budget was configured.
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          title: Budget Enabled
+          type: boolean
+        budget_name:
+          title: Budget Display Name
+          type:
+            - string
+            - "null"
+        billing_account_id:
+          title: Billing Account ID
+          type:
+            - string
+            - "null"
+        amount_usd:
+          title: Budget Amount (USD)
+          type:
+            - number
+            - "null"
+
+    iam_bindings:
+      title: IAM Bindings
+      description: Informational summary of project-level IAM bindings applied by this
+        landing zone (e.g., human operators and groups). Each entry records the role
+        and member list as applied. This is NOT enforced by downstream bundles — it is
+        a read-only audit trail of what the landing zone provisioned.
+      type: array
+      items:
+        type: object
+        required:
+          - role
+          - member
+        properties:
+          role:
+            title: Role
+            type: string
+            examples:
+              - roles/viewer
+              - roles/bigquery.dataViewer
+          member:
+            title: Member
+            type: string
+            examples:
+              - user:alice@example.com
+              - group:analysts@example.com

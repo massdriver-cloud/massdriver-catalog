@@ -1,0 +1,57 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+params:
+  required:
+    - image
+  properties:
+    image:
+      type: string
+      title: Container Image
+      description: Fully-qualified container image reference. Pin to a digest
+        (image@sha256:...) for production.
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  {%- for conn in connections %}
+    - {{ conn.name }}
+  {%- endfor %}
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+  {%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+  {%- endfor %}
+
+artifacts:
+  required:
+    - cloud_run_service
+  properties:
+    cloud_run_service:
+      $ref: catalog-demo/gcp-cloud-run-service
+      title: GCP Cloud Run Service
+
+ui:
+  ui:order:
+    - image
+    - "*"

@@ -1,0 +1,80 @@
+name: gcp-storage-bucket
+label: GCP Storage Bucket
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (example — adapt to your actual resource):
+# Downstream bundles that need to read objects bind roles/storage.objectViewer.
+# Downstream bundles that need to read+write objects bind roles/storage.objectUser.
+# Downstream bundles that need full admin bind roles/storage.admin.
+#
+# Terraform example — grant object read access to a workload service account:
+#   resource "google_storage_bucket_iam_member" "reader" {
+#     bucket = var.storage_bucket.bucket_name
+#     role   = "roles/storage.objectViewer"
+#     member = "serviceAccount:${var.storage_bucket.workload_sa_email}"
+#   }
+#
+# Policy examples below (object_reader / object_writer / admin) follow this same
+# pattern. They are illustrative — the actual IAM member string comes from the
+# consumer bundle's service account, not from this artifact.
+exports: []
+
+schema:
+  title: GCP Storage Bucket
+  description: A Google Cloud Storage bucket. Carries the bucket name, canonical
+    URL (gs:// form), self-link (REST API form), location, and owning project so
+    downstream bundles can read/write objects without hard-coding bucket or project
+    identifiers.
+  type: object
+  required:
+    - project_id
+    - bucket_name
+    - bucket_url
+    - bucket_self_link
+    - location
+    - storage_class
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this storage bucket
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    bucket_name:
+      title: Bucket Name
+      description: Globally-unique GCS bucket name
+      type: string
+      examples:
+        - my-data-platform-events-abc123
+
+    bucket_url:
+      title: Bucket URL
+      description: Canonical GCS URL for use with gsutil and client libraries (gs:// form)
+      type: string
+      examples:
+        - gs://my-data-platform-events-abc123
+
+    bucket_self_link:
+      title: Bucket Self Link
+      description: GCS REST API resource URL (https://www.googleapis.com/storage/v1/b/<name> form)
+      type: string
+      examples:
+        - https://www.googleapis.com/storage/v1/b/my-data-platform-events-abc123
+
+    location:
+      title: Location
+      description: GCS location where the bucket is deployed (region, dual-region, or multi-region)
+      type: string
+      examples:
+        - US
+        - us-central1
+        - NAM4
+
+    storage_class:
+      title: Storage Class
+      description: GCS storage class of the bucket
+      type: string
+      examples:
+        - STANDARD
+        - COLDLINE

@@ -1,0 +1,145 @@
+name: gcp-log-sink
+description: Google Cloud Logging project-level sink with configurable filter and
+  destination. Routes log entries matching the filter to a BigQuery dataset or GCS
+  bucket. Automatically grants the Google-managed sink writer identity the minimum
+  required IAM role on the chosen destination. Enforces exactly-one destination via
+  a Terraform precondition. Emits a gcp-log-sink artifact with sink metadata for
+  downstream reference.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-log-sink
+version: 0.1.1
+
+params:
+  examples:
+    - __name: Error Logs to BigQuery
+      filter: "severity >= ERROR"
+      use_partitioned_tables: true
+      exclusions: []
+    - __name: Audit Logs to GCS
+      filter: 'logName = "projects/PROJECT/logs/cloudaudit.googleapis.com%2Factivity"'
+      use_partitioned_tables: false
+      exclusions: []
+    - __name: All Logs (no filter)
+      filter: ""
+      use_partitioned_tables: true
+      exclusions: []
+
+  properties:
+    filter:
+      title: Log Filter
+      description: >-
+        Cloud Logging filter query that determines which log entries are routed to
+        the destination. Leave empty to include all logs (can be expensive). Common
+        examples: severity >= ERROR / resource.type = "cloud_run_revision" /
+        logName = "projects/PROJECT/logs/cloudaudit.googleapis.com%2Factivity".
+        Filter syntax: https://cloud.google.com/logging/docs/view/logging-query-language
+      type: string
+      default: ""
+
+    use_partitioned_tables:
+      title: Use Partitioned Tables (BigQuery only)
+      description: >-
+        When the destination is BigQuery, write log entries into date-partitioned
+        tables instead of a single monolithic table. Partitioning reduces query cost
+        and improves performance for time-bounded queries. Has no effect when the
+        destination is GCS — the setting is stored but ignored.
+      type: boolean
+      default: true
+
+    exclusions:
+      title: Exclusions
+      description: >-
+        Optional list of log exclusions. Each exclusion drops log entries that match
+        its filter before they reach the destination. Useful for suppressing high-volume
+        low-value logs (e.g., health-check requests) from storage costs. Exclusions
+        are evaluated AFTER the sink filter, so they can only drop entries that would
+        otherwise be included.
+      type: array
+      default: []
+      items:
+        type: object
+        required:
+          - name
+          - filter
+        properties:
+          name:
+            title: Exclusion Name
+            description: >-
+              Short identifier for this exclusion rule. Must be unique within the sink.
+              Used in Logging metrics and audit logs to identify which exclusion applied.
+            type: string
+          filter:
+            title: Exclusion Filter
+            description: >-
+              Cloud Logging query language filter. Log entries matching this filter
+              are dropped from the sink. Use the same syntax as the top-level sink
+              filter field.
+            type: string
+          description:
+            title: Description
+            description: Optional human-readable explanation of why these logs are excluded.
+            type: string
+          disabled:
+            title: Disabled
+            description: >-
+              When true, the exclusion is defined but not active — matching logs are
+              still routed to the destination. Useful for temporarily suspending an
+              exclusion without deleting it.
+            type: boolean
+            default: false
+
+connections:
+  required:
+    - gcp_authentication
+    - landing_zone
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    landing_zone:
+      $ref: catalog-demo/gcp-landing-zone
+      title: GCP Landing Zone
+
+    bigquery_dataset:
+      $ref: catalog-demo/gcp-bigquery-dataset
+      title: BigQuery Dataset (optional destination)
+
+    storage_bucket:
+      $ref: catalog-demo/gcp-storage-bucket
+      title: GCS Bucket (optional destination)
+
+artifacts:
+  required:
+    - log_sink
+  properties:
+    log_sink:
+      $ref: catalog-demo/gcp-log-sink
+      title: GCP Log Sink
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - filter
+    - use_partitioned_tables
+    - exclusions
+    - "*"
+  properties:
+    use_partitioned_tables:
+      ui:widget: checkbox
+    exclusions:
+      items:
+        ui:order:
+          - name
+          - filter
+          - description
+          - disabled
+          - "*"
+        properties:
+          disabled:
+            ui:widget: checkbox

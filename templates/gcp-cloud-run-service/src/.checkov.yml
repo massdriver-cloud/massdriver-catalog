@@ -1,0 +1,12 @@
+skip-check:
+  # CKV_GCP_102: Cloud Run services should use private endpoint or VPC connector.
+  # Ingress is configurable; the default is internal-only. If your service needs
+  # a VPC connector, add the relevant google_vpc_access_connector resource and
+  # update the service's vpc_access block. This skip acknowledges the check is
+  # not applicable to services that use ingress restrictions instead.
+  - CKV_GCP_102
+  # CKV_GCP_103: Cloud Run services should use Binary Authorization. Binary
+  # Authorization requires separate attestor infrastructure and image signing
+  # pipelines that are out of scope for a per-service bundle. Enforce at the
+  # organization level via org policy if needed.
+  - CKV_GCP_103

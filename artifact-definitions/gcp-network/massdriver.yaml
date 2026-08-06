@@ -1,0 +1,190 @@
+name: gcp-network
+label: GCP Network
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (for downstream bundles that need network access):
+# When binding IAM roles to a GCP network artifact, use data.network_name or
+# data.self_link to scope role bindings to the VPC level. For subnet-scoped
+# bindings (e.g., roles/compute.networkUser), bind to data.subnets[*].self_link.
+# Example gcloud command:
+#   gcloud projects add-iam-policy-binding $PROJECT \
+#     --member="serviceAccount:$SA_EMAIL" \
+#     --role="roles/compute.networkUser" \
+#     --condition="expression=resource.name.startsWith('projects/$PROJECT/regions/$REGION/subnetworks/$SUBNET')"
+exports: []
+
+schema:
+  title: GCP Network
+  description: Region-scoped GCP VPC network with subnet configuration. Captures the
+    core network topology including optional fields for customer-managed networks with
+    secondary ranges (GKE), private services access, Cloud NAT, and additional subnets.
+  type: object
+  required:
+    - project_id
+    - network_name
+    - network_self_link
+    - region
+    - primary_subnet
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this VPC
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    network_name:
+      title: Network Name
+      description: Short name of the VPC network resource
+      type: string
+      examples:
+        - my-vpc
+
+    network_self_link:
+      title: Network Self Link
+      description: Fully-qualified self-link URL of the VPC network
+      type: string
+      examples:
+        - https://www.googleapis.com/compute/v1/projects/my-project/global/networks/my-vpc
+
+    region:
+      title: Region
+      description: GCP region where regional resources (subnets, NAT) are provisioned
+      type: string
+      examples:
+        - us-central1
+        - us-east1
+        - us-west1
+        - us-east4
+        - europe-west1
+
+    primary_subnet:
+      title: Primary Subnet
+      description: The main subnet for general workload placement
+      type: object
+      required:
+        - name
+        - cidr
+        - self_link
+      properties:
+        name:
+          title: Name
+          description: Short name of the subnetwork resource
+          type: string
+          examples:
+            - my-vpc-subnet-us-central1
+        cidr:
+          title: CIDR
+          description: Primary IP address range of the subnet
+          type: string
+          examples:
+            - 10.0.0.0/20
+        self_link:
+          title: Self Link
+          description: Fully-qualified self-link URL of the subnetwork
+          type: string
+          examples:
+            - https://www.googleapis.com/compute/v1/projects/my-project/regions/us-central1/subnetworks/my-subnet
+
+        # Optional — present when this subnet has GKE secondary ranges
+        secondary_ranges:
+          title: Secondary Ranges
+          description: Named secondary IP ranges on the subnet, typically used for GKE
+            pods and services
+          type: object
+          properties:
+            pods_cidr:
+              title: Pods CIDR
+              description: Secondary range allocated for GKE pod IPs
+              type: string
+              examples:
+                - 10.1.0.0/16
+            pods_range_name:
+              title: Pods Range Name
+              description: Name of the secondary range used for GKE pods
+              type: string
+            services_cidr:
+              title: Services CIDR
+              description: Secondary range allocated for GKE service cluster IPs
+              type: string
+              examples:
+                - 10.2.0.0/20
+            services_range_name:
+              title: Services Range Name
+              description: Name of the secondary range used for GKE services
+              type: string
+
+    # Optional — present when Private Services Access is configured (Cloud SQL, Memorystore, etc.)
+    private_services_access:
+      title: Private Services Access
+      description: RFC 1918 peering range reserved for Google-managed services such as
+        Cloud SQL and Memorystore
+      type: object
+      required:
+        - cidr
+        - peering_name
+      properties:
+        cidr:
+          title: CIDR
+          description: Address range allocated for Private Services Access peering
+          type: string
+          examples:
+            - 10.100.0.0/16
+        peering_name:
+          title: Peering Name
+          description: Name of the VPC peering connection to servicenetworking.googleapis.com
+          type: string
+          examples:
+            - servicenetworking-googleapis-com
+
+    # Optional — present when Cloud NAT is configured on this network
+    cloud_nat:
+      title: Cloud NAT
+      description: Cloud NAT configuration providing outbound internet access for
+        private instances
+      type: object
+      required:
+        - router_name
+        - nat_name
+      properties:
+        router_name:
+          title: Router Name
+          description: Name of the Cloud Router that hosts the NAT gateway
+          type: string
+        nat_name:
+          title: NAT Name
+          description: Name of the Cloud NAT resource
+          type: string
+        nat_ips:
+          title: NAT IPs
+          description: Static external IP addresses assigned to the NAT gateway, if any
+          type: array
+          items:
+            type: string
+
+    # Optional — additional subnets beyond the primary (e.g. proxy-only, management)
+    additional_subnets:
+      title: Additional Subnets
+      description: Any subnets beyond the primary — proxy-only, management, or
+        purpose-specific ranges
+      type: array
+      items:
+        type: object
+        required:
+          - name
+          - cidr
+          - self_link
+        properties:
+          name:
+            title: Name
+            type: string
+          cidr:
+            title: CIDR
+            type: string
+          self_link:
+            title: Self Link
+            type: string
+          purpose:
+            title: Purpose
+            description: Subnet purpose (e.g. PRIVATE, REGIONAL_MANAGED_PROXY)
+            type: string

@@ -1,0 +1,180 @@
+name: gcp-bigquery-table
+description: Google Cloud BigQuery table with configurable schema and optional Pub/Sub
+  subscription delivery. When a Pub/Sub topic is wired, creates a BigQuery subscription
+  that routes messages from the topic into this table. Emits a gcp-bigquery-table
+  artifact for downstream query and pipeline workloads.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/gcp-bigquery-table
+version: 0.1.1
+
+params:
+  required:
+    - table_id
+    - deletion_protection
+    - schema_mode
+  examples:
+    - __name: Pub/Sub Default
+      table_id: messages
+      deletion_protection: true
+      schema_mode: pubsub_default
+      bigquery_subscription:
+        use_topic_schema: false
+        write_metadata: true
+        drop_unknown_fields: false
+        ack_deadline_seconds: 60
+    - __name: Custom Schema
+      table_id: events
+      deletion_protection: true
+      schema_mode: custom_schema
+      schema_json: '[{"name":"event_type","type":"STRING","mode":"NULLABLE"},{"name":"payload","type":"JSON","mode":"NULLABLE"},{"name":"created_at","type":"TIMESTAMP","mode":"NULLABLE"}]'
+
+  properties:
+    table_id:
+      title: Table ID
+      description: BigQuery table identifier. Must contain only letters, digits, and
+        underscores — no hyphens or spaces. Maximum 1024 characters. Cannot be changed
+        after creation without destroying and recreating the table.
+      type: string
+      $md.immutable: true
+      pattern: "^[a-zA-Z0-9_]+$"
+
+    description:
+      title: Description
+      description: Optional free-text description of the table's purpose, data classification,
+        or owner team. Stored in BigQuery metadata and visible in the console.
+      type: string
+
+    deletion_protection:
+      title: Enable Deletion Protection
+      description: When enabled, the table cannot be destroyed until deletion protection
+        is first disabled (a two-step destroy). Prevents accidental data loss in production.
+        Strongly recommended for production tables. Disable only immediately before
+        a planned decommission.
+      type: boolean
+      default: true
+
+    schema_mode:
+      title: Schema Mode
+      description: >-
+        Controls how the table schema is defined. "pubsub_default" creates the table
+        with a Pub/Sub-compatible schema (subscription_name, message_id, publish_time,
+        data, attributes) — use this when wiring a Pub/Sub topic. "custom_schema"
+        lets you provide the full BigQuery schema JSON via the schema_json parameter.
+      type: string
+      default: pubsub_default
+      enum:
+        - pubsub_default
+        - custom_schema
+
+    schema_json:
+      title: Schema JSON
+      description: >-
+        BigQuery table schema as a JSON array of field descriptors. Only used when
+        schema_mode is "custom_schema". Each element must have "name", "type", and
+        optionally "mode" (NULLABLE, REQUIRED, REPEATED) and "description".
+        Example: [{"name":"event_type","type":"STRING","mode":"NULLABLE"},
+        {"name":"payload","type":"JSON","mode":"NULLABLE"},
+        {"name":"created_at","type":"TIMESTAMP","mode":"NULLABLE"}]
+        Valid types: STRING, BYTES, INTEGER, INT64, FLOAT, FLOAT64, NUMERIC,
+        BIGNUMERIC, BOOLEAN, BOOL, TIMESTAMP, DATE, TIME, DATETIME, JSON, RECORD, STRUCT.
+      type: string
+
+    bigquery_subscription:
+      title: BigQuery Subscription Settings
+      description: Settings for the Pub/Sub BigQuery subscription. Only used when
+        a Pub/Sub topic is wired to this bundle. Configure delivery behavior and
+        acknowledgement timeouts here.
+      type: object
+      properties:
+        use_topic_schema:
+          title: Use Topic Schema
+          description: When enabled, BigQuery uses the Pub/Sub topic's schema to
+            parse messages and map fields to table columns. When disabled, messages
+            are written as raw bytes. Requires the topic to have a schema attached.
+          type: boolean
+          default: false
+
+        write_metadata:
+          title: Write Subscription Metadata
+          description: When enabled, BigQuery populates the subscription_name, message_id,
+            publish_time, and attributes columns in each row. The pubsub_default schema
+            includes these columns. Recommended to keep enabled.
+          type: boolean
+          default: true
+
+        drop_unknown_fields:
+          title: Drop Unknown Fields
+          description: When enabled and use_topic_schema is also enabled, fields
+            in the message that do not exist in the table schema are silently dropped.
+            When disabled, unknown fields cause the message to be routed to the dead
+            letter topic (if configured) or dropped entirely.
+          type: boolean
+          default: false
+
+        ack_deadline_seconds:
+          title: Acknowledgement Deadline (seconds)
+          description: How long Pub/Sub waits for BigQuery to acknowledge a message
+            before re-delivering it. Increase if BigQuery write latency exceeds the
+            default. Range 10–600 seconds.
+          type: integer
+          default: 60
+          minimum: 10
+          maximum: 600
+
+connections:
+  required:
+    - gcp_authentication
+    - bigquery_dataset
+  properties:
+    gcp_authentication:
+      $ref: gcp-service-account
+      title: GCP Credentials
+
+    bigquery_dataset:
+      $ref: catalog-demo/gcp-bigquery-dataset
+      title: BigQuery Dataset
+
+    pubsub_topic:
+      $ref: catalog-demo/gcp-pubsub-topic
+      title: Pub/Sub Topic (optional — wire to enable BigQuery subscription delivery)
+
+artifacts:
+  required:
+    - bigquery_table
+  properties:
+    bigquery_table:
+      $ref: catalog-demo/gcp-bigquery-table
+      title: GCP BigQuery Table
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] | test("^(prod|prd|production)$")'
+
+ui:
+  ui:order:
+    - table_id
+    - description
+    - deletion_protection
+    - schema_mode
+    - schema_json
+    - bigquery_subscription
+    - "*"
+  properties:
+    deletion_protection:
+      ui:widget: checkbox
+    bigquery_subscription:
+      ui:order:
+        - use_topic_schema
+        - write_metadata
+        - drop_unknown_fields
+        - ack_deadline_seconds
+        - "*"
+      properties:
+        use_topic_schema:
+          ui:widget: checkbox
+        write_metadata:
+          ui:widget: checkbox
+        drop_unknown_fields:
+          ui:widget: checkbox

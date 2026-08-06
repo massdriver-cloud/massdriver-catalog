@@ -1,0 +1,70 @@
+name: gcp-pubsub-topic
+label: GCP Pub/Sub Topic
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (example — adapt to your actual resource):
+# Downstream bundles that need to publish to this topic bind roles/pubsub.publisher.
+# Downstream bundles that need to subscribe bind roles/pubsub.subscriber.
+#
+# Terraform example — grant publisher access to a workload service account:
+#   resource "google_pubsub_topic_iam_member" "publisher" {
+#     project = var.pubsub_topic.project_id
+#     topic   = var.pubsub_topic.topic_name
+#     role    = "roles/pubsub.publisher"
+#     member  = "serviceAccount:${var.pubsub_topic.publisher_sa_email}"
+#   }
+#
+# Policy examples below (publisher / subscriber) follow this same pattern.
+# They are illustrative — the actual IAM member string comes from the consumer
+# bundle's service account, not from this artifact.
+exports: []
+
+schema:
+  title: GCP Pub/Sub Topic
+  description: A Google Cloud Pub/Sub topic. Carries the fully-qualified topic
+    ID, short topic name, and project context so downstream bundles can publish
+    messages or attach subscriptions without hard-coding project or topic IDs.
+    Optionally includes dead-letter queue (DLQ) topic references.
+  type: object
+  required:
+    - project_id
+    - topic_name
+    - topic_id
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this Pub/Sub topic
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    topic_name:
+      title: Topic Name
+      description: Short name of the Pub/Sub topic (without project prefix)
+      type: string
+      examples:
+        - my-data-pipeline-events
+
+    topic_id:
+      title: Topic ID
+      description: Fully-qualified Pub/Sub topic resource name
+      type: string
+      examples:
+        - projects/my-gcp-project-123/topics/my-data-pipeline-events
+
+    # Optional — only present when the topic was provisioned with a DLQ
+    dlq_topic_name:
+      title: DLQ Topic Name
+      description: Short name of the dead-letter queue topic (present only when DLQ
+        is enabled on the main topic)
+      type: string
+      examples:
+        - my-data-pipeline-events-dlq
+
+    dlq_topic_id:
+      title: DLQ Topic ID
+      description: Fully-qualified resource name of the dead-letter queue topic
+        (present only when DLQ is enabled on the main topic)
+      type: string
+      examples:
+        - projects/my-gcp-project-123/topics/my-data-pipeline-events-dlq

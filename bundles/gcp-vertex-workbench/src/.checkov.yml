@@ -1,0 +1,14 @@
+skip-check:
+  # CKV2_GCP_27: Ensure Vertex AI workbench instance disks are encrypted with a Customer Managed Key (CMK)
+  # CMEK is intentionally out of scope for this bundle. Boot and data disks use Google-managed
+  # encryption (GOOGLE_MANAGED_ENCRYPTION), which is appropriate for the interactive data-science
+  # workloads this bundle targets. Checkov fires this check whenever a kms_key is absent from the
+  # boot_disk and data_disks blocks, making it a false positive here. If CMEK is required for a
+  # specific regulatory workload, a separate bundle with a Cloud KMS key connection should be used —
+  # it requires provisioning a KMS key, key ring, and granting the Compute Engine SA CryptoKey
+  # Encrypter/Decrypter access, which is out of scope for this general-purpose bundle.
+  - CKV2_GCP_27
+
+  # Note: As of checkov 3.2.x, legacy Vertex AI Notebook checks (CKV_GCP_89, CKV_GCP_126,
+  # CKV_GCP_127) target google_notebooks_instance (deprecated API v1) and do not fire against
+  # google_workbench_instance. No skip needed for those here.

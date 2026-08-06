@@ -1,0 +1,102 @@
+name: gcp-cloud-run-service
+label: GCP Cloud Run Service
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern — downstream bundles that need to invoke this service:
+#
+# The `runtime_service_account_member` field carries the IAM principal string
+# ("serviceAccount:<email>") for the service's runtime SA. Use it to grant
+# downstream resources access to write to this service's upstream dependencies.
+#
+# To allow an external caller (e.g., Pub/Sub push subscription, Cloud Scheduler)
+# to invoke this Cloud Run service:
+#
+#   resource "google_cloud_run_v2_service_iam_member" "invoker" {
+#     project  = var.cloud_run_service.project_id
+#     location = var.cloud_run_service.location
+#     name     = var.cloud_run_service.service_name
+#     role     = "roles/run.invoker"
+#     member   = "<caller-identity>"  # e.g., serviceAccount:scheduler-sa@project.iam.gserviceaccount.com
+#   }
+#
+# Policy examples below are illustrative only — the actual IAM member comes from
+# the calling bundle's service account, not from this artifact.
+#
+# invoker policy:
+#   role:   roles/run.invoker
+#   member: <caller's service account or allUsers for public>
+#   resource: projects/<project>/locations/<location>/services/<name>
+exports: []
+
+schema:
+  title: GCP Cloud Run Service
+  description: A deployed Google Cloud Run v2 service. Carries the project ID,
+    service name, HTTPS URL, region, latest ready revision name, and the runtime
+    service account identity so downstream bundles can invoke the service or grant
+    it additional permissions without hard-coding project or service identifiers.
+  type: object
+  required:
+    - project_id
+    - service_name
+    - service_url
+    - location
+    - latest_ready_revision
+    - runtime_service_account_email
+    - runtime_service_account_member
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this Cloud Run service
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    service_name:
+      title: Service Name
+      description: Cloud Run service name (short name, not fully-qualified resource path)
+      type: string
+      examples:
+        - my-api-service
+
+    service_url:
+      title: Service URL
+      description: HTTPS URL where the service is reachable. For internal ingress
+        services, this URL is only reachable from within the VPC or via Cloud Load
+        Balancing. For all-ingress services, this is publicly reachable.
+      type: string
+      examples:
+        - https://my-api-service-abc123-uc.a.run.app
+
+    location:
+      title: Location
+      description: GCP region where the Cloud Run service is deployed
+      type: string
+      examples:
+        - us-central1
+
+    latest_ready_revision:
+      title: Latest Ready Revision
+      description: Name of the most recent revision that is currently serving traffic.
+        Use this to pin a specific revision when configuring traffic splits or
+        rolling back to a known-good state.
+      type: string
+      examples:
+        - my-api-service-00001-abc
+
+    runtime_service_account_email:
+      title: Runtime Service Account Email
+      description: "Email address of the GCP service account the Cloud Run service
+        runs as. Downstream bundles that need to grant this service access to other
+        resources bind IAM roles to this email using the serviceAccount: prefix."
+      type: string
+      examples:
+        - data-workload@my-gcp-project-123.iam.gserviceaccount.com
+
+    runtime_service_account_member:
+      title: Runtime Service Account IAM Member
+      description: "The full IAM principal string for the runtime service account,
+        in 'serviceAccount:<email>' form. Use this directly as the member argument
+        in google_*_iam_member resources so callers do not have to construct it manually."
+      type: string
+      examples:
+        - serviceAccount:data-workload@my-gcp-project-123.iam.gserviceaccount.com

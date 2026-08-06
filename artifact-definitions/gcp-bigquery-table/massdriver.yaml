@@ -1,0 +1,67 @@
+name: gcp-bigquery-table
+label: GCP BigQuery Table
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern (examples — adapt to your actual consumer):
+# Downstream bundles that need read-only access bind roles/bigquery.dataViewer at the table level.
+# Downstream bundles that need read+write access bind roles/bigquery.dataEditor at the table level.
+#
+# Terraform example — grant data viewer access to a workload service account:
+#   resource "google_bigquery_table_iam_member" "reader" {
+#     project    = var.bigquery_table.project_id
+#     dataset_id = var.bigquery_table.dataset_id
+#     table_id   = var.bigquery_table.table_id
+#     role       = "roles/bigquery.dataViewer"
+#     member     = "serviceAccount:<consumer-sa-email>"
+#   }
+#
+# Note: Table-level IAM bindings do not propagate up to the parent dataset.
+# Dataset-level bindings DO propagate down to all tables. Prefer dataset-level
+# bindings for broad access and table-level bindings for scoped isolation.
+#
+# Policy examples below (reader / writer) follow this same pattern. They are
+# illustrative — the actual IAM member string comes from the consumer bundle's
+# service account, not from this artifact.
+exports: []
+
+schema:
+  title: GCP BigQuery Table
+  description: A Google Cloud BigQuery table. Carries the project ID, dataset ID,
+    table ID, and fully-qualified table name (<project>.<dataset>.<table>) so
+    downstream bundles can reference the table for querying, loading, and Pub/Sub
+    subscription delivery without hard-coding identifiers.
+  type: object
+  required:
+    - project_id
+    - dataset_id
+    - table_id
+    - table_full_name
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this BigQuery table
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    dataset_id:
+      title: Dataset ID
+      description: BigQuery dataset identifier that contains this table (letters, digits, underscores — no hyphens)
+      type: string
+      examples:
+        - my_analytics_dataset
+
+    table_id:
+      title: Table ID
+      description: BigQuery table identifier within the dataset (letters, digits, underscores — no hyphens)
+      type: string
+      examples:
+        - messages
+
+    table_full_name:
+      title: Table Full Name
+      description: Fully-qualified BigQuery table name in <project>.<dataset>.<table> form.
+        Use this in SQL FROM clauses and bq CLI commands.
+      type: string
+      examples:
+        - my-gcp-project-123.my_analytics_dataset.messages

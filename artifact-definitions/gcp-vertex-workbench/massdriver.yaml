@@ -1,0 +1,98 @@
+name: gcp-vertex-workbench
+label: GCP Vertex AI Workbench Instance
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
+
+# IAM Role Binding Pattern — granting external access to this Workbench instance:
+#
+# Workbench instances are single-user data-science environments. The primary IAM
+# surface is the instance service account (instance_service_account_member), which
+# is what you bind roles TO — not roles ON the Workbench instance itself.
+#
+# To grant an external principal read-only visibility to the Workbench instance
+# (e.g., for audit or platform-admin purposes):
+#
+#   resource "google_notebooks_instance_iam_member" "viewer" {
+#     project  = var.vertex_workbench.project_id
+#     location = var.vertex_workbench.location
+#     name     = var.vertex_workbench.instance_name
+#     role     = "roles/notebooks.viewer"
+#     member   = "user:alice@example.com"
+#   }
+#
+# The instance_service_account_member field carries the IAM principal string
+# ("serviceAccount:<email>") for the instance SA. Use it to grant the Workbench
+# instance access to downstream resources (e.g., dataset viewer, bucket reader)
+# without hard-coding the SA email.
+#
+# Example — granting a connected dataset access to the instance SA:
+#   resource "google_bigquery_dataset_iam_member" "reader" {
+#     dataset_id = var.bigquery_dataset.dataset_id
+#     role       = "roles/bigquery.dataViewer"
+#     member     = var.vertex_workbench.instance_service_account_member
+#   }
+exports: []
+
+schema:
+  title: GCP Vertex AI Workbench Instance
+  description: A deployed Vertex AI Workbench instance. Carries the project ID,
+    instance name, zone, JupyterLab proxy URL, and the instance service account
+    identity so downstream bundles can grant the Workbench access to data resources
+    without hard-coding project or service account identifiers.
+  type: object
+  required:
+    - project_id
+    - instance_name
+    - location
+    - proxy_url
+    - instance_service_account_email
+    - instance_service_account_member
+  properties:
+    project_id:
+      title: Project ID
+      description: GCP project identifier that owns this Workbench instance
+      type: string
+      examples:
+        - my-gcp-project-123
+
+    instance_name:
+      title: Instance Name
+      description: Workbench instance name (short name used in gcloud commands)
+      type: string
+      examples:
+        - my-workbench-instance
+
+    location:
+      title: Location (Zone)
+      description: GCP zone where the Workbench instance is deployed. Workbench
+        instances are zonal resources — location is a zone (e.g., us-central1-a),
+        not a region.
+      type: string
+      examples:
+        - us-central1-a
+
+    proxy_url:
+      title: JupyterLab Proxy URL
+      description: The HTTPS proxy URL to access the JupyterLab interface for this
+        Workbench instance. Populated after the instance is running. May be empty
+        while the instance is starting or if proxy access is disabled.
+      type: string
+      examples:
+        - https://abc123-dot-us-central1.notebooks.googleusercontent.com/
+
+    instance_service_account_email:
+      title: Instance Service Account Email
+      description: Email address of the GCP service account this Workbench instance
+        runs as. Downstream bundles bind IAM roles to this email to grant the
+        Workbench access to data resources.
+      type: string
+      examples:
+        - my-workbench@my-gcp-project-123.iam.gserviceaccount.com
+
+    instance_service_account_member:
+      title: Instance Service Account IAM Member
+      description: "The full IAM principal string for the instance service account,
+        in 'serviceAccount:<email>' form. Use this directly as the member argument
+        in google_*_iam_member resources so callers do not have to construct it manually."
+      type: string
+      examples:
+        - serviceAccount:my-workbench@my-gcp-project-123.iam.gserviceaccount.com
