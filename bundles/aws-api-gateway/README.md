@@ -1,16 +1,27 @@
 # AWS API Gateway
 
-Puts your function on the public internet at an HTTPS URL.
+A shared HTTPS front door for your functions.
 
-Link a function, deploy, and you get back a URL anyone can call. Every request that arrives is
-handed to the function, which decides what to do with it.
+Deploy it on its own and you get a URL. Nothing answers on that URL yet — functions attach
+themselves to it.
 
 ## How routing works
 
-This bundle creates a single catch-all route. `GET /`, `POST /orders/42`, anything at all — it
-all goes to the same function, and your application code does the routing. This is how most web
-frameworks expect to work, and it means adding an endpoint to your app does not require an
-infrastructure change.
+This bundle owns the endpoint, the rate limits, and the logs. It does not own any routes.
+Each function that connects to it claims its own route, set in that function's form:
+
+- One function with the route `$default` receives every request. Use this for a single
+  application that does its own routing.
+- Several functions with routes like `GET /orders` and `POST /users` split the traffic between
+  them. The gateway decides which function handles each request.
+
+Because the gateway owns no routes itself, you can add and remove functions behind it without
+touching the gateway, and the URL never changes.
+
+## Before any function attaches
+
+A freshly deployed gateway returns `404 Not Found` on every path. That is expected — it means
+the endpoint is live and waiting for a function to claim a route.
 
 ## Rate limiting
 
@@ -35,12 +46,13 @@ of those are subject to this rule.
 This bundle does not add authentication. The URL is public, and anything not rejected by rate
 limiting reaches your function. If the API needs to be protected, handle it in application code
 by checking a token on each request, or ask your platform team for a bundle that adds an
-authorizer.
+authorizer. Rate limiting applies to every route regardless.
 
 ## What you get back
 
-Once deployed, the endpoint URL is published as a resource so other things can find it. It
-looks like `https://abc123.execute-api.us-east-1.amazonaws.com`, with no stage path on the end.
+The endpoint URL is published as a resource so functions can attach to it and other things can
+find it. It looks like `https://abc123.execute-api.us-east-1.amazonaws.com`, with no stage path
+on the end.
 
 ## Costs
 

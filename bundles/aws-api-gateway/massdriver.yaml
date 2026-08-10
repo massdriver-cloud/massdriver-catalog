@@ -1,10 +1,10 @@
 name: aws-api-gateway
 description: >-
-  Puts your function on the public internet at an HTTPS URL. Every request that arrives is
-  forwarded to the function you link, with request logging, rate limiting, and optional
-  browser access rules.
+  A shared HTTPS front door for your functions. Deploy it once, then connect as many functions
+  as you like — each one claims its own route. Includes request logging, rate limiting, and
+  optional browser access rules.
 source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-api-gateway
-version: 0.1.0
+version: 0.2.0
 
 params:
   examples:
@@ -101,14 +101,10 @@ params:
 connections:
   required:
     - aws_authentication
-    - function
   properties:
     aws_authentication:
       $ref: aws-iam-role
       title: AWS Credentials
-    function:
-      $ref: serverless-function
-      title: Backend Function
 
 # v2: shown in the product as "resources". The key in massdriver.yaml stays
 # `artifacts:` until a backward-compatible rename ships.

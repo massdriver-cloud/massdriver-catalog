@@ -11,18 +11,6 @@ variable "cors_allowed_origins" {
   type    = list(string)
   default = []
 }
-variable "function" {
-  type = object({
-    arn           = string
-    code_bucket   = optional(string)
-    code_key      = optional(string)
-    function_name = string
-    invoke_arn    = string
-    region        = optional(string)
-    role_arn      = optional(string)
-    runtime       = optional(string)
-  })
-}
 variable "log_retention_days" {
   type    = number
   default = 365

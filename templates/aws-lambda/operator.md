@@ -62,6 +62,33 @@ aws s3 cp s3://{{resources.function.code_bucket}}/{{resources.function.code_key}
 
 For `index.handler`, the zip must contain `index.py` (or `index.js`) at the top level.
 
+## Deploy fails with a route conflict
+
+Symptom: provision fails on `aws_apigatewayv2_route` with `ConflictException`.
+
+Another function already claimed this route on the same gateway. Two functions cannot share
+one route key. List what is taken:
+
+```bash
+aws apigatewayv2 get-routes --api-id <gateway-api-id> \
+  --query 'Items[].RouteKey' --output table
+```
+
+Change **Route** to something unclaimed and redeploy. Note that `$default` conflicts with
+nothing else by name, but only one function may hold it.
+
+## Function has no public URL
+
+Only relevant when a gateway is linked. Confirm this function actually claimed its route:
+
+```bash
+aws apigatewayv2 get-routes --api-id <gateway-api-id> \
+  --query 'Items[].{Route:RouteKey,Target:Target}' --output table
+```
+
+The `Target` names the integration id. If this function's route is absent, the deploy did not
+finish — redeploy. If the gateway is not linked at all, the function has no URL by design.
+
 ## Requests time out
 
 Check the duration and memory the function actually uses:

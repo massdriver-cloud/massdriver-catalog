@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+The function now owns its gateway route.
+
+- Added an optional `gateway` dependency taking an `http-api` resource
+- Added a `route_key` parameter, defaulting to `$default`
+- The function creates its own integration, route, and invoke permission, so
+  several functions can share one gateway
+- Receives `API_BASE_URL` as an environment variable when a gateway is linked
+
 ## 0.1.0
 
 Initial release. Derived from the `aws-lambda` template.

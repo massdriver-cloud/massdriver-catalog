@@ -65,7 +65,7 @@ resource "aws_cloudwatch_log_group" "access" {
 resource "aws_apigatewayv2_api" "main" {
   name          = local.name
   protocol_type = "HTTP"
-  description   = "Public endpoint for ${var.function.function_name}"
+  description   = "Public endpoint for ${local.name}"
 
   dynamic "cors_configuration" {
     for_each = local.cors_enabled ? [1] : []
@@ -77,23 +77,6 @@ resource "aws_apigatewayv2_api" "main" {
       max_age       = 3600
     }
   }
-}
-
-# AWS_PROXY hands the whole request to the function and returns whatever it
-# gives back, so routing and response shaping stay in application code.
-resource "aws_apigatewayv2_integration" "function" {
-  api_id                 = aws_apigatewayv2_api.main.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = var.function.invoke_arn
-  payload_format_version = "2.0"
-  timeout_milliseconds   = 30000
-}
-
-# One catch-all route. The function decides what each path and method does.
-resource "aws_apigatewayv2_route" "default" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.function.id}"
 }
 
 resource "aws_apigatewayv2_stage" "main" {
@@ -123,14 +106,4 @@ resource "aws_apigatewayv2_stage" "main" {
       integrationError = "$context.integrationErrorMessage"
     })
   }
-}
-
-# Without this the gateway gets a 500 on every request — the function refuses
-# invocations from a principal it has not been told to trust.
-resource "aws_lambda_permission" "gateway" {
-  statement_id  = "AllowInvokeFromHttpApi"
-  action        = "lambda:InvokeFunction"
-  function_name = var.function.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
 }

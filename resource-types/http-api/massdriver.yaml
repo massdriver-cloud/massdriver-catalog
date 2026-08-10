@@ -17,6 +17,7 @@ schema:
   required:
     - id
     - endpoint
+    - execution_arn
   properties:
     id:
       title: API ID

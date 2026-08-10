@@ -14,43 +14,46 @@ curl -i {{resources.api.endpoint}}/
 
 A `200` means the whole path works: gateway, permission, and function.
 
-## Every request returns 500 with no function logs
+## Every request returns 404
 
-Symptom: `curl` returns `{"message":"Internal Server Error"}`, and the function's log group has
-no entries for the request.
-
-The gateway could not invoke the function, so the request never reached it. Confirm the invoke
-permission exists:
+If no function has attached yet, this is expected — the gateway owns no routes of its own.
+List what is currently claimed:
 
 ```bash
-aws lambda get-policy --function-name {{dependencies.function.function_name}} \
+aws apigatewayv2 get-routes --api-id {{resources.api.id}} \
+  --query 'Items[].{Route:RouteKey,Target:Target}' --output table
+```
+
+An empty list means no function has connected. Link one and deploy it.
+
+If routes exist but one path 404s, no route matches that path. Either the caller's path is
+wrong, or the function that should own it claimed a different route. A function with `$default`
+catches everything; a function with `GET /orders` catches only that method and path.
+
+## Every request returns 500 with no function logs
+
+Symptom: `curl` returns `{"message":"Internal Server Error"}`, and the target function's log
+group has no entries for the request.
+
+The gateway could not invoke the function. The function owns that permission, so check from the
+function's side:
+
+```bash
+aws lambda get-policy --function-name <function-name> \
   --query Policy --output text | python3 -m json.tool
 ```
 
 Look for a statement with `Principal: apigateway.amazonaws.com` whose `SourceArn` starts with
-`{{resources.api.execution_arn}}`. If it is missing, redeploy this bundle — it owns that
-permission.
+`{{resources.api.execution_arn}}`. If it is missing, redeploy that function — it owns the
+permission, not this gateway.
 
-The gateway's own access log records the reason:
+The access log records the reason:
 
 ```bash
 aws logs tail "/aws/apigateway/{{id}}" --follow --format short
 ```
 
 The `integrationError` field in each entry says what failed.
-
-## Requests return 404
-
-A `404` from the gateway itself means no route matched, which should not happen — this bundle
-creates a catch-all. Confirm the route survived:
-
-```bash
-aws apigatewayv2 get-routes --api-id {{resources.api.id}} \
-  --query 'Items[].RouteKey' --output table
-```
-
-You should see `$default`. If you see it and still get a `404`, the `404` is coming *from your
-application*, not from the gateway — check the function's logs for the path it received.
 
 ## Requests return 429
 

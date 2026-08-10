@@ -23,6 +23,9 @@ locals {
       ASSET_ENDPOINT = try(var.assets.endpoint, "")
       ASSET_REGION   = try(var.assets.region, var.region)
     } : {},
+    local.has_gateway ? {
+      API_BASE_URL = var.gateway.endpoint
+    } : {},
   )
 }
 

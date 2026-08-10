@@ -7,7 +7,12 @@
 # These are encrypted at rest with the bundle's KMS key. Do not put secrets in
 # params; use the platform's secret management instead.
 locals {
-  environment_variables = {
-    LOG_LEVEL = "info"
-  }
+  environment_variables = merge(
+    {
+      LOG_LEVEL = "info"
+    },
+    local.has_gateway ? {
+      API_BASE_URL = var.gateway.endpoint
+    } : {},
+  )
 }

@@ -24,6 +24,10 @@ locals {
     for s in var.network.subnets : s.id if try(s.type, "private") == "private"
   ] : []
 
+  # Linking a gateway gives the function a public route. Left unlinked, the
+  # function is only reachable by whatever else is allowed to invoke it.
+  has_gateway = try(var.gateway.id, null) != null
+
   is_python          = startswith(var.runtime, "python")
   bootstrap_filename = local.is_python ? "index.py" : "index.js"
 
@@ -419,4 +423,44 @@ resource "aws_lambda_function" "main" {
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy.runtime,
   ]
+}
+
+################################################################################
+# Gateway routing
+#
+# Linking a gateway attaches this function to it. The function owns its own
+# route, so several functions can share one gateway without any of them owning
+# the gateway itself.
+################################################################################
+
+resource "aws_apigatewayv2_integration" "gateway" {
+  count = local.has_gateway ? 1 : 0
+
+  api_id                 = var.gateway.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.main.invoke_arn
+  payload_format_version = "2.0"
+
+  # API Gateway caps integrations at 30s regardless of the function's timeout.
+  timeout_milliseconds = min(var.timeout_seconds * 1000, 30000)
+}
+
+resource "aws_apigatewayv2_route" "gateway" {
+  count = local.has_gateway ? 1 : 0
+
+  api_id    = var.gateway.id
+  route_key = var.route_key
+  target    = "integrations/${aws_apigatewayv2_integration.gateway[0].id}"
+}
+
+# Without this the gateway gets a 500 on every request - the function refuses
+# invocations from a principal it has not been told to trust.
+resource "aws_lambda_permission" "gateway" {
+  count = local.has_gateway ? 1 : 0
+
+  statement_id  = "AllowInvokeFromHttpApi"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.main.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${var.gateway.execution_arn}/*/*"
 }

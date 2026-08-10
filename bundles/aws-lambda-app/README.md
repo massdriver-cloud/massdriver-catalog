@@ -33,6 +33,25 @@ public endpoint. When you link one, the function is placed in the private subnet
 outbound access — but note that reaching the public internet from there also requires the
 network to have a NAT gateway enabled.
 
+## Connecting a gateway
+
+Link an API gateway and this function becomes reachable on the internet. The function claims a
+route on that gateway and grants it permission to invoke.
+
+**Route** decides which requests reach this function:
+
+- `$default` — everything the gateway has no other match for. Use this when one function is the
+  whole application and does its own routing.
+- `GET /orders`, `POST /users` — a specific method and path. Use these when several functions
+  share one gateway and each owns part of the API.
+
+Two functions on the same gateway must not claim the same route. The second one to deploy will
+fail with a conflict.
+
+Leave the gateway unlinked for a function that runs on a schedule or reacts to events. It still
+deploys; it just has no public URL. When a gateway is linked, the function also receives
+`API_BASE_URL` as an environment variable.
+
 ## Connecting an asset bucket
 
 Link an asset bucket and the function receives its name and endpoint as environment variables

@@ -32,6 +32,16 @@ variable "enable_dead_letter_queue" {
   type    = bool
   default = false
 }
+variable "gateway" {
+  type = object({
+    endpoint      = string
+    execution_arn = string
+    id            = string
+    region        = optional(string)
+    stage         = optional(string)
+  })
+  default = null
+}
 variable "handler" {
   type = string
 }
@@ -88,6 +98,10 @@ variable "region" {
 variable "reserved_concurrency" {
   type    = number
   default = -1
+}
+variable "route_key" {
+  type    = string
+  default = "$default"
 }
 variable "runtime" {
   type = string

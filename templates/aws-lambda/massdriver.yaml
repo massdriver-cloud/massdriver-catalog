@@ -142,6 +142,21 @@ params:
       default: -1
       minimum: -1
       maximum: 1000
+    route_key:
+      title: Route
+      description: >
+        Which requests the gateway sends to this function. Use `$default` to receive everything
+        the gateway has no other match for. Use a method and path, like `GET /orders`, when
+        several functions share one gateway. Only used when a gateway is linked.
+      type: string
+      default: "$default"
+      pattern: ^(\$default|(ANY|GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /[^\s]*)$
+      message:
+        pattern: "Must be `$default`, or a method and path like `GET /orders` or `ANY /items/{proxy+}`."
+      examples:
+        - "$default"
+        - "GET /orders"
+        - "ANY /orders/{proxy+}"
     log_retention_days:
       title: Log Retention
       description: How long to keep function logs.
@@ -186,6 +201,9 @@ connections:
     network:
       $ref: virtual-network
       title: Virtual Network
+    gateway:
+      $ref: http-api
+      title: API Gateway
 {%- for conn in connections %}
     {{ conn.name }}:
       $ref: {{ conn.artifact_definition }}
@@ -207,6 +225,7 @@ ui:
     - runtime
     - handler
     - code_key
+    - route_key
     - memory_mb
     - timeout_seconds
     - reserved_concurrency
@@ -218,6 +237,8 @@ ui:
     ui:help: "Cannot be changed later."
   handler:
     ui:placeholder: "index.handler"
+  route_key:
+    ui:help: "Only used when a gateway is linked. `$default` catches everything the gateway cannot match elsewhere."
   code_key:
     ui:help: "Points at a zip in this function's code bucket. See the runbook for the sync command."
   timeout_seconds:
