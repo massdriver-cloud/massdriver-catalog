@@ -27,39 +27,6 @@ locals {
   # Linking a gateway gives the function a public route. Left unlinked, the
   # function is only reachable by whatever else is allowed to invoke it.
   has_gateway = try(var.gateway.id, null) != null
-
-  is_python          = startswith(var.runtime, "python")
-  bootstrap_filename = local.is_python ? "index.py" : "index.js"
-
-  bootstrap_python = <<-PY
-    import json
-
-
-    def handler(event, context):
-        return {
-            "statusCode": 200,
-            "headers": {"content-type": "application/json"},
-            "body": json.dumps(
-                {
-                    "message": "Placeholder function. Upload your code and set Code Object Key.",
-                    "function": "${local.function_name}",
-                }
-            ),
-        }
-  PY
-
-  bootstrap_node = <<-JS
-    exports.handler = async () => ({
-      statusCode: 200,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        message: "Placeholder function. Upload your code and set Code Object Key.",
-        function: "${local.function_name}",
-      }),
-    });
-  JS
-
-  bootstrap_content = local.is_python ? local.bootstrap_python : local.bootstrap_node
 }
 
 ################################################################################
@@ -230,25 +197,26 @@ resource "aws_s3_bucket_policy" "code" {
   depends_on = [aws_s3_bucket_public_access_block.code]
 }
 
-# A working placeholder so the function deploys before any real code exists.
-# Replace it by uploading a zip and pointing Code Object Key at it.
-data "archive_file" "bootstrap" {
+# The application code ships inside the bundle, so `mass bundle publish` is all
+# it takes to deliver new code. The provisioner holds the cloud credentials and
+# does the upload — the person writing the code never needs them.
+data "archive_file" "app" {
   type        = "zip"
-  output_path = "${path.module}/bootstrap.zip"
-
-  source {
-    filename = local.bootstrap_filename
-    content  = local.bootstrap_content
-  }
+  source_dir  = "${path.module}/app"
+  output_path = "${path.module}/app.zip"
 }
 
-resource "aws_s3_object" "bootstrap" {
+resource "aws_s3_object" "app" {
   bucket = aws_s3_bucket.code.id
-  key    = "bootstrap.zip"
-  source = data.archive_file.bootstrap.output_path
+
+  # The key contains a hash of the code, so every change lands as a new object
+  # and Lambda picks it up. Old versions stay for rollback.
+  key    = "app-${data.archive_file.app.output_md5}.zip"
+  source = data.archive_file.app.output_path
+
   # KMS-encrypted objects have no plain-MD5 etag, so change detection uses
   # source_hash instead.
-  source_hash = data.archive_file.bootstrap.output_md5
+  source_hash = data.archive_file.app.output_md5
   kms_key_id  = aws_kms_key.main.arn
 
   depends_on = [aws_s3_bucket_server_side_encryption_configuration.code]
@@ -388,7 +356,7 @@ resource "aws_lambda_function" "main" {
   publish       = true
 
   s3_bucket = aws_s3_bucket.code.id
-  s3_key    = var.code_key
+  s3_key    = var.code_source == "bundle" ? aws_s3_object.app.key : var.code_key
 
   kms_key_arn                    = aws_kms_key.main.arn
   reserved_concurrent_executions = var.reserved_concurrency
@@ -419,7 +387,7 @@ resource "aws_lambda_function" "main" {
   }
 
   depends_on = [
-    aws_s3_object.bootstrap,
+    aws_s3_object.app,
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy.runtime,
   ]

@@ -155,6 +155,44 @@ resource "aws_route_table_association" "private" {
 }
 
 ################################################################################
+# Service endpoints
+#
+# Without these, anything in a private subnet reaches S3 and DynamoDB over the
+# internet, which means it needs a NAT gateway to talk to them at all. Gateway
+# endpoints keep that traffic inside AWS and cost nothing, so they are always on.
+################################################################################
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = concat(
+    [aws_route_table.public.id],
+    aws_route_table.private[*].id,
+  )
+
+  tags = {
+    Name = "${local.name}-s3"
+  }
+}
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = concat(
+    [aws_route_table.public.id],
+    aws_route_table.private[*].id,
+  )
+
+  tags = {
+    Name = "${local.name}-dynamodb"
+  }
+}
+
+################################################################################
 # Flow logs
 ################################################################################
 

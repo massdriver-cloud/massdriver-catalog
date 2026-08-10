@@ -26,7 +26,11 @@ variable "aws_authentication" {
 }
 variable "code_key" {
   type    = string
-  default = "bootstrap.zip"
+  default = "app.zip"
+}
+variable "code_source" {
+  type    = string
+  default = "bundle"
 }
 variable "enable_dead_letter_queue" {
   type    = bool

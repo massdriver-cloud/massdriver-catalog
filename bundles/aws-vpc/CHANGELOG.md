@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Added gateway endpoints for S3 and DynamoDB, so workloads in private subnets
+  can reach those services without a NAT gateway. Both endpoint types are free.
+
 ## 0.1.0
 
 Initial release.

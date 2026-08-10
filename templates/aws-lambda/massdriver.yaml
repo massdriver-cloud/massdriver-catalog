@@ -95,13 +95,26 @@ params:
       pattern: ^[A-Za-z0-9_.\-/]+\.[A-Za-z0-9_]+$
       message:
         pattern: "Must be file.function, like index.handler."
+    code_source:
+      title: Where Your Code Comes From
+      description: >
+        Keep this on "Ships with the bundle" unless someone tells you otherwise. Your code lives
+        in the bundle's `src/app` folder and is delivered when you publish. The other option is
+        for build pipelines that upload a zip to the code bucket themselves.
+      type: string
+      default: "bundle"
+      oneOf:
+        - const: "bundle"
+          title: "Ships with the bundle — publish to deploy new code"
+        - const: "bucket"
+          title: "Uploaded to the code bucket — for CI pipelines"
     code_key:
       title: Code Object Key
       description: >
-        Name of the zip file in the code bucket to run. Upload new code under a new name and
-        change this field to release it — that way every deploy points at an exact artifact.
+        Name of the zip in the code bucket to run. Only used when code comes from the bucket.
+        Ignored when your code ships with the bundle.
       type: string
-      default: "bootstrap.zip"
+      default: "app.zip"
       pattern: ^[A-Za-z0-9!_.*'()/-]+\.zip$
       message:
         pattern: "Must be an object key ending in .zip."
@@ -186,6 +199,18 @@ params:
       type: boolean
       default: false
 
+dependencies:
+  code_source:
+    oneOf:
+      - properties:
+          code_source:
+            const: bundle
+      - properties:
+          code_source:
+            const: bucket
+        required:
+          - code_key
+
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:
@@ -224,6 +249,7 @@ ui:
     - region
     - runtime
     - handler
+    - code_source
     - code_key
     - route_key
     - memory_mb
@@ -239,8 +265,10 @@ ui:
     ui:placeholder: "index.handler"
   route_key:
     ui:help: "Only used when a gateway is linked. `$default` catches everything the gateway cannot match elsewhere."
+  code_source:
+    ui:help: "Leave this alone unless your team runs a build pipeline that pushes zips."
   code_key:
-    ui:help: "Points at a zip in this function's code bucket. See the runbook for the sync command."
+    ui:help: "Only used when code comes from the bucket."
   timeout_seconds:
     ui:widget: updown
   reserved_concurrency:

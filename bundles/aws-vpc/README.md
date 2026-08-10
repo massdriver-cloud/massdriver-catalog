@@ -12,6 +12,7 @@ like a database that is not open to the internet.
 - A public and a private subnet in each availability zone you asked for
 - An internet gateway, so anything in a public subnet can be reached
 - Optionally a NAT gateway, so functions in private subnets can call out to the internet
+- Free gateway endpoints for S3 and DynamoDB, so private workloads reach them without NAT
 - Flow logs written to CloudWatch, encrypted with their own KMS key
 - The default security group stripped of all rules, so nothing can accidentally rely on it
 
@@ -26,9 +27,11 @@ uses that range. You cannot change it after the network is created.
 Turning on **Allow Internet Access from Private Subnets** costs roughly $32/month plus data
 charges, and it is the single largest cost in this bundle.
 
-Leave it **off** if your functions only talk to AWS services such as S3, DynamoDB, or Secrets
-Manager. Turn it **on** if your functions call third-party APIs — a payment processor, an email
-service, an external webhook.
+Leave it **off** if your functions only talk to S3 or DynamoDB — this bundle already creates
+free gateway endpoints for those two, so they work from private subnets with no NAT at all.
+
+Turn it **on** if your functions call anything else: a third-party API, a payment processor, an
+email service, or other AWS services such as Secrets Manager, which have no free endpoint.
 
 ## What connects to this
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+Application code now ships inside the bundle.
+
+- Added `src/app`, packaged and uploaded by the provisioner on every deploy, so
+  shipping code needs no cloud credentials and no AWS CLI
+- Objects are named by a hash of the code, so each change is a distinct version
+- Added a `code_source` parameter; the previous bucket-upload flow is still
+  available for build pipelines via `code_key`
+- Removed the inline placeholder function in favour of a real, editable
+  `src/app/index.py`
+
 ## 0.2.0
 
 The function now owns its gateway route.

@@ -8,20 +8,33 @@ anything needing a persistent connection much less well.
 
 ## How code gets here
 
-This bundle creates a private S3 bucket that belongs to your function, and the function loads
-its code from that bucket. Shipping a new version is two steps:
+Your code lives in the bundle, in the `src/app` folder. To ship a change:
 
-1. Upload a zip of your code to the bucket under a new name, for example `app-v2.zip`
-2. Change **Code Object Key** to `app-v2.zip` and redeploy
+1. Edit the files in `src/app`
+2. `mass bundle publish --development`
+3. Deploy the component
 
-Uploading under a *new* name each time is deliberate. Every deploy points at an exact file, so
-you can see which build is running and roll back by pointing at the previous one.
+That is the whole loop. You do not need cloud credentials, the AWS CLI, or access to any
+bucket — the platform holds the credentials and does the upload for you.
 
-Until you upload anything, the function runs a placeholder that returns a small JSON message.
-That is expected on a first deploy — it means the infrastructure works and is waiting for your
-code.
+Behind the scenes the folder is zipped and stored under a name containing a hash of its
+contents, so each change lands as a separate version and older ones stay available to roll back
+to.
 
-The runbook has the exact upload command, with your bucket name filled in.
+### Adding libraries
+
+Install them into the same folder so they travel with your code:
+
+```bash
+pip install requests -t src/app
+```
+
+For Node, run `npm install --omit=dev` inside `src/app`.
+
+### If your team has a build pipeline
+
+Set **Where Your Code Comes From** to "Uploaded to the code bucket" and set **Code Object Key**
+to the zip your pipeline pushes. Most people should leave this alone.
 
 ## Connecting a network
 

@@ -8,30 +8,36 @@ templating: mustache
 
 ## Deploy new code
 
-Upload the zip under a new key, then set **Code Object Key** to that name and redeploy:
+Edit the files in the bundle's `src/app` folder, then:
 
 ```bash
-aws s3 cp ./app.zip s3://{{resources.function.code_bucket}}/app-$(git rev-parse --short HEAD).zip
+mass bundle publish --development
 ```
 
-Rolling back is the same move pointed at the previous key:
+Deploy the component afterwards. The provisioner packages the folder and uploads it; no cloud
+credentials are involved.
 
-```bash
-aws s3api list-object-versions --bucket {{resources.function.code_bucket}} \
-  --query 'Versions[].{Key:Key,Modified:LastModified}' --output table
-```
-
-## Function still returns the placeholder message
-
-The function is running `bootstrap.zip`, the placeholder shipped with the bundle. Check what
-**Code Object Key** points at, and confirm that object exists:
+To confirm which build is live, compare the function's code object against what is in the
+bucket:
 
 ```bash
 aws s3 ls s3://{{resources.function.code_bucket}}/
 ```
 
-If your zip is there but the function still serves the placeholder, the key in the form does
-not match the uploaded filename. They must match exactly, including any prefix.
+The object currently in use is `{{resources.function.code_key}}`. Older objects are previous
+builds — roll back by setting **Where Your Code Comes From** to the bucket and naming one.
+
+## Function still returns the old code
+
+Confirm the publish actually happened — a deploy reuses the last published bundle, so code
+edits that were never published will not appear:
+
+```bash
+mass bundle publish --development
+```
+
+Then deploy again. If the code object key in the resource panel does not change between
+deploys, the contents of `src/app` did not change, because the key is a hash of that folder.
 
 ## Deploy fails with an S3 or code error
 

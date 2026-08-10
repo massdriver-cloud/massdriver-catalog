@@ -4,7 +4,7 @@ description: >-
   subnets across multiple availability zones, flow logging, and optional internet access
   for functions that need to call the outside world.
 source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-vpc
-version: 0.1.0
+version: 0.2.0
 
 params:
   examples:
