@@ -12,6 +12,7 @@ The example below is a small REST API over the linked asset bucket. Replace it
 with whatever you are building.
 """
 
+import base64
 import json
 import os
 import uuid
@@ -28,6 +29,31 @@ def respond(status, body):
         "headers": {"content-type": "application/json"},
         "body": json.dumps(body),
     }
+
+
+def read_body(event):
+    """Return (data, error_response). Never raises on bad input.
+
+    Anything reachable from the internet gets sent junk eventually. Rejecting it
+    with a 400 is the difference between a clear error and a 500 that looks like
+    the service is broken.
+    """
+    raw = event.get("body") or "{}"
+    if event.get("isBase64Encoded"):
+        try:
+            raw = base64.b64decode(raw).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            return None, respond(400, {"error": "body could not be decoded"})
+
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None, respond(400, {"error": "body must be valid JSON"})
+
+    if not isinstance(data, dict):
+        return None, respond(400, {"error": "body must be a JSON object"})
+
+    return data, None
 
 
 def handler(event, context):
@@ -54,7 +80,11 @@ def handler(event, context):
         return respond(200, {"items": ids})
 
     if method == "POST" and item_id is None:
-        body = json.loads(event.get("body") or "{}")
+        # Validate before writing, so a bad request cannot leave a half-made
+        # item behind in the bucket.
+        body, error = read_body(event)
+        if error:
+            return error
         new_id = str(uuid.uuid4())
         s3.put_object(
             Bucket=BUCKET,
