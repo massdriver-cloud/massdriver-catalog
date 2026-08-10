@@ -2,6 +2,10 @@ skip-check:
   # Egress destinations are not knowable from inside this bundle — a function
   # must reach AWS service endpoints plus whatever the application calls.
   - CKV_AWS_382
+  # The security group is attached to the function through its vpc_config block.
+  # A plan-time scan cannot resolve that reference, so the check reports the
+  # group as orphaned when it is not.
+  - CKV2_AWS_5
   # Code signing requires an AWS Signer signing profile and signed artifacts,
   # neither of which this bundle creates.
   - CKV_AWS_272
