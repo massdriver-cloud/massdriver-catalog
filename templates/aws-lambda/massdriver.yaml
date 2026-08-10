@@ -1,0 +1,227 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+# Module Patterns: https://docs.massdriver.cloud/guides/module-patterns
+# Bundle Templates: https://docs.massdriver.cloud/guides/bundle-templates
+#
+# AWS Lambda scaffold.
+#
+# What you get out of the box:
+#   * A Lambda function whose code is read from a private S3 bucket this bundle
+#     owns, so deploying new code is a sync + a redeploy rather than a rebuild.
+#   * An optional virtual network connection. Link one and the function runs
+#     inside it; leave it unlinked and the function runs on the Lambda-managed
+#     network, which is the right default for most serverless work.
+#   * Encrypted logs, an execution role, and an optional dead-letter queue.
+#
+# Add your own params and connections below, then extend src/main.tf.
+
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.0.0
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+params:
+  examples:
+    - __name: Development
+      region: us-east-1
+      runtime: "python3.12"
+      handler: "index.handler"
+      memory_mb: 512
+      timeout_seconds: 30
+      log_retention_days: 365
+      enable_dead_letter_queue: false
+      tracing_enabled: false
+    - __name: Production
+      region: us-east-1
+      runtime: "python3.12"
+      handler: "index.handler"
+      memory_mb: 1024
+      timeout_seconds: 30
+      log_retention_days: 365
+      reserved_concurrency: 50
+      enable_dead_letter_queue: true
+      tracing_enabled: true
+  required:
+    - region
+    - runtime
+    - handler
+  properties:
+    region:
+      title: Region
+      description: AWS region the function runs in. Must match the network and buckets it uses.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-east-2"
+          title: "US East (Ohio)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+    runtime:
+      title: Runtime
+      description: Language and version your code is written for.
+      type: string
+      default: "python3.12"
+      oneOf:
+        - const: "python3.12"
+          title: "Python 3.12"
+        - const: "python3.11"
+          title: "Python 3.11"
+        - const: "nodejs20.x"
+          title: "Node.js 20"
+        - const: "nodejs22.x"
+          title: "Node.js 22"
+    handler:
+      title: Handler
+      description: >
+        The function inside your code that runs on each request, written as file.function.
+        For a Python file `index.py` with a `handler` function, this is `index.handler`.
+      type: string
+      default: "index.handler"
+      pattern: ^[A-Za-z0-9_.\-/]+\.[A-Za-z0-9_]+$
+      message:
+        pattern: "Must be file.function, like index.handler."
+    code_key:
+      title: Code Object Key
+      description: >
+        Name of the zip file in the code bucket to run. Upload new code under a new name and
+        change this field to release it — that way every deploy points at an exact artifact.
+      type: string
+      default: "bootstrap.zip"
+      pattern: ^[A-Za-z0-9!_.*'()/-]+\.zip$
+      message:
+        pattern: "Must be an object key ending in .zip."
+    memory_mb:
+      title: Memory
+      description: >
+        Memory available to the function. CPU scales with it, so raising this often makes
+        slow functions cheaper rather than more expensive.
+      type: integer
+      default: 512
+      oneOf:
+        - const: 128
+          title: "128 MB — trivial work"
+        - const: 256
+          title: "256 MB"
+        - const: 512
+          title: "512 MB — good starting point"
+        - const: 1024
+          title: "1 GB"
+        - const: 2048
+          title: "2 GB"
+        - const: 3008
+          title: "3 GB — heavy processing"
+    timeout_seconds:
+      title: Timeout
+      description: How long a single invocation may run before it is killed.
+      type: integer
+      default: 30
+      minimum: 1
+      maximum: 900
+    reserved_concurrency:
+      title: Maximum Concurrent Executions
+      description: >
+        Caps how many copies of this function run at once. Protects downstream databases from
+        being overwhelmed, and stops a runaway loop from consuming the whole account's capacity.
+        Leave at -1 for no limit.
+      type: integer
+      default: -1
+      minimum: -1
+      maximum: 1000
+    log_retention_days:
+      title: Log Retention
+      description: How long to keep function logs.
+      type: integer
+      default: 365
+      oneOf:
+        - const: 30
+          title: "30 days"
+        - const: 90
+          title: "90 days"
+        - const: 365
+          title: "1 year"
+        - const: 731
+          title: "2 years"
+    enable_dead_letter_queue:
+      title: Capture Failed Events
+      description: >
+        Sends events that fail every retry to a queue instead of dropping them, so you can
+        inspect and replay them. Only applies to background invocations, not to web requests.
+      type: boolean
+      default: false
+    tracing_enabled:
+      title: Request Tracing
+      description: >
+        Records a timeline of each request through AWS X-Ray. Useful when diagnosing slow
+        requests; adds a small per-request cost.
+      type: boolean
+      default: false
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+{%- for conn in connections %}
+    - {{ conn.name }}
+{%- endfor %}
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+    network:
+      $ref: virtual-network
+      title: Virtual Network
+{%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+{%- endfor %}
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - function
+  properties:
+    function:
+      $ref: serverless-function
+      title: Serverless Function
+
+ui:
+  ui:order:
+    - region
+    - runtime
+    - handler
+    - code_key
+    - memory_mb
+    - timeout_seconds
+    - reserved_concurrency
+    - log_retention_days
+    - enable_dead_letter_queue
+    - tracing_enabled
+    - "*"
+  region:
+    ui:help: "Cannot be changed later."
+  handler:
+    ui:placeholder: "index.handler"
+  code_key:
+    ui:help: "Points at a zip in this function's code bucket. See the runbook for the sync command."
+  timeout_seconds:
+    ui:widget: updown
+  reserved_concurrency:
+    ui:widget: updown
+    ui:help: "-1 means no limit. Set a real number before pointing production traffic at a database."

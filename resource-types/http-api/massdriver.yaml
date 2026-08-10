@@ -1,0 +1,48 @@
+name: http-api
+label: HTTP API
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/application/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: applications
+  instructions:
+    - label: AWS API Gateway
+      path: ./instructions/AWS API Gateway.md
+
+schema:
+  title: HTTP API
+  description: A public HTTP endpoint that routes requests to a backend. This is the URL people and other services actually call.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - endpoint
+  properties:
+    id:
+      title: API ID
+      description: Identifier of the API in the cloud provider.
+      type: string
+      minLength: 1
+    endpoint:
+      title: Endpoint
+      description: Base URL the API is served from. Append route paths to this.
+      type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
+      examples:
+        - "https://abc123.execute-api.us-east-1.amazonaws.com"
+    execution_arn:
+      title: Execution ARN
+      description: ARN used in invoke permissions so the API is allowed to call its backend.
+      type: string
+    stage:
+      title: Stage
+      description: Deployment stage the endpoint serves. `$default` means the URL has no stage path segment.
+      type: string
+      examples:
+        - "$default"
+    region:
+      title: Region
+      description: Cloud region the API is hosted in.
+      type: string

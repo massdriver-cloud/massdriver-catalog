@@ -1,0 +1,69 @@
+name: serverless-function
+label: Serverless Function
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/application/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: compute
+  instructions:
+    - label: AWS Lambda
+      path: ./instructions/AWS Lambda.md
+
+schema:
+  title: Serverless Function
+  description: A deployed function that something else can invoke — an API router, an event consumer, or a scheduled job.
+  type: object
+  additionalProperties: false
+  required:
+    - arn
+    - invoke_arn
+    - function_name
+  properties:
+    arn:
+      title: Function ARN
+      description: Full ARN of the function. Used when granting other services permission to invoke it.
+      type: string
+      minLength: 1
+      examples:
+        - "arn:aws:lambda:us-east-1:123456789012:function:my-api"
+    invoke_arn:
+      title: Invoke ARN
+      description: >
+        The ARN used as an integration target by callers such as an API gateway. This is not the
+        same string as the function ARN — it is the `apigateway:lambda:path/...` form.
+      type: string
+      minLength: 1
+    function_name:
+      title: Function Name
+      description: Name of the function. Callers need this to add an invoke permission.
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-zA-Z0-9-_]+$
+      message:
+        pattern: "Letters, digits, hyphens, and underscores only."
+    region:
+      title: Region
+      description: Cloud region the function runs in.
+      type: string
+      examples:
+        - "us-east-1"
+    role_arn:
+      title: Execution Role ARN
+      description: ARN of the IAM role the function runs as. Useful when granting it access to other resources.
+      type: string
+    runtime:
+      title: Runtime
+      description: Language runtime the function executes on.
+      type: string
+      examples:
+        - "python3.12"
+        - "nodejs20.x"
+    code_bucket:
+      title: Code Bucket
+      description: Name of the bucket the function's deployment package is read from. This is where new code gets synced.
+      type: string
+    code_key:
+      title: Code Object Key
+      description: Object key of the deployment package inside the code bucket.
+      type: string

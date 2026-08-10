@@ -1,0 +1,7 @@
+skip-check:
+  # Event notifications need a downstream consumer — an SNS topic, SQS queue, or
+  # function — to publish to. No such target exists within this bundle.
+  - CKV2_AWS_62
+  # Cross-region replication requires a destination bucket in a second region and
+  # a replication IAM role. Neither is created by this bundle.
+  - CKV_AWS_144

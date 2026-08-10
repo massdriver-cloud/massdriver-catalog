@@ -1,0 +1,209 @@
+name: aws-asset-bucket
+description: >-
+  An S3 bucket for the files your application serves or stores — images, uploads, exports,
+  static assets. Encrypted, versioned, and private by default, with browser upload support
+  and lifecycle rules to keep old files from piling up costs.
+source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-asset-bucket
+version: 0.1.0
+
+params:
+  examples:
+    - __name: User uploads
+      region: us-east-1
+      bucket_name: "user-uploads"
+      versioning_enabled: true
+      cors_allowed_origins: []
+      lifecycle_rules: []
+    - __name: Browser uploads (direct from a web app)
+      region: us-east-1
+      bucket_name: "web-assets"
+      versioning_enabled: true
+      cors_allowed_origins:
+        - "https://example.com"
+      lifecycle_rules: []
+    - __name: Cost-managed archive
+      region: us-east-1
+      bucket_name: "exports"
+      versioning_enabled: true
+      cors_allowed_origins: []
+      lifecycle_rules:
+        - transition_after_days: 30
+          storage_class: "STANDARD_IA"
+        - transition_after_days: 180
+          storage_class: "GLACIER_IR"
+      expire_noncurrent_after_days: 90
+  required:
+    - region
+    - bucket_name
+  properties:
+    region:
+      title: Region
+      description: AWS region the bucket lives in. Keep it the same as the workloads that read from it to avoid transfer charges.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-east-2"
+          title: "US East (Ohio)"
+        - const: "us-west-1"
+          title: "US West (N. California)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-1"
+          title: "Asia Pacific (Singapore)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+        - const: "ap-northeast-1"
+          title: "Asia Pacific (Tokyo)"
+    bucket_name:
+      title: Bucket Name
+      description: >
+        A short name describing what the bucket holds. A unique suffix is added automatically,
+        because S3 bucket names must be unique across all of AWS. Cannot be renamed later.
+      type: string
+      minLength: 3
+      maxLength: 40
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "3–40 lowercase letters, digits, or hyphens. Must start and end with a letter or digit."
+      $md.immutable: true
+      examples:
+        - "user-uploads"
+        - "report-exports"
+    versioning_enabled:
+      title: Keep Old Versions
+      description: >
+        Keeps a copy of every file that gets overwritten or deleted, so you can recover from a
+        bad deploy or an accidental delete. Recommended.
+      type: boolean
+      default: true
+    expire_noncurrent_after_days:
+      title: Delete Old Versions After
+      description: >
+        How long to keep those old versions before deleting them permanently. Without this,
+        overwritten files accumulate forever and you pay to store all of them.
+      type: integer
+      default: 90
+      minimum: 1
+      maximum: 3650
+    cors_allowed_origins:
+      title: Browser Origins Allowed to Upload
+      description: >
+        Only needed if a web page uploads to or downloads from this bucket directly. List the
+        exact sites, like https://example.com. Leave empty if only your backend touches it.
+      type: array
+      default: []
+      maxItems: 20
+      uniqueItems: true
+      items:
+        type: string
+        pattern: ^https?://[^\s]+$
+        message:
+          pattern: "Must be a full origin, like https://example.com."
+    lifecycle_rules:
+      title: Move Old Files to Cheaper Storage
+      description: >
+        Files that are rarely read cost less in colder storage tiers. Each rule says how old a
+        file must be before it moves.
+      type: array
+      default: []
+      maxItems: 5
+      uniqueItems: true
+      items:
+        type: object
+        required:
+          - transition_after_days
+          - storage_class
+        properties:
+          transition_after_days:
+            title: Move After (days)
+            type: integer
+            minimum: 1
+            maximum: 3650
+          storage_class:
+            title: Move To
+            type: string
+            oneOf:
+              - const: "STANDARD_IA"
+                title: "Infrequent Access — cheaper storage, costs more to read"
+              - const: "GLACIER_IR"
+                title: "Glacier Instant Retrieval — much cheaper, still instant reads"
+              - const: "GLACIER"
+                title: "Glacier Flexible — cheapest, minutes to hours to restore"
+              - const: "DEEP_ARCHIVE"
+                title: "Deep Archive — lowest cost, up to 12 hours to restore"
+
+dependencies:
+  versioning_enabled:
+    oneOf:
+      - properties:
+          versioning_enabled:
+            const: false
+      - properties:
+          versioning_enabled:
+            const: true
+        required:
+          - expire_noncurrent_after_days
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - bucket
+  properties:
+    bucket:
+      $ref: object-storage
+      title: Object Storage
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - bucket_name
+    - versioning_enabled
+    - expire_noncurrent_after_days
+    - cors_allowed_origins
+    - lifecycle_rules
+    - "*"
+  bucket_name:
+    ui:placeholder: "user-uploads"
+    ui:help: "Describe the contents, not the environment — the environment is already in the generated name."
+  versioning_enabled:
+    ui:help: "Cheap insurance against overwrites, bad deploys, and ransomware."
+  expire_noncurrent_after_days:
+    ui:widget: updown
+  cors_allowed_origins:
+    ui:help: "Leave empty unless a browser talks to this bucket directly. Avoid wildcards."
+  lifecycle_rules:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+    items:
+      ui:order:
+        - transition_after_days
+        - storage_class
+      transition_after_days:
+        ui:widget: updown

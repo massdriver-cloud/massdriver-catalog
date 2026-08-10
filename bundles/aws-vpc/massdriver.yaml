@@ -1,0 +1,149 @@
+name: aws-vpc
+description: >-
+  A private network for your serverless workloads. Creates a VPC with public and private
+  subnets across multiple availability zones, flow logging, and optional internet access
+  for functions that need to call the outside world.
+source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-vpc
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Serverless (no internet egress)
+      region: us-east-1
+      cidr: "10.0.0.0/16"
+      az_count: 2
+      enable_nat_gateway: false
+      flow_log_retention_days: 365
+    - __name: Serverless with internet access
+      region: us-east-1
+      cidr: "10.0.0.0/16"
+      az_count: 2
+      enable_nat_gateway: true
+      flow_log_retention_days: 365
+    - __name: Production (three zones, long log retention)
+      region: us-east-1
+      cidr: "10.0.0.0/16"
+      az_count: 3
+      enable_nat_gateway: true
+      flow_log_retention_days: 731
+  required:
+    - region
+    - cidr
+    - az_count
+  properties:
+    region:
+      title: Region
+      description: AWS region this network lives in. Everything that attaches to it must be in the same region.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-east-2"
+          title: "US East (Ohio)"
+        - const: "us-west-1"
+          title: "US West (N. California)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-1"
+          title: "Asia Pacific (Singapore)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+        - const: "ap-northeast-1"
+          title: "Asia Pacific (Tokyo)"
+    cidr:
+      title: Address Range
+      description: >
+        The block of private IP addresses this network owns, in CIDR notation. Pick a range that
+        does not overlap any other network you might connect to later. Cannot be changed after creation.
+      type: string
+      default: "10.0.0.0/16"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/(1[6-9]|2[0-4])$
+      message:
+        pattern: "Must be an IPv4 CIDR block between /16 and /24, like 10.0.0.0/16."
+      $md.immutable: true
+      examples:
+        - "10.0.0.0/16"
+        - "172.16.0.0/16"
+    az_count:
+      title: Availability Zones
+      description: >
+        How many separate zones to spread subnets across. Two is enough for most workloads;
+        three costs more but survives losing a whole zone with capacity to spare.
+      type: integer
+      default: 2
+      minimum: 2
+      maximum: 3
+    enable_nat_gateway:
+      title: Allow Internet Access from Private Subnets
+      description: >
+        Turn this on if your functions need to call things on the public internet, like a third-party
+        API. It adds a NAT gateway, which costs roughly $32/month plus data charges. Leave it off if
+        your functions only talk to AWS services.
+      type: boolean
+      default: false
+    flow_log_retention_days:
+      title: Flow Log Retention
+      description: How long to keep network traffic logs. Many compliance regimes require at least a year.
+      type: integer
+      default: 365
+      oneOf:
+        - const: 30
+          title: "30 days"
+        - const: 90
+          title: "90 days"
+        - const: 365
+          title: "1 year"
+        - const: 731
+          title: "2 years"
+        - const: 1827
+          title: "5 years"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - network
+  properties:
+    network:
+      $ref: virtual-network
+      title: Virtual Network
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - cidr
+    - az_count
+    - enable_nat_gateway
+    - flow_log_retention_days
+    - "*"
+  region:
+    ui:help: "Cannot be changed later. Moving regions means building a new network and migrating onto it."
+  cidr:
+    ui:help: "A /16 gives you about 65,000 addresses and room to grow. Stick with the default unless you are connecting to an existing network."
+  az_count:
+    ui:widget: updown
+  enable_nat_gateway:
+    ui:help: "The single biggest cost in this bundle. Off by default because most serverless functions never need it."

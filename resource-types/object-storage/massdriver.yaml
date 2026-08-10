@@ -8,10 +8,6 @@ ui:
   instructions:
     - label: AWS S3
       path: ./instructions/AWS S3.md
-    - label: Azure Blob Storage
-      path: ./instructions/Azure Blob Storage.md
-    - label: GCP Cloud Storage
-      path: ./instructions/GCP Cloud Storage.md
 
 schema:
   title: Object Storage

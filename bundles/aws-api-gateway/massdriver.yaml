@@ -1,0 +1,146 @@
+name: aws-api-gateway
+description: >-
+  Puts your function on the public internet at an HTTPS URL. Every request that arrives is
+  forwarded to the function you link, with request logging, rate limiting, and optional
+  browser access rules.
+source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-api-gateway
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Internal API
+      region: us-east-1
+      throttle_rate_limit: 100
+      throttle_burst_limit: 200
+      cors_allowed_origins: []
+      log_retention_days: 365
+    - __name: Public API for a web app
+      region: us-east-1
+      throttle_rate_limit: 500
+      throttle_burst_limit: 1000
+      cors_allowed_origins:
+        - "https://example.com"
+      log_retention_days: 365
+    - __name: High traffic
+      region: us-east-1
+      throttle_rate_limit: 5000
+      throttle_burst_limit: 10000
+      cors_allowed_origins: []
+      log_retention_days: 731
+  required:
+    - region
+  properties:
+    region:
+      title: Region
+      description: AWS region the endpoint is served from. Must match the function it forwards to.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-east-2"
+          title: "US East (Ohio)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+    throttle_rate_limit:
+      title: Requests Per Second
+      description: >
+        Sustained request rate allowed. Requests beyond this get a 429 response. This protects
+        your function, and your bill, from traffic spikes and abuse.
+      type: integer
+      default: 100
+      minimum: 1
+      maximum: 10000
+    throttle_burst_limit:
+      title: Burst Allowance
+      description: >
+        How many requests may arrive at once above the sustained rate. Set it to roughly twice
+        the rate limit so short spikes are absorbed rather than rejected.
+      type: integer
+      default: 200
+      minimum: 1
+      maximum: 20000
+    cors_allowed_origins:
+      title: Browser Origins Allowed to Call This API
+      description: >
+        Only needed when a web page calls this API from a different domain. List the exact
+        sites, like https://example.com. Leave empty if only servers or mobile apps call it.
+      type: array
+      default: []
+      maxItems: 20
+      uniqueItems: true
+      items:
+        type: string
+        pattern: ^https?://[^\s]+$
+        message:
+          pattern: "Must be a full origin, like https://example.com."
+    log_retention_days:
+      title: Access Log Retention
+      description: How long to keep the record of requests hitting this endpoint.
+      type: integer
+      default: 365
+      oneOf:
+        - const: 30
+          title: "30 days"
+        - const: 90
+          title: "90 days"
+        - const: 365
+          title: "1 year"
+        - const: 731
+          title: "2 years"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+    - function
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+    function:
+      $ref: serverless-function
+      title: Backend Function
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - api
+  properties:
+    api:
+      $ref: http-api
+      title: HTTP API
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - throttle_rate_limit
+    - throttle_burst_limit
+    - cors_allowed_origins
+    - log_retention_days
+    - "*"
+  region:
+    ui:help: "Cannot be changed later. Must match the region of the function you link."
+  throttle_rate_limit:
+    ui:widget: updown
+    ui:help: "A function with no limit in front of it is an open invitation to a surprise bill."
+  throttle_burst_limit:
+    ui:widget: updown
+  cors_allowed_origins:
+    ui:help: "Leave empty unless a browser on another domain calls this API."

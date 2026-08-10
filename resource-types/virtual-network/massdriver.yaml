@@ -8,10 +8,6 @@ ui:
   instructions:
     - label: AWS VPC
       path: ./instructions/AWS VPC.md
-    - label: Azure VNet
-      path: ./instructions/Azure VNet.md
-    - label: GCP VPC
-      path: ./instructions/GCP VPC.md
 
 schema:
   title: Virtual Network
