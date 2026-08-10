@@ -1,0 +1,42 @@
+name: static-website
+label: Static Website
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/application/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: applications
+  instructions:
+    - label: AWS CloudFront
+      path: ./instructions/AWS CloudFront.md
+
+schema:
+  title: Static Website
+  description: A published website served over HTTPS from a content delivery network.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - url
+  properties:
+    id:
+      title: Distribution ID
+      description: Identifier of the content delivery distribution serving the site.
+      type: string
+      minLength: 1
+    url:
+      title: URL
+      description: The address people visit to reach the site.
+      type: string
+      pattern: ^https://
+      message:
+        pattern: "Must be an https:// URL."
+      examples:
+        - "https://d111111abcdef8.cloudfront.net"
+    bucket:
+      title: Content Bucket
+      description: Name of the bucket holding the site's files.
+      type: string
+    region:
+      title: Region
+      description: Cloud region the content bucket lives in.
+      type: string

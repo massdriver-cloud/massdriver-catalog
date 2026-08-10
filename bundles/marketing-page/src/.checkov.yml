@@ -1,0 +1,15 @@
+skip-check:
+  # The content bucket holds files that are served to the public by design, so a
+  # customer-managed key protects nothing and would need extra grants for the
+  # delivery network to read through. S3-managed encryption is still applied.
+  - CKV_AWS_145
+  # Event notifications need a downstream consumer — an SNS topic, SQS queue, or
+  # function — to publish to. No such target exists within this bundle.
+  - CKV2_AWS_62
+  # Cross-region replication requires a destination bucket in a second region and
+  # a replication IAM role. Neither is created by this bundle.
+  - CKV_AWS_144
+  # A web application firewall is a separate subscription and its rules belong to
+  # the security team, not to an individual site.
+  - CKV2_AWS_47
+  - CKV_AWS_68

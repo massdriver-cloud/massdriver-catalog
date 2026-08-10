@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>New site</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: Canvas;
+        color: CanvasText;
+      }
+      main { max-width: 34rem; padding: 2rem; }
+      h1 { font-size: 1.6rem; margin: 0 0 0.75rem; }
+      p { margin: 0 0 1rem; opacity: 0.85; }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        background: color-mix(in srgb, CanvasText 10%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Your site is live.</h1>
+      <p>
+        This page is being served over HTTPS from an AWS address. You did not have to buy a
+        domain or set up a certificate.
+      </p>
+      <p>
+        Edit <code>src/site/index.html</code>, run <code>mass bundle publish --development</code>,
+        and deploy. Add as many files as you like — they all get published.
+      </p>
+    </main>
+  </body>
+</html>

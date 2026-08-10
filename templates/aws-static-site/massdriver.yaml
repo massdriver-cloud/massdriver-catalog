@@ -1,0 +1,141 @@
+# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
+#
+# AWS static website scaffold.
+#
+# Stamp one of these per site:
+#
+#   mass bundle new -n marketing-page -t aws-static-site
+#
+# Put your HTML in src/site, publish, and deploy. You get an HTTPS address on an
+# AWS domain — no domain to buy, no certificate to set up, no cloud credentials.
+
+name: "{{ name }}"
+description: "{{ description }}"
+source_url: https://github.com/YOUR_ORG/YOUR_REPO/tree/main/bundles/{{ name }}
+version: 0.1.0
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+params:
+  examples:
+    - __name: Simple page
+      region: us-east-1
+      single_page_app: false
+      cache_seconds: 3600
+      price_class: "PriceClass_100"
+    - __name: Single page app
+      region: us-east-1
+      single_page_app: true
+      cache_seconds: 300
+      price_class: "PriceClass_100"
+    - __name: Global audience
+      region: us-east-1
+      single_page_app: false
+      cache_seconds: 86400
+      price_class: "PriceClass_All"
+  required:
+    - region
+  properties:
+    region:
+      title: Region
+      description: >
+        Where your files are stored. Visitors are served from a location near them regardless,
+        so this mostly affects how quickly you can publish updates.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+    single_page_app:
+      title: Single Page App
+      description: >
+        Turn this on if your site is built with React, Vue, or similar, where the browser handles
+        the address bar. Missing addresses are then served your index page instead of an error,
+        which is what those frameworks expect. Leave it off for ordinary HTML pages.
+      type: boolean
+      default: false
+    cache_seconds:
+      title: How Long Visitors Cache Pages
+      description: >
+        Longer caching makes the site faster and cheaper, but means an update can take that long
+        to reach someone who already visited. An hour suits most sites.
+      type: integer
+      default: 3600
+      oneOf:
+        - const: 60
+          title: "1 minute — while actively editing"
+        - const: 300
+          title: "5 minutes"
+        - const: 3600
+          title: "1 hour — a good default"
+        - const: 86400
+          title: "1 day — for content that rarely changes"
+    price_class:
+      title: Where To Serve From
+      description: >
+        Serving from more places is faster for distant visitors and costs more. Start small;
+        the difference only matters once you have an audience outside your own region.
+      type: string
+      default: "PriceClass_100"
+      oneOf:
+        - const: "PriceClass_100"
+          title: "North America and Europe — cheapest"
+        - const: "PriceClass_200"
+          title: "Adds Asia, the Middle East, and Africa"
+        - const: "PriceClass_All"
+          title: "Everywhere, including South America and Oceania"
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+{%- for conn in connections %}
+    - {{ conn.name }}
+{%- endfor %}
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+{%- for conn in connections %}
+    {{ conn.name }}:
+      $ref: {{ conn.artifact_definition }}
+{%- endfor %}
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - site
+  properties:
+    site:
+      $ref: static-website
+      title: Static Website
+
+ui:
+  ui:order:
+    - region
+    - single_page_app
+    - cache_seconds
+    - price_class
+    - "*"
+  region:
+    ui:help: "Cannot be changed later."
+  single_page_app:
+    ui:help: "React, Vue, Svelte and friends need this on. A plain HTML site does not."
+  cache_seconds:
+    ui:help: "Lower this while you are iterating, raise it once the site settles."
