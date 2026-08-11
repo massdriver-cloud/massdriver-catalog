@@ -89,3 +89,10 @@ schema:
       pattern: ^https://.*$
       examples:
         - https://www.googleapis.com/robot/v1/metadata/x509/my-service-account%40my-project.iam.gserviceaccount.com
+    universe_domain:
+      title: Universe Domain
+      description: Google Cloud universe the credential authenticates against. Keys issued before this field existed omit it; the default is correct for public GCP.
+      type: string
+      default: googleapis.com
+      examples:
+        - googleapis.com

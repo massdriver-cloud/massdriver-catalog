@@ -478,6 +478,170 @@ make all
 
    **Publishing** makes your resource types and bundles available in your Massdriver instance. Once published, you'll see them in the Massdriver UI and can add them to your environment canvases.
 
+## Setting Up GCP
+
+End-to-end walkthrough for connecting a Google Cloud project to Massdriver: install the CLI, create a GCP service account, point the CLI at your organization, publish the GCP platform resource type, and load the credential into Massdriver.
+
+Substitute your own values for these throughout:
+
+| Placeholder | Meaning | Example |
+| --- | --- | --- |
+| `PROJECT_ID` | GCP project ID (not the display name, not the number) | `cory-sandbox-362007` |
+| `ORG_ID` | Massdriver organization ID, visible in the app URL | `the-aspen-group` |
+
+### 1. Install the Mass CLI
+
+```bash
+brew install massdriver
+```
+
+Alternatives: [pre-built binaries](https://github.com/massdriver-cloud/mass/releases) or `go install github.com/massdriver-cloud/mass`.
+
+Confirm you're on v2 — both the CLI and the server it's talking to:
+
+```bash
+mass version
+```
+
+### 2. Configure the CLI
+
+The CLI reads `~/.config/massdriver/config.yaml`. Create it if it doesn't exist:
+
+```yaml
+version: 1
+profiles:
+  default:
+    organization_id: ORG_ID
+    api_key: md_your_service_account_key_here
+    templates_path: /absolute/path/to/this/repo/templates
+```
+
+Get the API key from your Massdriver organization settings by creating a **service account**. `templates_path` is optional — set it if you want `mass bundle new` to use this repo's `templates/` directory.
+
+You can define more than one profile and switch between them with `MASSDRIVER_PROFILE`:
+
+```yaml
+profiles:
+  default:
+    organization_id: ORG_ID
+    api_key: md_...
+  staging:
+    organization_id: OTHER_ORG_ID
+    api_key: md_...
+```
+
+```bash
+MASSDRIVER_PROFILE=staging mass whoami
+```
+
+**Always confirm which organization you're operating on before publishing:**
+
+```bash
+mass whoami
+```
+
+```
+🤖 Service account
+   ID:   188fc62f-7007-443f-9ceb-acd8b73eb74e
+   Name: Catalog Publisher
+   Organization: The Aspen Group (the-aspen-group)
+```
+
+> [!WARNING]
+> `mass whoami` is the authority on which organization a command will affect. If you have multiple profiles, or an editor/AI plugin configured with its own separate API key, they can point at **different organizations than your CLI default**. Publishing into the wrong org is silent — it succeeds, it just lands somewhere you didn't intend. Check `mass whoami` first.
+
+If publish later fails with `You do not have permission to...`, the service account is authenticated but has no policies. Add it to a group: **Settings → Groups → Organization Admin → Service Accounts**. A brand-new organization does not place service accounts into any group automatically.
+
+### 3. Create the GCP service account
+
+Massdriver assumes a GCP service account to manage infrastructure in your project. All of this is in the Google Cloud Console — no `gcloud` install required.
+
+**Enable the required APIs.** Open the link below, confirm the correct project is selected at the top of the page, and click **Enable**. This enables everything the Cloud Run stack needs — Cloud Run, Artifact Registry, VPC, Cloud SQL, Secret Manager, and Cloud Storage — in one pass:
+
+```
+https://console.cloud.google.com/flows/enableapi?apiid=run.googleapis.com,artifactregistry.googleapis.com,cloudresourcemanager.googleapis.com,iam.googleapis.com,iamcredentials.googleapis.com,compute.googleapis.com,servicenetworking.googleapis.com,vpcaccess.googleapis.com,sqladmin.googleapis.com,secretmanager.googleapis.com,storage.googleapis.com&project=PROJECT_ID
+```
+
+Enabling takes a minute or two.
+
+**Create the service account** at `https://console.cloud.google.com/iam-admin/serviceaccounts/create?project=PROJECT_ID`:
+
+1. **Name:** `massdriver` — the account ID fills in automatically. Click **Create and continue**.
+2. **Grant access:** in the role dropdown, select **Owner**. Click **Continue**.
+3. Leave the user-access section empty. Click **Done**.
+
+**Create a key:**
+
+1. From the service accounts list, click `massdriver@PROJECT_ID.iam.gserviceaccount.com`.
+2. Open the **Keys** tab → **Add key** → **Create new key**.
+3. Choose **JSON** → **Create**. The file downloads automatically.
+
+> [!CAUTION]
+> That JSON file is a long-lived credential with **owner** access to the entire GCP project. Never commit it to this repository. Delete it from your Downloads folder once it's uploaded to Massdriver.
+
+> [!NOTE]
+> **On `roles/owner`:** owner is the simplest starting posture and is what gets you running fastest. It is broader than most organizations want long-term. Once you know which bundles you're actually deploying, narrow the service account to the specific roles those bundles need (for the Cloud Run stack: `roles/run.admin`, `roles/artifactregistry.admin`, `roles/cloudsql.admin`, `roles/compute.networkAdmin`, `roles/secretmanager.admin`, `roles/iam.serviceAccountAdmin`, `roles/storage.admin`).
+
+### 4. Publish the GCP platform resource type
+
+Platform credentials are resource types, and in Massdriver v2 every resource type is published into an OCI repository that must exist first:
+
+```bash
+mass repository create gcp-service-account -t resource-type
+mass resource-type publish platforms/gcp/massdriver.yaml
+```
+
+Or via the Makefile, which handles repository creation for you:
+
+```bash
+make publish-platforms ENABLED_PLATFORMS=gcp
+```
+
+Expected output:
+
+```
+✅ Repository `gcp-service-account` created (type: resource-type)
+Resource type GCP Service Account published successfully!
+```
+
+`mass repository create` is safe to re-run — if the repository already exists it exits non-zero and the Makefile ignores it.
+
+### 5. Load the credential into Massdriver
+
+> [!IMPORTANT]
+> **For GCP, use the CLI — not the UI dropzone.** The web uploader currently mangles the GCP key JSON on the way in (the `private_key` field is a PEM block containing literal `\n` escapes, and round-tripping it through the form breaks the key). A credential imported through the UI will look fine and then fail at deploy time with an authentication error. Import it with `mass resource create` instead. Other platforms are unaffected — this is specific to the GCP key format.
+
+The key file Google gave you already matches the `gcp-service-account` schema field-for-field, so it can be imported as-is:
+
+```bash
+mass resource create \
+  -n my-gcp-project \
+  -t gcp-service-account \
+  -f ~/Downloads/PROJECT_ID-abc123.json
+```
+
+- `-n` — the name this credential appears under in Massdriver. Use something that identifies the GCP project it grants access to.
+- `-t` — the resource type published in step 4.
+- `-f` — path to the JSON key downloaded in step 3.
+
+Verify it landed in the right organization:
+
+```bash
+mass resource list
+```
+
+If the resource type isn't found, step 4 didn't land in this organization — re-check `mass whoami`.
+
+Once imported, the credential shows up in the Massdriver UI at `https://app.massdriver.cloud/orgs/ORG_ID/` under **Credentials**, is available as an environment default, and can be attached to any environment in this organization.
+
+Delete the local JSON key file once the import succeeds.
+
+<!-- WIP-HERE -->
+### 6. Deploy the Cloud Run stack
+
+> [!NOTE]
+> **🚧 Work in progress.** The GCP bundles and resource types for the Cloud Run stack are being built on the `gcp-cloud-run` branch. This section will cover creating a project, adding bundles to the canvas, connecting them, and deploying.
+
 ## Workflow
 
 This catalog is designed for a three-phase approach: model your architecture, implement the infrastructure code, then continuously improve.
