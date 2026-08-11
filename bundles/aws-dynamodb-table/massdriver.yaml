@@ -1,0 +1,205 @@
+name: aws-dynamodb-table
+description: >-
+  A DynamoDB table for the records your application looks up by key — sessions, user profiles,
+  orders, feature flags, event logs. Encrypted, backed up continuously, and billed only for
+  what you actually read and write.
+source_url: https://github.com/massdriver-cloud/catalog/tree/main/bundles/aws-dynamodb-table
+version: 0.1.0
+
+params:
+  examples:
+    - __name: Simple lookup table
+      region: us-east-1
+      table_name: "user-profiles"
+      partition_key: "pk"
+      sort_key: ""
+      point_in_time_recovery: true
+      ttl_attribute: ""
+      deletion_protection: false
+    - __name: Records grouped under one key
+      region: us-east-1
+      table_name: "orders"
+      partition_key: "customer_id"
+      sort_key: "order_id"
+      point_in_time_recovery: true
+      ttl_attribute: ""
+      deletion_protection: false
+    - __name: Sessions that expire on their own
+      region: us-east-1
+      table_name: "sessions"
+      partition_key: "session_id"
+      sort_key: ""
+      point_in_time_recovery: false
+      ttl_attribute: "expires_at"
+      deletion_protection: false
+    - __name: Production records worth protecting
+      region: us-east-1
+      table_name: "ledger"
+      partition_key: "account_id"
+      sort_key: "entry_id"
+      point_in_time_recovery: true
+      ttl_attribute: ""
+      deletion_protection: true
+  required:
+    - region
+    - table_name
+    - partition_key
+  properties:
+    region:
+      title: Region
+      description: AWS region the table lives in. Keep it the same as the workloads that read from it — every cross-region read costs extra time and money.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "US East (N. Virginia)"
+        - const: "us-east-2"
+          title: "US East (Ohio)"
+        - const: "us-west-1"
+          title: "US West (N. California)"
+        - const: "us-west-2"
+          title: "US West (Oregon)"
+        - const: "eu-west-1"
+          title: "Europe (Ireland)"
+        - const: "eu-central-1"
+          title: "Europe (Frankfurt)"
+        - const: "ap-southeast-1"
+          title: "Asia Pacific (Singapore)"
+        - const: "ap-southeast-2"
+          title: "Asia Pacific (Sydney)"
+        - const: "ap-northeast-1"
+          title: "Asia Pacific (Tokyo)"
+    table_name:
+      title: Table Name
+      description: >
+        A short name describing what the table holds, like `orders` or `sessions`. A unique
+        suffix is added automatically so the same name can be used in more than one environment.
+        Cannot be renamed later.
+      type: string
+      minLength: 3
+      maxLength: 40
+      pattern: ^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "3–40 letters, digits, underscores, dots, or hyphens."
+      $md.immutable: true
+      examples:
+        - "user-profiles"
+        - "orders"
+    partition_key:
+      title: Partition Key
+      description: >
+        The attribute every record is filed under and looked up by, like `customer_id`. Your
+        application must set it on every write, and know it to read a record back. Choose
+        something with many different values so the records spread evenly. Cannot be changed
+        later.
+      type: string
+      default: "pk"
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "Letters, digits, underscores, dots, or hyphens."
+      $md.immutable: true
+      examples:
+        - "pk"
+        - "customer_id"
+    sort_key:
+      title: Sort Key
+      description: >
+        Optional second part of the key. Use it when one partition key holds many records you
+        want in order — every order for a customer, every event for a device. Leave it empty
+        when each key points at exactly one record. Cannot be changed later.
+      type: string
+      default: ""
+      maxLength: 255
+      pattern: ^$|^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "Letters, digits, underscores, dots, or hyphens — or leave it empty."
+      $md.immutable: true
+      examples:
+        - "sk"
+        - "created_at"
+    point_in_time_recovery:
+      title: Continuous Backups
+      description: >
+        Keeps a rolling 35-day history of the table so you can restore it to any second in that
+        window after a bad deploy or a bad script. Recommended.
+      type: boolean
+      default: true
+    ttl_attribute:
+      title: Expire Records Using
+      description: >
+        Name of an attribute holding a Unix timestamp. Records are deleted for free shortly
+        after that time passes — useful for sessions, carts, and caches. Leave empty to keep
+        records until something deletes them.
+      type: string
+      default: ""
+      maxLength: 255
+      pattern: ^$|^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "Letters, digits, underscores, dots, or hyphens — or leave it empty."
+      examples:
+        - "expires_at"
+        - "ttl"
+    deletion_protection:
+      title: Block Accidental Deletion
+      description: >
+        Refuses to delete the table until someone turns this off. Turn it on for data you cannot
+        recreate. Note that decommissioning this resource will fail while it is on.
+      type: boolean
+      default: false
+
+# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
+# `connections:` until a backward-compatible rename ships.
+connections:
+  required:
+    - aws_authentication
+  properties:
+    aws_authentication:
+      $ref: aws-iam-role
+      title: AWS Credentials
+
+# v2: shown in the product as "resources". The key in massdriver.yaml stays
+# `artifacts:` until a backward-compatible rename ships.
+artifacts:
+  required:
+    - table
+  properties:
+    table:
+      $ref: key-value-table
+      title: Key-Value Table
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - region
+    - table_name
+    - partition_key
+    - sort_key
+    - point_in_time_recovery
+    - ttl_attribute
+    - deletion_protection
+    - "*"
+  table_name:
+    ui:placeholder: "orders"
+    ui:help: "Describe the contents, not the environment — the environment is already in the generated name."
+  partition_key:
+    ui:placeholder: "pk"
+    ui:help: "Pick an attribute with many distinct values, like a user or order ID. A value shared by most records makes one slice of the table hot and slow."
+  sort_key:
+    ui:placeholder: "sk"
+    ui:help: "Only needed when one partition key holds a list of records you want to read in order or by range."
+  point_in_time_recovery:
+    ui:help: "Cheap insurance against a bad migration or a script that wrote to the wrong table."
+  ttl_attribute:
+    ui:placeholder: "expires_at"
+    ui:help: "Your application writes the expiry as a Unix timestamp in seconds. Deletion is free but can lag the timestamp by a few days."
+  deletion_protection:
+    ui:help: "Leave off in environments you tear down and rebuild."

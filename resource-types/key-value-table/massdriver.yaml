@@ -1,0 +1,83 @@
+name: key-value-table
+label: Key-Value Table
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/mysql/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: AWS DynamoDB
+      path: ./instructions/AWS DynamoDB.md
+
+schema:
+  title: Key-Value Table
+  description: A key-value / document table looked up by a primary key, with access policies.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - arn
+    - policies
+  properties:
+    name:
+      title: Table Name
+      description: Name of the table. Callers use this in their SDK client calls.
+      type: string
+      minLength: 3
+      maxLength: 255
+      pattern: ^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "Letters, digits, underscores, dots, and hyphens only."
+    arn:
+      title: Table ARN
+      description: Unique resource identifier for the table from the cloud provider (e.g. an ARN or selfLink).
+      type: string
+      minLength: 1
+      examples:
+        - "arn:aws:dynamodb:us-east-1:123456789012:table/orders"
+    region:
+      title: Region
+      description: Cloud region the table lives in.
+      type: string
+      examples:
+        - "us-east-1"
+    partition_key:
+      title: Partition Key
+      description: >
+        Name of the attribute every item is looked up by. Callers must supply this attribute on
+        every read and write.
+      type: string
+      examples:
+        - "pk"
+        - "customer_id"
+    sort_key:
+      title: Sort Key
+      description: >
+        Name of the second half of the primary key, if the table has one. Items sharing a
+        partition key are ordered by this attribute. Empty when the table has no sort key.
+      type: string
+      examples:
+        - "sk"
+        - "created_at"
+    policies:
+      title: Access Policies
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: Human-readable policy name.
+            type: string
+            minLength: 1

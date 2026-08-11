@@ -1,0 +1,5 @@
+skip-check:
+  # Autoscaling applies to provisioned read/write capacity. This table is billed
+  # on demand, so there is no capacity to scale and no autoscaling target to
+  # attach.
+  - CKV2_AWS_16

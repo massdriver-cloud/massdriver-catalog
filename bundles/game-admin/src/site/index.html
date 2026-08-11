@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Game Admin — Players</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6feb'/%3E%3Cpath d='M9 22V10h3.6l3.4 6.4L19.4 10H23v12h-3v-6.6l-2.6 4.8h-2.8L12 15.4V22z' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <h1>Game Admin</h1>
+        <span class="sep-v" aria-hidden="true"></span>
+        <span class="api" id="apiHost" title="API endpoint from config.js">connecting…</span>
+      </div>
+
+      <div class="topbar-right">
+        <span class="conn" id="conn" role="status" aria-live="polite">
+          <i class="dot" id="connDot"></i>
+          <span id="connText">Starting</span>
+        </span>
+
+        <label class="switch" title="Pause to stop rows refreshing while you edit">
+          <input type="checkbox" id="autoRefresh" checked />
+          <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+          <span class="switch-label">Auto-refresh</span>
+        </label>
+
+        <button class="btn" id="refreshNow" type="button">Refresh now</button>
+      </div>
+    </header>
+
+    <div class="banner" id="banner" role="alert" hidden>
+      <span class="banner-icon" aria-hidden="true">!</span>
+      <span class="banner-text" id="bannerText"></span>
+      <span class="banner-note" id="bannerNote"></span>
+    </div>
+
+    <section class="stats" aria-label="Summary">
+      <div class="stat">
+        <span class="stat-label">Players</span>
+        <span class="stat-value mono" id="statPlayers">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Alive</span>
+        <span class="stat-value mono" id="statAlive">—</span>
+        <span class="stat-sub" id="statDead"></span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Rocks</span>
+        <span class="stat-value mono" id="statRocks">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Sticks</span>
+        <span class="stat-value mono" id="statSticks">—</span>
+      </div>
+      <div class="stat stat-wide">
+        <span class="stat-label">Last successful poll</span>
+        <span class="stat-value stat-value-sm mono" id="statUpdated">never</span>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="search">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input
+          id="search"
+          type="search"
+          placeholder="Filter by username…  (press / )"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Filter by username"
+        />
+      </div>
+      <span class="count" id="count"></span>
+      <span class="spacer"></span>
+      <span class="dirty-note" id="dirtyNote" hidden></span>
+      <span class="hint">Click a column to sort · Enter saves a row · Esc reverts</span>
+    </section>
+
+    <main class="panel">
+      <div class="tablewrap" id="tablewrap">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th class="c-name sortable" data-key="username" scope="col">
+                <span class="th-inner">Player<i class="arrow"></i></span>
+              </th>
+              <th class="c-num sortable" data-key="hp" scope="col">
+                <span class="th-inner">HP<i class="arrow"></i></span>
+              </th>
+              <th class="c-num sortable" data-key="rocks" scope="col">
+                <span class="th-inner">Rocks<i class="arrow"></i></span>
+              </th>
+              <th class="c-num sortable" data-key="sticks" scope="col">
+                <span class="th-inner">Sticks<i class="arrow"></i></span>
+              </th>
+              <th class="c-num sortable" data-key="x" scope="col">
+                <span class="th-inner">X<i class="arrow"></i></span>
+              </th>
+              <th class="c-num sortable" data-key="y" scope="col">
+                <span class="th-inner">Y<i class="arrow"></i></span>
+              </th>
+              <th class="c-state sortable" data-key="alive" scope="col">
+                <span class="th-inner">State<i class="arrow"></i></span>
+              </th>
+              <th class="c-seen sortable" data-key="last_seen" scope="col">
+                <span class="th-inner">Last seen<i class="arrow"></i></span>
+              </th>
+              <th class="c-actions" scope="col"><span class="th-inner">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="empty" id="empty" hidden>
+          <p class="empty-title" id="emptyTitle">No players</p>
+          <p class="empty-sub" id="emptySub"></p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Shown only when config.js did not define window.GAME_API. -->
+    <div class="overlay" id="noconfig" hidden>
+      <div class="card">
+        <h2>No API address configured</h2>
+        <p>
+          This console reads its API address from <code>config.js</code>, which is written next to
+          these files when the site is deployed. That file is missing, empty, or did not set
+          <code>window.GAME_API</code>, so there is nothing to talk to.
+        </p>
+        <p class="muted">Expected <code>config.js</code> to contain a line like:</p>
+        <pre>window.GAME_API = "https://xxxx.execute-api.us-east-1.amazonaws.com";</pre>
+        <p class="muted">
+          Redeploy the site to generate it. To keep working right now, you can point this browser
+          at an API address — it is stored only in this browser and never in the deployed files.
+        </p>
+        <form class="override" id="overrideForm">
+          <input
+            id="overrideUrl"
+            type="url"
+            placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com"
+            spellcheck="false"
+            aria-label="API address for this browser only"
+          />
+          <button class="btn btn-primary" type="submit">Use this address</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

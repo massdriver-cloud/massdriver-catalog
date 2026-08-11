@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Rock &amp; Stick — a small multiplayer arena." />
+    <title>Rock &amp; Stick — Arena</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1017'/%3E%3Ccircle cx='12' cy='19' r='6' fill='%235eead4'/%3E%3Crect x='17' y='6' width='3' height='18' rx='1.5' transform='rotate(24 18.5 15)' fill='%23f5b544'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <circle cx="9" cy="15" r="5" fill="currentColor" />
+              <rect
+                x="13.2"
+                y="3"
+                width="2.6"
+                height="15"
+                rx="1.3"
+                transform="rotate(24 14.5 10.5)"
+                fill="currentColor"
+                opacity=".55"
+              />
+            </svg>
+          </span>
+          <span class="brand-name">Rock &amp; Stick</span>
+          <span class="brand-sub">arena</span>
+        </div>
+
+        <div class="topbar-right">
+          <div id="whoami" class="whoami" hidden>
+            <span class="whoami-dot" aria-hidden="true"></span>
+            <span id="whoamiName">—</span>
+          </div>
+          <div id="status" class="status is-idle" role="status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="statusText">Not connected</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ------------------------------------------------------- login -->
+      <main id="loginScreen" class="screen screen-login">
+        <form id="loginForm" class="card login-card" novalidate autocomplete="off">
+          <h1 class="login-title">Enter the arena</h1>
+          <p class="login-lede">
+            Everyone shares one flat field. Pick things up off the ground, throw them at
+            people, try not to reach zero.
+          </p>
+
+          <div id="configWarning" class="notice notice-warn" hidden>
+            <strong>The game server address is missing.</strong>
+            <span
+              >This page expects a <code>config.js</code> next to it that sets
+              <code>window.GAME_API</code>. Until it is deployed there is nothing to
+              connect to.</span
+            >
+          </div>
+
+          <label class="field-label" for="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            class="input"
+            type="text"
+            inputmode="text"
+            maxlength="16"
+            placeholder="pick a name"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-describedby="usernameHint"
+          />
+          <p id="usernameHint" class="hint">
+            2 to 16 characters. Letters, numbers, hyphen and underscore only.
+          </p>
+
+          <p id="loginError" class="error" role="alert" hidden></p>
+
+          <button id="playBtn" class="btn btn-primary btn-lg" type="submit">
+            <span id="playBtnLabel">Play</span>
+          </button>
+
+          <ul class="rules">
+            <li>
+              <span class="rule-tag rule-rock">Rock</span>
+              <span>1d10 damage, reaches 400 units.</span>
+            </li>
+            <li>
+              <span class="rule-tag rule-stick">Stick</span>
+              <span>1d4 damage, you must be within 60 units, snaps about a quarter of the time.</span>
+            </li>
+            <li>
+              <span class="rule-tag rule-plain">Field</span>
+              <span>1000 by 600. Everyone can see everyone.</span>
+            </li>
+          </ul>
+        </form>
+      </main>
+
+      <!-- -------------------------------------------------------- game -->
+      <main id="gameScreen" class="screen screen-game" hidden>
+        <section class="stage">
+          <div class="field" id="field">
+            <canvas id="canvas"></canvas>
+
+            <div id="netChip" class="net-chip" hidden>
+              <span class="net-chip-dot" aria-hidden="true"></span>
+              <span>Reconnecting…</span>
+            </div>
+
+            <div id="deathOverlay" class="overlay" hidden>
+              <div class="overlay-card">
+                <div class="overlay-kicker" id="deathKicker">You died</div>
+                <p class="overlay-msg" id="deathMessage">Someone got there first.</p>
+                <button id="respawnBtn" class="btn btn-primary btn-lg" type="button">
+                  Back to login
+                </button>
+                <p class="overlay-note" id="deathCountdown"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions" id="actions">
+            <button class="btn act" id="btnRock" type="button">
+              <span class="act-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="18" height="18">
+                  <circle cx="8" cy="9" r="4.6" fill="currentColor" />
+                  <path
+                    d="M4 9.2 L6.6 5.6 L11.6 7.4"
+                    fill="none"
+                    stroke="rgba(0,0,0,.45)"
+                    stroke-width="1.1"
+                  />
+                </svg>
+              </span>
+              <span class="act-text">Pick up rock</span>
+              <kbd>R</kbd>
+            </button>
+
+            <button class="btn act" id="btnStick" type="button">
+              <span class="act-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="18" height="18">
+                  <rect
+                    x="2.4"
+                    y="7"
+                    width="11.2"
+                    height="2.1"
+                    rx="1.05"
+                    transform="rotate(-34 8 8)"
+                    fill="currentColor"
+                  />
+                  <rect
+                    x="8.4"
+                    y="4.6"
+                    width="4"
+                    height="1.5"
+                    rx=".75"
+                    transform="rotate(20 10.4 5.3)"
+                    fill="currentColor"
+                    opacity=".65"
+                  />
+                </svg>
+              </span>
+              <span class="act-text">Pick up stick</span>
+              <kbd>T</kbd>
+            </button>
+
+            <button class="btn act act-attack" id="btnThrow" type="button" disabled>
+              <span class="act-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="18" height="18">
+                  <path
+                    d="M1.6 13.4 C4 6.6 7.6 3.6 11.4 3.2"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.3"
+                    stroke-linecap="round"
+                    stroke-dasharray="2.6 2.2"
+                    opacity=".7"
+                  />
+                  <circle cx="12.4" cy="3.6" r="3" fill="currentColor" />
+                </svg>
+              </span>
+              <span class="act-text">Throw rock</span>
+              <kbd>F</kbd>
+            </button>
+
+            <button class="btn act act-attack" id="btnSwing" type="button" disabled>
+              <span class="act-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="18" height="18">
+                  <path
+                    d="M2.6 12.6 A8.4 8.4 0 0 1 9.8 2.4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.3"
+                    stroke-linecap="round"
+                    opacity=".55"
+                  />
+                  <rect
+                    x="5.6"
+                    y="9.2"
+                    width="9.4"
+                    height="2.1"
+                    rx="1.05"
+                    transform="rotate(-28 10.3 10.2)"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span class="act-text">Swing stick</span>
+              <kbd>G</kbd>
+            </button>
+
+            <button class="btn act act-ghost" id="btnCycle" type="button">
+              <span class="act-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="18" height="18">
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="5.2"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.3"
+                  />
+                  <circle cx="8" cy="8" r="1.6" fill="currentColor" />
+                </svg>
+              </span>
+              <span class="act-text">Next target</span>
+              <kbd>Q</kbd>
+            </button>
+          </div>
+
+          <p class="stage-hint">
+            Tap the field to walk there, or use <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+            and the arrow keys. Tap another player to target them, <kbd>Esc</kbd> to let go.
+          </p>
+        </section>
+
+        <aside class="side">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">You</span>
+              <span class="pill" id="alivePill">alive</span>
+            </div>
+
+            <div class="hp-row">
+              <div class="hp-bar" aria-hidden="true">
+                <div class="hp-fill" id="hpFill"></div>
+              </div>
+              <div class="hp-num"><span id="hpText">—</span></div>
+            </div>
+
+            <div class="inv">
+              <div class="inv-cell">
+                <span class="inv-label">Rocks</span>
+                <span class="inv-num" id="rocksText">0</span>
+              </div>
+              <div class="inv-cell">
+                <span class="inv-label">Sticks</span>
+                <span class="inv-num" id="sticksText">0</span>
+              </div>
+              <div class="inv-cell">
+                <span class="inv-label">Players</span>
+                <span class="inv-num" id="playersText">1</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Target</span>
+              <button class="link-btn" id="clearTargetBtn" type="button" hidden>clear</button>
+            </div>
+            <div id="targetEmpty" class="target-empty">
+              Nothing selected. Tap a player on the field.
+            </div>
+            <div id="targetBody" class="target-body" hidden>
+              <div class="target-name">
+                <span class="target-swatch" id="targetSwatch" aria-hidden="true"></span>
+                <span id="targetName">—</span>
+              </div>
+              <div class="target-stats">
+                <div>
+                  <span class="inv-label">Distance</span>
+                  <span class="inv-num" id="targetDist">—</span>
+                </div>
+                <div>
+                  <span class="inv-label">Their HP</span>
+                  <span class="inv-num" id="targetHp">—</span>
+                </div>
+              </div>
+              <div class="range-chips">
+                <span class="chip" id="chipRock">rock range</span>
+                <span class="chip" id="chipStick">stick range</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-log">
+            <div class="card-head">
+              <span class="card-title">Combat log</span>
+            </div>
+            <ol class="log" id="log" aria-live="polite"></ol>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- config.js is written at deploy time and sets window.GAME_API -->
+    <script src="config.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
