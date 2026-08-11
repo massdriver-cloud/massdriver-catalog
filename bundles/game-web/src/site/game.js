@@ -67,8 +67,6 @@
     chipStick: $("chipStick"),
     clearTargetBtn: $("clearTargetBtn"),
 
-    btnRock: $("btnRock"),
-    btnStick: $("btnStick"),
     btnThrow: $("btnThrow"),
     btnSwing: $("btnSwing"),
     btnCycle: $("btnCycle"),
@@ -94,6 +92,7 @@
     target: null, // username of the selected target
     intent: { x: WORLD_W / 2, y: WORLD_H / 2 }, // where we are trying to be
     render: { x: WORLD_W / 2, y: WORLD_H / 2 }, // where we are drawn right now
+    items: [], // rocks and sticks lying on the ground, from the server
     moveDirty: false,
     lastMoveSent: 0,
     sentPos: { x: 0, y: 0 },
@@ -537,6 +536,7 @@
         setOnline(true);
 
         applyPlayers(data.players);
+        S.items = Array.isArray(data.items) ? data.items : [];
 
         var mine = data.you;
         if (!mine && Array.isArray(data.players)) {
@@ -601,6 +601,7 @@
         setOnline(true);
         S.failures = 0;
         if (data.you) applyYou(data.you, { fromMove: true });
+        reportPickups(data.picked);
       })
       .catch(reportError);
   }
@@ -613,27 +614,16 @@
     sendMove(true);
   }
 
-  function pickup(item) {
-    if (!S.inGame || S.busy) return;
-    S.busy = true;
-    api("/api/pickup", { username: S.username, item: item })
-      .then(function (data) {
-        setOnline(true);
-        var before = S.you ? (item === "rock" ? S.you.rocks : S.you.sticks) : 0;
-        if (data.you) applyYou(data.you);
-        var after = S.you ? (item === "rock" ? S.you.rocks : S.you.sticks) : 0;
-        addLog(
-          after > before
-            ? "Picked up a " + item + ". (" + after + " on you)"
-            : "Nothing to pick up.",
-          null
-        );
-      })
-      .catch(reportError)
-      .then(function () {
-        S.busy = false;
-        syncHud(true);
-      });
+  // Rocks and sticks are collected by walking over them, so the only thing to
+  // do here is tell the player what they just swept up.
+  function reportPickups(picked) {
+    if (!picked) return;
+    var got = [];
+    if (picked.rock) got.push(picked.rock + " rock" + (picked.rock > 1 ? "s" : ""));
+    if (picked.stick) got.push(picked.stick + " stick" + (picked.stick > 1 ? "s" : ""));
+    if (!got.length) return;
+    addLog("Picked up " + got.join(" and ") + ".", null);
+    syncHud(true);
   }
 
   function attack(weapon) {
@@ -1052,6 +1042,48 @@
       ctx.stroke();
     }
 
+    // ground items, drawn under everyone so nobody is hidden by litter
+    for (var gi = 0; gi < S.items.length; gi++) {
+      var g = S.items[gi];
+      var gx = sx(g.x);
+      var gy = sy(g.y);
+      var gs = Math.max(0.6, s);
+      // A gentle bob so fresh litter catches the eye.
+      var bob = Math.sin(t / 420 + (g.x + g.y)) * 1.6 * gs;
+
+      ctx.save();
+      ctx.translate(gx, gy + bob);
+
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(0, 5 * gs, 6 * gs, 2.4 * gs, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (g.type === "stick") {
+        ctx.strokeStyle = "#a97142";
+        ctx.lineWidth = Math.max(1.6, 2.6 * gs);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-6 * gs, 3 * gs);
+        ctx.lineTo(6 * gs, -3 * gs);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#8d94a3";
+        ctx.strokeStyle = "rgba(232,238,248,0.35)";
+        ctx.lineWidth = Math.max(1, 1.2 * gs);
+        ctx.beginPath();
+        ctx.moveTo(-5 * gs, 1 * gs);
+        ctx.lineTo(-2 * gs, -4 * gs);
+        ctx.lineTo(3 * gs, -4 * gs);
+        ctx.lineTo(5 * gs, 0);
+        ctx.lineTo(1 * gs, 4 * gs);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // other players, far to near so the closest draw on top
     var list = [];
     S.others.forEach(function (o) {
@@ -1210,14 +1242,6 @@
     }
 
     switch (e.code) {
-      case "KeyR":
-        e.preventDefault();
-        pickup("rock");
-        break;
-      case "KeyT":
-        e.preventDefault();
-        pickup("stick");
-        break;
       case "KeyF":
         e.preventDefault();
         attack("rock");
@@ -1254,12 +1278,6 @@
 
   /* --------------------------------------------------------------- buttons */
 
-  el.btnRock.addEventListener("click", function () {
-    pickup("rock");
-  });
-  el.btnStick.addEventListener("click", function () {
-    pickup("stick");
-  });
   el.btnThrow.addEventListener("click", function () {
     attack("rock");
   });
@@ -1369,8 +1387,6 @@
   }
 
   function setActionsEnabled(on) {
-    el.btnRock.disabled = !on;
-    el.btnStick.disabled = !on;
     el.btnCycle.disabled = !on;
     if (!on) {
       el.btnThrow.disabled = true;

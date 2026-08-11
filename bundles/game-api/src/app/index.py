@@ -13,6 +13,7 @@ import json
 import os
 import random
 import time
+import uuid
 from decimal import Decimal
 
 import boto3
@@ -26,8 +27,15 @@ WORLD_H = int(os.environ.get("WORLD_HEIGHT", "600"))
 ROCK_RANGE = 400  # a thrown rock reaches this far
 STICK_RANGE = 60  # a swing only lands up close
 STICK_BREAK_CHANCE = 0.25
-PICKUP_COOLDOWN = 1.0  # seconds, stops a held key farming the world
 IDLE_SECONDS = 60  # players quieter than this drop out of the world view
+
+# Rocks and sticks lie on the ground and are collected by walking over them.
+PICKUP_RADIUS = 28  # how close you must pass to sweep something up
+MAX_ITEMS = 40  # how much litter the world holds at once
+SPAWN_INTERVAL = 2.5  # seconds between top-ups
+SPAWN_BATCH = 3  # most items added in one top-up
+
+WORLD_KEY = "world#spawn"  # bookkeeping row, never a player
 
 table = boto3.resource("dynamodb").Table(TABLE_NAME)
 
@@ -104,6 +112,11 @@ def clamp(value, low, high):
 # --------------------------------------------------------------------------- #
 
 
+def is_player(record):
+    """Players, ground items, and bookkeeping all share one table."""
+    return record.get("kind", "player") == "player"
+
+
 def as_player(item):
     if not item:
         return None
@@ -121,7 +134,10 @@ def as_player(item):
 
 
 def get_player(username):
-    return as_player(table.get_item(Key={"pk": username}).get("Item"))
+    record = table.get_item(Key={"pk": username}).get("Item")
+    if record and not is_player(record):
+        return None
+    return as_player(record)
 
 
 def spawn(username):
@@ -129,15 +145,16 @@ def spawn(username):
     now = int(time.time())
     item = {
         "pk": username,
+        "kind": "player",
         "x": random.randint(50, WORLD_W - 50),
         "y": random.randint(50, WORLD_H - 50),
         "hp": STARTING_HP,
         "max_hp": STARTING_HP,
-        "rocks": 3,
-        "sticks": 1,
+        # You arrive empty-handed. The ground is where you get armed.
+        "rocks": 0,
+        "sticks": 0,
         "alive": True,
         "last_seen": now,
-        "last_pickup": Decimal("0"),
     }
     table.put_item(Item=item)
     return as_player(item)
@@ -155,16 +172,126 @@ def distance(a, b):
     return ((a["x"] - b["x"]) ** 2 + (a["y"] - b["y"]) ** 2) ** 0.5
 
 
+def scan_all(**kwargs):
+    while True:
+        page = table.scan(**kwargs)
+        for record in page.get("Items", []):
+            yield record
+        if "LastEvaluatedKey" not in page:
+            return
+        kwargs["ExclusiveStartKey"] = page["LastEvaluatedKey"]
+
+
 def world_view():
     """Everyone currently alive and recently active."""
     cutoff = int(time.time()) - IDLE_SECONDS
-    players, kwargs = [], {"FilterExpression": Attr("last_seen").gte(cutoff)}
-    while True:
-        page = table.scan(**kwargs)
-        players.extend(as_player(i) for i in page.get("Items", []))
-        if "LastEvaluatedKey" not in page:
-            return [p for p in players if p["alive"]]
-        kwargs["ExclusiveStartKey"] = page["LastEvaluatedKey"]
+    return [
+        as_player(r)
+        for r in scan_all(FilterExpression=Attr("last_seen").gte(cutoff))
+        if is_player(r) and r.get("alive")
+    ]
+
+
+# --------------------------------------------------------------------------- #
+# Ground items
+#
+# Rocks and sticks appear on their own and are collected by walking over them.
+# Each one is its own row so that two players racing for the same rock resolve
+# through a conditional delete — exactly one of them gets it.
+# --------------------------------------------------------------------------- #
+
+
+def as_item(record):
+    return {
+        "id": record["pk"],
+        "type": record.get("item_type", "rock"),
+        "x": int(record.get("x", 0)),
+        "y": int(record.get("y", 0)),
+    }
+
+
+def world_items():
+    return [as_item(r) for r in scan_all(FilterExpression=Attr("kind").eq("item"))]
+
+
+def maybe_spawn(existing):
+    """Scatter a few more items, at most once every SPAWN_INTERVAL.
+
+    There is no scheduler in front of this API, so topping up rides on the
+    polling every client already does. The conditional update means only one
+    caller in a crowd wins the right to spawn, however many are polling.
+    """
+    if len(existing) >= MAX_ITEMS:
+        return []
+
+    now = Decimal(str(round(time.time(), 3)))
+    ready = now - Decimal(str(SPAWN_INTERVAL))
+    try:
+        table.update_item(
+            Key={"pk": WORLD_KEY},
+            UpdateExpression="SET last_spawn = :now, kind = :kind",
+            ConditionExpression=Attr("last_spawn").lte(ready) | Attr("last_spawn").not_exists(),
+            ExpressionAttributeValues={":now": now, ":kind": "world"},
+        )
+    except table.meta.client.exceptions.ConditionalCheckFailedException:
+        return []
+
+    room = min(SPAWN_BATCH, MAX_ITEMS - len(existing))
+    fresh = []
+    for _ in range(random.randint(1, room)):
+        record = {
+            "pk": f"item#{uuid.uuid4()}",
+            "kind": "item",
+            "item_type": random.choice(["rock", "rock", "stick"]),  # rocks are commoner
+            "x": random.randint(20, WORLD_W - 20),
+            "y": random.randint(20, WORLD_H - 20),
+        }
+        table.put_item(Item=record)
+        fresh.append(as_item(record))
+    return fresh
+
+
+def point_to_segment(px, py, ax, ay, bx, by):
+    """Distance from a point to the line segment a→b.
+
+    Movement is sent as a destination, not a stream of positions, so the server
+    sees a jump. Measuring against the whole segment means everything under the
+    path gets swept up, however coarsely the client reports movement.
+    """
+    dx, dy = bx - ax, by - ay
+    if dx == 0 and dy == 0:
+        return ((px - ax) ** 2 + (py - ay) ** 2) ** 0.5
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / float(dx * dx + dy * dy)))
+    cx, cy = ax + t * dx, ay + t * dy
+    return ((px - cx) ** 2 + (py - cy) ** 2) ** 0.5
+
+
+def collect_along(username, ax, ay, bx, by):
+    """Pick up everything lying on the path just walked."""
+    picked = {"rock": 0, "stick": 0}
+    for record in scan_all(FilterExpression=Attr("kind").eq("item")):
+        item = as_item(record)
+        if point_to_segment(item["x"], item["y"], ax, ay, bx, by) > PICKUP_RADIUS:
+            continue
+        try:
+            # Whoever deletes the row owns the item; the loser gets nothing.
+            table.delete_item(
+                Key={"pk": item["id"]},
+                ConditionExpression=Attr("pk").exists(),
+            )
+        except table.meta.client.exceptions.ConditionalCheckFailedException:
+            continue
+        picked[item["type"]] = picked.get(item["type"], 0) + 1
+
+    if not picked["rock"] and not picked["stick"]:
+        return picked
+
+    table.update_item(
+        Key={"pk": username},
+        UpdateExpression="SET rocks = rocks + :r, sticks = sticks + :s",
+        ExpressionAttributeValues={":r": picked["rock"], ":s": picked["stick"]},
+    )
+    return picked
 
 
 # --------------------------------------------------------------------------- #
@@ -197,7 +324,10 @@ def do_state(body):
     if you["alive"]:
         touch(username)
         you["last_seen"] = int(time.time())
-    return respond(200, {"you": you, "players": world_view()})
+
+    items = world_items()
+    items.extend(maybe_spawn(items))
+    return respond(200, {"you": you, "players": world_view(), "items": items})
 
 
 def do_move(body):
@@ -207,6 +337,10 @@ def do_move(body):
     x, y = to_int(body.get("x")), to_int(body.get("y"))
     if x is None or y is None:
         return respond(400, {"error": "x and y must be numbers"})
+
+    before = get_player(username)
+    if before is None:
+        return respond(404, {"error": "no such player, log in again"})
 
     try:
         result = table.update_item(
@@ -222,45 +356,19 @@ def do_move(body):
         )
     except table.meta.client.exceptions.ConditionalCheckFailedException:
         return respond(409, {"error": "you are dead"})
-    return respond(200, {"you": as_player(result["Attributes"])})
+
+    moved = as_player(result["Attributes"])
+    picked = collect_along(username, before["x"], before["y"], moved["x"], moved["y"])
+    if picked["rock"] or picked["stick"]:
+        moved["rocks"] += picked["rock"]
+        moved["sticks"] += picked["stick"]
+
+    return respond(200, {"you": moved, "picked": picked})
 
 
 def do_pickup(body):
-    username = clean_username(body.get("username"))
-    item = body.get("item")
-    if not username:
-        return respond(400, {"error": "unknown username"})
-    if item not in ("rock", "stick"):
-        return respond(400, {"error": "item must be rock or stick"})
-
-    field = "rocks" if item == "rock" else "sticks"
-    now = Decimal(str(round(time.time(), 3)))
-    ready = now - Decimal(str(PICKUP_COOLDOWN))
-
-    try:
-        result = table.update_item(
-            Key={"pk": username},
-            UpdateExpression=f"SET {field} = {field} + :one, last_pickup = :now, last_seen = :seen",
-            # The cooldown is enforced here rather than in the browser, so a
-            # modified client cannot farm the ground.
-            ConditionExpression=Attr("alive").eq(True)
-            & (Attr("last_pickup").lte(ready) | Attr("last_pickup").not_exists()),
-            # Only values the update expression names belong here. The condition
-            # builds its own placeholders, and DynamoDB rejects the whole call if
-            # anything in this map goes unreferenced.
-            ExpressionAttributeValues={
-                ":one": 1,
-                ":now": now,
-                ":seen": int(time.time()),
-            },
-            ReturnValues="ALL_NEW",
-        )
-    except table.meta.client.exceptions.ConditionalCheckFailedException:
-        you = get_player(username)
-        if you and not you["alive"]:
-            return respond(409, {"error": "you are dead"})
-        return respond(429, {"error": "still bending down"})
-    return respond(200, {"you": as_player(result["Attributes"])})
+    """Kept so an older cached client gets an explanation, not a 404."""
+    return respond(410, {"error": "walk over rocks and sticks to pick them up"})
 
 
 def do_attack(body):
@@ -364,13 +472,9 @@ EDITABLE = {"hp": int, "rocks": int, "sticks": int, "x": int, "y": int, "alive":
 
 
 def do_admin_list():
-    players, kwargs = [], {}
-    while True:
-        page = table.scan(**kwargs)
-        players.extend(as_player(i) for i in page.get("Items", []))
-        if "LastEvaluatedKey" not in page:
-            break
-        kwargs["ExclusiveStartKey"] = page["LastEvaluatedKey"]
+    # Ground items and the spawn bookkeeping row share this table; neither is
+    # a player and neither belongs in the console.
+    players = [as_player(r) for r in scan_all() if is_player(r)]
     players.sort(key=lambda p: p["username"])
     return respond(200, {"players": players})
 
@@ -423,6 +527,10 @@ def do_admin_delete(body):
     username = clean_username(body.get("username"))
     if not username:
         return respond(400, {"error": "unknown username"})
+    # clean_username already rejects the "item#..." and "world#..." key shapes,
+    # but check the record too so the console can never delete world state.
+    if get_player(username) is None:
+        return respond(404, {"error": "no such player"})
     table.delete_item(Key={"pk": username})
     return respond(200, {"ok": True})
 
