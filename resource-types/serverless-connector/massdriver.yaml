@@ -1,0 +1,37 @@
+name: serverless-connector
+label: Serverless VPC Connector
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-network/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: networks
+
+schema:
+  title: Serverless VPC Connector
+  description: A Serverless VPC Access connector that lets serverless workloads (Cloud Run, Cloud Functions) reach private IPs on a VPC network.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - region
+  properties:
+    id:
+      title: ID
+      description: Full resource name of the connector (e.g. projects/p/locations/r/connectors/c). This is the value Cloud Run's vpc_access.connector field expects.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: Connector name.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: Region the connector lives in. A workload must run in this same region to use it.
+      type: string
+      minLength: 1
+    network:
+      title: Network
+      description: Name of the VPC network this connector attaches to.
+      type: string

@@ -1,0 +1,65 @@
+name: object-storage
+label: Object Storage
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-storage-bucket/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: storage
+
+schema:
+  title: Object Storage
+  description: Object storage (bucket) with access policies.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Unique resource identifier from the cloud provider (self-link).
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: Bucket name. Globally unique within GCP.
+      type: string
+      minLength: 3
+      maxLength: 63
+      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+      message:
+        pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
+    url:
+      title: URL
+      description: gs:// URI for the bucket.
+      type: string
+      pattern: ^gs://
+      message:
+        pattern: "Must start with gs://."
+    region:
+      title: Region
+      description: Cloud region or multi-region the bucket lives in.
+      type: string
+    policies:
+      title: Access Policies
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier. For GCP this is the IAM role a consumer gets bound to.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: Human-readable policy name.
+            type: string
+            minLength: 1

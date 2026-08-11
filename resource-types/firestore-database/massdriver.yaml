@@ -1,0 +1,60 @@
+name: firestore-database
+label: Firestore Database
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-firestore/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+
+schema:
+  title: Firestore Database
+  description: A Firestore (Native mode) NoSQL document database, with access policies.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - project_id
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Full resource name of the Firestore database.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: Database ID. "(default)" for the project's default database, or a custom name for a named database.
+      type: string
+      minLength: 1
+    project_id:
+      title: Project ID
+      description: GCP project the database lives in. Client libraries need this alongside the database name.
+      type: string
+      minLength: 1
+    location:
+      title: Location
+      description: Region or multi-region the database lives in.
+      type: string
+    policies:
+      title: Access Policies
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier. For GCP this is the IAM role a consumer gets bound to.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: Human-readable policy name.
+            type: string
+            minLength: 1

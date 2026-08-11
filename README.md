@@ -38,7 +38,7 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 - **Parameters (params)**: User-configurable inputs for a bundle, like instance sizes, database names, or feature flags. These define what developers can customize when deploying infrastructure.
 
-- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `virtual-network` resource, you must link it to a bundle that produces a virtual-network resource.
+- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `network` resource, you must link it to a bundle that produces a network resource.
 
 - **Project**: A logical grouping of related infrastructure, like "ecommerce-platform" or "data-pipeline". Projects contain one or more environments.
 
@@ -58,16 +58,20 @@ Each resource type is a directory containing a `massdriver.yaml` file:
 
 ```
 resource-types/
-├── virtual-network/
-│   └── massdriver.yaml    # Network/VPC contract
+├── network/
+│   └── massdriver.yaml    # VPC, subnets, and private service access contract
+├── serverless-connector/
+│   └── massdriver.yaml    # Serverless VPC connector contract
+├── container-registry/
+│   └── massdriver.yaml    # Container image registry contract
 ├── postgres-database/
 │   └── massdriver.yaml    # PostgreSQL connection contract
-├── mysql-database/
-│   └── massdriver.yaml    # MySQL connection contract
 ├── object-storage/
-│   └── massdriver.yaml    # Object storage contract
-└── workload/
-    └── massdriver.yaml    # Workload metadata contract
+│   └── massdriver.yaml    # Object storage bucket contract
+├── firestore-database/
+│   └── massdriver.yaml    # Firestore document database contract
+└── cloud-run-service/
+    └── massdriver.yaml    # Running service + public URL contract
 ```
 
 > **💡 Note on Sensitive Fields**: Resource types support the [`$md.sensitive`](https://docs.massdriver.cloud/json-schema-cheat-sheet/massdriver-annotations#mdsensitive) annotation to mark fields containing credentials, passwords, or other secrets. Fields marked as sensitive are automatically masked as `[SENSITIVE]` in GraphQL queries and UI displays while remaining accessible for actual infrastructure connections. All resource data is encrypted at rest and in transit, and downloads of sensitive data are tracked in audit logs.
@@ -90,13 +94,21 @@ Use these example resource types to:
 
 Bundles provide a safe self-service framework where you (the platform team) encode best practices into ready-to-use modules, and developers get a simple interface to deploy what they need.
 
-This catalog includes template bundles with complete schemas and placeholder infrastructure code:
+This catalog ships a working GCP Cloud Run platform, split into two tiers by audience:
 
-- `network/` - Network/VPC provisioning
-- `postgres/` - PostgreSQL database provisioning
-- `mysql/` - MySQL database provisioning
-- `bucket/` - Object storage bucket provisioning
-- `application/` - Application deployment template
+**Platform tier** — owned by the platform team, and deliberately not something application developers
+place themselves. These speak in infrastructure terms because an infrastructure engineer is the reader.
+
+- `gcp-network/` - VPC, subnets, private service access for Cloud SQL, and a serverless VPC connector
+- `gcp-artifact-registry/` - Container image registry that application builds push into
+
+**Application tier** — self-service on the canvas. These are written for someone who has never heard of
+a VPC: dangerous options are defaulted or hidden, and the help text avoids infrastructure jargon.
+
+- `hello-cloud-run/` - A worked example generated from the `gcp-cloud-run` template
+- `gcp-cloud-sql-postgres/` - Managed PostgreSQL, private IP only
+- `gcp-cloud-storage-bucket/` - Object storage for uploads, exports, and files
+- `gcp-firestore/` - Firestore document database
 
 Each bundle includes:
 
@@ -122,10 +134,22 @@ Available templates:
 
 | Template | Provisioner | Description |
 |----------|-------------|-------------|
+| `gcp-cloud-run` | OpenTofu | Build a container in GCP and deploy it to Cloud Run (two-step) |
 | `opentofu` | OpenTofu | OpenTofu module template |
 | `terraform` | Terraform | Terraform module template |
 | `bicep` | Bicep | Azure Bicep template |
 | `helm-chart` | Helm | Deploy external Helm charts |
+
+`gcp-cloud-run` is the one to reach for when onboarding a new application. Scaffolding it gives that
+app its own bundle — its own schema, its own runbook, its own version history — rather than making
+every team share one generic "app" bundle they each need to bend:
+
+```bash
+mass bundle new --name checkout-api --template-name gcp-cloud-run
+```
+
+Drop the application's source into `build/app/` (it ships with a small working example), then publish.
+The developer never installs `docker` or `gcloud`; see [Building without Docker](#building-without-docker-or-gcloud).
 
 **Usage with the CLI:**
 
@@ -269,74 +293,125 @@ mass environment delete "pr${GITHUB_PR}"
 
 See the [Preview Environments workflow guide](https://docs.massdriver.cloud/workflows/preview) for the full CLI reference, CI examples, and the complete `preview.yaml` schema.
 
-## Tour of the Demo Bundles & Resource Types
+## Tour of the GCP Cloud Run Platform
 
-The bundles and resource types ship pre-wired with realistic shapes so you can poke at the UX on the canvas before writing any IaC. Below is a quick map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want to find a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
+The catalog ships a complete, working Cloud Run platform rather than schema mockups. Every bundle below
+has real OpenTofu behind it, a runbook, and a Checkov policy posture. Use them as-is, or read them as
+worked examples when you build your own.
 
-> [!TIP]
-> The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + connections on every `mass bundle build`, so you can change the schema and your variables stay in sync.
+The platform is organized around one idea: **an application developer should be able to ship a service
+without knowing what a VPC is, and without installing anything.** Every design decision below follows
+from that.
 
-### `network/` bundle ↔ `virtual-network` resource type
+### The shape
 
-Produces a virtual network with subnets that other bundles attach to.
+```
+  ┌─ platform tier (your team owns these) ─┐
+  │                                        │
+  │   gcp-network        gcp-artifact-registry
+  │        │                      │
+  └────────┼──────────────────────┼────────┘
+           │                      │
+     private service              │ images
+       access │                   │
+              ▼                   ▼
+        gcp-cloud-sql-postgres   your-app (from gcp-cloud-run)
+                    │             ▲   ▲
+                    └─────────────┘   │
+                                      │
+        gcp-cloud-storage-bucket ─────┤
+        gcp-firestore ────────────────┘
+```
 
-- **`params.examples`**: Small (/24 dev) · Medium (staging) · Large (production multi-AZ) — preset dropdown in the UI.
-- **`$md.immutable: true`** on `cidr` — once set, the form blocks edits.
-- **`message.pattern`** override on the CIDR pattern (so users see "Must be a valid IPv4 CIDR block, like 10.0.0.0/16" instead of a raw regex).
-- **Conditional `dependencies`** block: `flow_log_retention_days` is required only when `enable_flow_logs` is `true`.
-- **Array constraints** on `subnets` (`minItems: 1`, `maxItems: 12`, `uniqueItems`) and `dns_servers` (`maxItems: 4`).
-- **UI**: `ui:widget: updown` on retention, `ui:help` on every non-obvious field, `ui:options.orderable/addable/removable` on the subnets array.
-- **Alarms** (`src/alarms.tf`): `Egress Throughput Anomaly`, `NAT Port Exhaustion`.
+Developers place things on the right-hand side and connect them. The left-hand side is placed once by
+the platform team and then mostly forgotten.
 
-### `postgres/` bundle ↔ `postgres-database` resource type
+### Platform tier
 
-Produces a PostgreSQL instance, depends on a `virtual-network`.
+Written for an infrastructure engineer. Real ops vocabulary is used deliberately here — CIDR ranges,
+secondary ranges, private service access, retention windows — because vagueness in a network bundle is
+worse than jargon.
 
-- **Human-readable version selector** via `oneOf` + `const` + `title` (Postgres `12` is labelled "out of community support — upgrade soon"; `16` is labelled "current").
-- **`$md.enum`** on `subnet_filter` — populates a dropdown from the linked network's `.subnets`.
-- **Multi-annotation combo** on `username`: `$md.immutable: true` + `$md.copyable: false` (won't change post-deploy, won't carry into a cloned env).
-- **`$md.sensitive: true`** on the resource-type's `auth.password` (masks the value in the UI and audit-logs every download).
-- **T-shirt sizing** (`xs`/`s`/`m`/`l`/`xl`), `allocated_storage_gb` with `multipleOf: 10`, `backup_retention_days` with `minimum`/`maximum`, conditional `multi_az_zones` when `high_availability: true`.
-- **Alarms**: `High Connections`, `Storage 80% Full`, and a conditional `Replication Lag` that only emits when HA is on.
+**`gcp-network/`** — the foundation. Produces a VPC with subnets, a Private Service Access range so
+Cloud SQL can be reached over private IP, and a Serverless VPC Connector so Cloud Run can talk to
+private resources. Emits both a `network` and a `serverless-connector` resource.
 
-### `mysql/` bundle ↔ `mysql-database` resource type
+**`gcp-artifact-registry/`** — a Docker-format Artifact Registry repository. Application builds push
+images here; Cloud Run pulls from it. Emits a `container-registry` resource.
 
-Same shape as `postgres/`, with MySQL-specific touches:
+### Application tier
 
-- **`character_set` and `collation`** enums, both `$md.immutable: true`.
-- **Conditional `slow_query_log_long_query_time_seconds`** required only when `slow_query_log_enabled: true`.
-- **`username` capped at 32 chars** via `maxLength` (MySQL's username limit).
-- **Alarms**: conditional `Slow Query Rate`, conditional `Replication Lag`, `Storage 80% Full`.
+Written for someone who has never heard of a VPC. Dangerous options are defaulted or hidden rather than
+surfaced with a warning, and the help text is plain English.
 
-### `bucket/` bundle ↔ `object-storage` resource type
+**`gcp-cloud-run/` (template) and `hello-cloud-run/` (worked example)** — the centerpiece. See
+[Building without Docker](#building-without-docker-or-gcloud). Emits a `cloud-run-service` resource
+including the service's public URL.
 
-Object storage. No upstream connections.
+**`gcp-cloud-sql-postgres/`** — managed PostgreSQL on a **private IP only**; there is no public-IP
+option to get wrong. Connects to `gcp-network` and consumes its Private Service Access range. Presets
+cover a small dev instance through a regional-HA production instance.
 
-- **`access_level`** as `oneOf` with `title` labels ("Private — no anonymous access (recommended)", "Public Read+Write — rarely safe").
-- **`object_lock`** marked `$md.immutable: true` (one-way switch) with a `dependencies` block requiring `object_lock_retention_days` and `versioning_enabled` when on.
-- **`lifecycle_rules`** array (max 8, unique items) with per-rule transition + storage class enum; UI lets you reorder / add / remove rules.
-- **CORS origins** array with origin-URL pattern validation.
-- **Alarms**: `5xx Error Rate`, conditional `Anonymous Access Anomaly` (only when the bucket is private).
+**`gcp-cloud-storage-bucket/`** — a bucket with uniform bucket-level access and public-access
+prevention on by default. Optional versioning, access logging, and CMEK.
 
-### `application/` bundle ↔ `workload` resource type
+**`gcp-firestore/`** — a Firestore database in Native mode, with point-in-time recovery and delete
+protection defaulted on. Location and mode are marked immutable, because GCP will not let you change
+them after creation and a form that appears to offer it is a trap.
 
-A containerized app that connects to a network + Postgres + (optional) bucket.
+### Building without Docker or gcloud
 
-- **Full `app:` block** showcasing both halves:
-  - **`app.envs`** — JQ expressions that lift connection values into env vars (`DATABASE_HOST`, `DATABASE_URL` via string-concat, `BUCKET_NAME` with `// ""` fallback when no bucket is linked).
-  - **`app.secrets`** — declares `JWT_SECRET` (`required: true`), `SENTRY_DSN` and `GOOGLE_OAUTH_CLIENT_SECRET` (optional). The UI blocks deploy until required secrets are set.
-- **`$md.enum`** on `database_policy` and `bucket_policy` — populates from the linked resource's `.policies` array.
-- **`environment` and `log_level`** as `oneOf` enums with explanatory `title` labels.
-- **`cpu_limit`/`memory_limit`** as plain `enum`s modeled on Kubernetes resource strings.
-- **`image` regex** that requires `image:tag` or `image@digest` (no implicit `:latest`).
-- **Alarms**: `Pod Restart Rate`, `5xx Error Rate`, `p95 Latency`.
+The constraint that shaped the Cloud Run design: **developers do not have `docker` or `gcloud`, and
+requiring either would defeat the point of a self-service platform.** So the image is built inside GCP.
+
+`gcp-cloud-run` is a **two-step bundle**:
+
+1. **`build/`** — archives the application source from `build/app/`, uploads it to a staging bucket, and
+   runs a Cloud Build that produces the container image and pushes it to Artifact Registry.
+2. **`deploy/`** — deploys that image as a Cloud Run service.
+
+The two steps share `md_metadata`, and both **independently derive the same image tag** from
+`md_metadata.package.deployment_enqueued_at` rather than passing the tag between states. This is worth
+understanding before modifying either step: it means the steps stay decoupled, and the tag is
+deterministic for a given deployment without either step depending on the other's outputs.
+
+Because a stale image is the failure mode that would be hardest to notice, the deploy step waits on the
+specific build for the current tag rather than assuming the most recent image is the right one.
+
+### Two audiences, two vocabularies
+
+The same idea gets described differently depending on who reads the form. This is intentional, and worth
+preserving if you extend the catalog:
+
+| Concept | Platform tier says | Application tier says |
+|---|---|---|
+| Serverless VPC connector | "Serverless VPC Connector, /28 CIDR, min/max instances" | (hidden — connected automatically) |
+| Private Service Access | "PSA allocated range, `/16`–`/24`, peered to `servicenetworking`" | "Your database is only reachable from your own services" |
+| Cloud Run concurrency | — | "How many requests one copy of your app handles at once" |
+| Deletion protection | "`deletion_protection`, blocks `terraform destroy`" | "Protect this from being deleted by accident" |
+
+### Compliance posture
+
+Checkov runs against every bundle. The rule the catalog follows: **a check is skipped only when it is
+irrelevant in every environment.** Everything else is either genuinely fixed, or gated so that it fails
+the build in production while staying configurable in development.
+
+That gating is what makes the difference between a policy and a formality — a blanket skip silently
+applies to production too. Where a check is skipped, the `.checkov.yml` entry states a factual reason
+(for example, the attribute it inspects no longer exists in the current provider version and the control
+is enforced another way), not a preference.
 
 ### `resource-types/*/instructions/`
 
-Each resource type ships per-source form-fill walkthroughs that render alongside the resource creation form in the Massdriver UI. They tell operators how to harvest each schema field from the matching cloud (`AWS RDS PostgreSQL.md`, `Azure VNet.md`, `GCP Cloud Storage.md`, etc.) or from a self-hosted setup. Same pattern as `platforms/<cloud>/instructions/` — replace or extend with your team's onboarding steps.
+Resource types can ship per-source form-fill walkthroughs that render alongside the resource creation
+form in the UI, telling an operator how to harvest each schema field from an existing cloud resource.
+`container-registry/` has one; the rest are candidates if you plan to import existing infrastructure.
+Same pattern as `platforms/<cloud>/instructions/`.
 
 > [!NOTE]
-> The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 2.0`. Reference these when you wire your real cloud resources up.
+> The bundle `src/*.tf` files use `massdriver_resource` (the replacement for the deprecated
+> `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` from
+> `massdriver-cloud/massdriver ~> 2.0`.
 
 ## Customizing Your Catalog
 
@@ -651,11 +726,90 @@ Scoped grants match on **custom attributes**, so the attributes you want to filt
 
 Repeat this for every credential you import — each GCP service account is granted independently.
 
-<!-- WIP-HERE -->
 ### 7. Deploy the Cloud Run stack
 
+With the credential imported and granted, publish the catalog and stand the platform up. Order matters
+on a fresh organization: resource types must exist before any bundle that references them will build.
+
+```bash
+make publish-resource-types
+make all
+```
+
+#### Create a project and environment
+
+In the UI, create a project, then an environment inside it. Attach the GCP credential you imported in
+step 5 as an **environment default** so every bundle on the canvas inherits it instead of asking each
+developer to select a credential.
+
+#### Stand up the platform tier first
+
+Add these two, configure them, and deploy. Your application developers will never place these — you do
+it once per environment.
+
+1. **`gcp-network`** — pick a CIDR range that does not collide with anything you peer to later. The
+   defaults give you a subnet, a Private Service Access range for Cloud SQL, and a Serverless VPC
+   Connector for Cloud Run.
+2. **`gcp-artifact-registry`** — the repository application images are pushed into.
+
+Deploy both before continuing. Everything in the application tier assumes they exist.
+
+> [!TIP]
+> The Serverless VPC Connector name is derived from the instance name prefix, and GCP caps connector
+> names at 25 characters. A long project or environment name can push it over the limit; the bundle
+> truncates, but it is worth knowing if you see a name-length error on first deploy.
+
+#### Scaffold an application
+
+Generate a bundle for the application from the template, so it gets its own schema, runbook, and version
+history:
+
+```bash
+mass bundle new --name checkout-api --template-name gcp-cloud-run
+```
+
+Replace the contents of `build/app/` with the application source. It ships with a small working example
+(a `Dockerfile` and a minimal HTTP server) so you can deploy the scaffold unmodified to confirm the
+pipeline works before pointing it at real code. Then:
+
+```bash
+cd checkout-api
+mass bundle publish --development
+```
+
+`--development` publishes a dev-channel version for rapid iteration. Instances pinned to `@latest+dev`
+pick it up on the next deploy.
+
+#### Wire it up on the canvas
+
+Add the application bundle plus whatever data services it needs, then connect them:
+
+| Connect from | To | Why |
+|---|---|---|
+| `gcp-artifact-registry` → registry | app → container registry | where the built image is pushed and pulled |
+| `gcp-network` → network | `gcp-cloud-sql-postgres` → network | database gets a private IP on your VPC |
+| `gcp-cloud-sql-postgres` → database | app → database | connection details injected at deploy |
+| `gcp-cloud-storage-bucket` → bucket | app → bucket | bucket name and access injected |
+| `gcp-firestore` → database | app → firestore | Firestore database injected |
+
+Deploy the data services, then the application last.
+
+#### What happens on deploy
+
+The application bundle runs in two steps. The first archives `build/app/`, uploads it, and runs a Cloud
+Build that produces the image and pushes it to Artifact Registry. The second deploys that image to Cloud
+Run. Both steps derive the same image tag from `md_metadata.package.deployment_enqueued_at`
+independently, so neither depends on the other's outputs.
+
+Nothing is built on the developer's machine — no `docker`, no `gcloud`.
+
+When the deploy finishes, the service's public URL is on the instance's resource, ready to `curl`.
+
 > [!NOTE]
-> **🚧 Work in progress.** The GCP bundles and resource types for the Cloud Run stack are being built on the `gcp-cloud-run` branch. This section will cover creating a project, adding bundles to the canvas, connecting them, and deploying.
+> The first deploy in a brand-new GCP project is the one most likely to fail, and it is almost always
+> IAM propagation rather than a bundle defect: the Cloud Build service account needs `storage.objectViewer`
+> on the staging bucket, and the caller needs `iam.serviceAccountUser` on the build service account.
+> Each bundle's `operator.md` covers its own failure modes in detail.
 
 ## Workflow
 
@@ -681,7 +835,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 > [!TIP]
 > Check out the [Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview) for detailed documentation on bundle and resource type development.
 
-1. Replace placeholder OpenTofu/Terraform in `bundles/*/src/`
+1. Write the OpenTofu/Terraform for any new bundles you add in `bundles/<name>/src/`
 2. Test your infrastructure code locally with `tofu plan`
 3. Update parameter schemas if your implementation needs different inputs
 4. Push to `main` to automatically publish bundles via GitHub Actions, or use `make all` for manual publishing
@@ -707,23 +861,22 @@ This catalog is designed for a three-phase approach: model your architecture, im
 ├── Makefile                            # Automation for publishing
 ├── preview.yaml                        # Preview environment fork config (see docs.massdriver.cloud/workflows/preview)
 ├── resource-types/                     # Resource type contracts (formerly artifact definitions)
-│   ├── mysql-database/
-│   │   └── massdriver.yaml
-│   ├── object-storage/
-│   │   └── massdriver.yaml
-│   ├── postgres-database/
-│   │   └── massdriver.yaml
-│   ├── virtual-network/
-│   │   └── massdriver.yaml
-│   └── workload/
-│       └── massdriver.yaml
+│   ├── network/                        # VPC + subnets + private service access
+│   ├── serverless-connector/           # Serverless VPC connector
+│   ├── container-registry/             # Container image registry
+│   ├── postgres-database/              # PostgreSQL connection details
+│   ├── object-storage/                 # Object storage bucket
+│   ├── firestore-database/             # Firestore document database
+│   └── cloud-run-service/              # Running service + public URL
 ├── bundles/                            # Infrastructure-as-Code modules
-│   ├── application/                    # Example Application
-│   ├── bucket/                         # Object storage
-│   ├── mysql/                          # MySQL database
-│   ├── network/                        # VPC/Network
-│   └── postgres/                       # PostgreSQL database
+│   ├── gcp-network/                    # PLATFORM: VPC, PSA, serverless connector
+│   ├── gcp-artifact-registry/          # PLATFORM: container image registry
+│   ├── hello-cloud-run/                # APP: worked example from the template
+│   ├── gcp-cloud-sql-postgres/         # APP: managed PostgreSQL, private IP only
+│   ├── gcp-cloud-storage-bucket/       # APP: object storage
+│   └── gcp-firestore/                  # APP: Firestore database
 ├── templates/                          # Bundle templates for mass bundle new
+│   ├── gcp-cloud-run/                  # Two-step build-in-GCP + deploy to Cloud Run
 │   ├── opentofu/                       # OpenTofu module template
 │   ├── terraform/                      # Terraform module template
 │   ├── bicep/                          # Azure Bicep template
@@ -773,7 +926,9 @@ Customize these schemas to match your desired developer experience. The schemas 
 
 ### Bundle Implementation
 
-When you're ready to implement the actual infrastructure provisioning, replace the placeholder OpenTofu/Terraform code in `bundles/*/src/`.
+When you add a bundle of your own, its OpenTofu/Terraform goes in `bundles/<name>/src/`. (The GCP
+bundles shipped in this catalog are already fully implemented — read them as worked examples rather
+than as scaffolding to replace.)
 
 **How it works**: Massdriver bundles combine policy as code, IaC, and pipelines into a single deployable unit. They define the interface (inputs/outputs), dependencies (connections), and workflow steps—bringing compliance and security scanning into the bundle itself, instead of maintaining snowflake pipelines scattered across hundreds of repos. Massdriver automatically generates input variables from your params and connections schemas, then executes your IaC code with those values.
 
@@ -786,7 +941,13 @@ To implement a bundle:
    - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name prefix, instance ID, environment, default tags, etc.)
 5. **Output** resource data that matches your `artifacts:` schema (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `virtual-network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `network` resource named `net`, access its VPC ID as `var.net.vpc_id`.
+
+> [!IMPORTANT]
+> In v2, connection and resource payloads are **flat**. There is no `data:` or `specs:` envelope — a
+> field declared as `vpc_id` is read as `var.net.vpc_id`, not `var.net.data.infrastructure.vpc_id`.
+> If you are porting a v1 bundle, this is the change most likely to bite you, because the old path
+> fails at plan time with an unhelpful "this object does not have an attribute named" error.
 
 ## What's Next?
 

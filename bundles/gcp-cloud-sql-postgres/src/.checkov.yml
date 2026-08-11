@@ -1,0 +1,9 @@
+skip-check:
+  # This check inspects the `require_ssl` attribute on
+  # google_sql_database_instance.settings.ip_configuration. The google
+  # provider (~> 6.0) this bundle requires has removed that attribute
+  # entirely in favor of `ssl_mode`, which this bundle sets to
+  # "ENCRYPTED_ONLY" (the equivalent enforce-SSL setting). The attribute the
+  # check looks for cannot exist in a plan produced by this provider version,
+  # regardless of configuration.
+  - CKV_GCP_6
