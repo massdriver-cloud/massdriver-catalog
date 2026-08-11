@@ -142,6 +142,9 @@ params:
             type: string
             title: Value
 
+# This app stores its data in Firestore. The gcp-cloud-run template also offers
+# Postgres, object storage, and a serverless VPC connector. This bundle removes
+# those connections, because this app does not use them.
 connections:
   required:
     - gcp_service_account
@@ -154,15 +157,6 @@ connections:
     container_registry:
       $ref: container-registry
       title: Container Registry
-    vpc_connector:
-      $ref: serverless-connector
-      title: Private Network Access
-    database:
-      $ref: postgres-database
-      title: Database
-    bucket:
-      $ref: object-storage
-      title: File Storage
     firestore:
       $ref: firestore-database
       title: Firestore

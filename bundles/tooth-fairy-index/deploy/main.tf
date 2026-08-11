@@ -19,27 +19,14 @@ locals {
   }
   size = local.size_specs[var.size]
 
-  # Optional connections auto-wire as environment variables so the app never
-  # needs its own config UI for where its database or bucket lives. Secrets
-  # (the database password) ride the same path other bundles in this catalog
-  # already use for sensitive values passed through Terraform.
-  connection_env_vars = concat(
-    var.database != null ? [
-      { name = "DATABASE_HOST", value = var.database.auth.hostname },
-      { name = "DATABASE_PORT", value = tostring(var.database.auth.port) },
-      { name = "DATABASE_NAME", value = var.database.auth.database },
-      { name = "DATABASE_USER", value = var.database.auth.username },
-      { name = "DATABASE_PASSWORD", value = var.database.auth.password },
-    ] : [],
-    var.bucket != null ? [
-      { name = "BUCKET_NAME", value = var.bucket.name },
-      { name = "BUCKET_URL", value = var.bucket.url },
-    ] : [],
-    var.firestore != null ? [
-      { name = "FIRESTORE_PROJECT_ID", value = var.firestore.project_id },
-      { name = "FIRESTORE_DATABASE", value = var.firestore.name },
-    ] : [],
-  )
+  # The Firestore connection auto-wires as environment variables, so the app
+  # needs no config UI for where its database lives. This app uses Firestore
+  # only. The template offers Postgres, bucket, and VPC connector connections
+  # as well; this bundle removes them, because this app does not use them.
+  connection_env_vars = [
+    { name = "FIRESTORE_PROJECT_ID", value = var.firestore.project_id },
+    { name = "FIRESTORE_DATABASE", value = var.firestore.name },
+  ]
 
   # Analytics is opt-in: with no project key configured, these are never set and
   # the app renders no analytics script at all.
@@ -67,22 +54,7 @@ resource "google_artifact_registry_repository_iam_member" "runtime_pull" {
   member     = "serviceAccount:${google_service_account.runtime.email}"
 }
 
-resource "google_project_iam_member" "runtime_cloudsql_client" {
-  count   = var.database != null ? 1 : 0
-  project = var.gcp_service_account.project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.runtime.email}"
-}
-
-resource "google_storage_bucket_iam_member" "runtime_bucket" {
-  count  = var.bucket != null ? 1 : 0
-  bucket = var.bucket.name
-  role   = [for p in var.bucket.policies : p.id if p.name == "Read and Write"][0]
-  member = "serviceAccount:${google_service_account.runtime.email}"
-}
-
 resource "google_project_iam_member" "runtime_firestore" {
-  count   = var.firestore != null ? 1 : 0
   project = var.gcp_service_account.project_id
   role    = [for p in var.firestore.policies : p.id if p.name == "Read and Write"][0]
   member  = "serviceAccount:${google_service_account.runtime.email}"
@@ -119,14 +91,6 @@ resource "google_cloud_run_v2_service" "app" {
           name  = env.value.name
           value = env.value.value
         }
-      }
-    }
-
-    dynamic "vpc_access" {
-      for_each = var.vpc_connector != null ? [1] : []
-      content {
-        connector = var.vpc_connector.id
-        egress    = "PRIVATE_RANGES_ONLY"
       }
     }
   }

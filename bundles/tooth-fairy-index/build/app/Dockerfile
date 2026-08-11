@@ -1,6 +1,12 @@
 FROM python:3.12-slim
 WORKDIR /app
 
+# The share cards are drawn with Pillow, which needs a real font file on disk.
+# python:*-slim ships none, so install the DejaVu core set (about 1 MB).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first so this layer stays cached across app-code-only changes.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

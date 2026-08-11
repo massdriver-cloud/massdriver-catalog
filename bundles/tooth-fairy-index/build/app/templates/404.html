@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found | Tooth Fairy Rate Index</title>
+<meta name="robots" content="noindex,follow">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --gridline: #e1e0d9; --border: rgba(11,11,11,0.10); --series-1: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --gridline: #2c2c2a; --border: rgba(255,255,255,0.10); --series-1: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text-primary);
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  p { color: var(--text-secondary); font-size: 15px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+          border-radius: 10px; padding: 20px; margin-top: 24px; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  ul { list-style: none; padding: 0; margin: 0;
+       columns: 2; column-gap: 24px; }
+  @media (min-width: 620px) { ul { columns: 3; } }
+  li { padding: 4px 0; font-size: 14px; break-inside: avoid; }
+  a { color: var(--series-1); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>That page does not exist</h1>
+    <p>The link may be wrong, or that state may not have any reports yet.
+       <a href="/">Go to the national index</a>.</p>
+
+    {% if states %}
+    <div class="card">
+      <h2>States with reports so far</h2>
+      <ul>
+        {% for st in states %}
+        <li><a href="/{{ st.slug }}">{{ st.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

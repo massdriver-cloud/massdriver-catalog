@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% if s.average is not none %}
+  {% set headline = "The tooth fairy pays $" ~ "%.2f"|format(s.average) ~ " in " ~ s.name %}
+  {% set blurb = "Families in " ~ s.name ~ " report an average of $" ~ "%.2f"|format(s.average) ~ " per lost tooth, from " ~ s.count ~ " report" ~ ("s" if s.count != 1 else "") ~ ". See how that compares with the rest of the country." %}
+{% else %}
+  {% set headline = "Tooth fairy rates in " ~ s.name %}
+  {% set blurb = "No one has reported a tooth fairy rate for " ~ s.name ~ " yet. Add the first one and see how it compares with the rest of the country." %}
+{% endif %}
+<title>{{ headline }} | Tooth Fairy Rate Index</title>
+<meta name="description" content="{{ blurb }}">
+<link rel="canonical" href="{{ base }}/{{ s.slug }}">
+{% if not s.indexable %}<meta name="robots" content="noindex,follow">{% endif %}
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tooth Fairy Rate Index">
+<meta property="og:title" content="{{ headline }}">
+<meta property="og:description" content="{{ blurb }}">
+<meta property="og:url" content="{{ base }}/{{ s.slug }}">
+<meta property="og:image" content="{{ base }}/og/{{ s.slug }}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ headline }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ headline }}">
+<meta name="twitter:description" content="{{ blurb }}">
+<meta name="twitter:image" content="{{ base }}/og/{{ s.slug }}.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": {{ headline | tojson }},
+  "description": {{ blurb | tojson }},
+  "url": {{ (base ~ "/" ~ s.slug) | tojson }},
+  "isPartOf": {"@type": "WebSite", "name": "Tooth Fairy Rate Index", "url": {{ base | tojson }}},
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Tooth Fairy Rate Index", "item": {{ base | tojson }}},
+      {"@type": "ListItem", "position": 2, "name": {{ s.name | tojson }}, "item": {{ (base ~ "/" ~ s.slug) | tojson }}}
+    ]
+  }
+}
+</script>
+{% if posthog_key %}
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="an ln init xn Cn Br kn In capture Fn nn calculateEventProperties On register register_once register_for_session unregister unregister_for_session Ln getFeatureFlag getFeatureFlagPayload getFeatureFlagResult getAllFeatureFlags isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync Dn identify setPersonProperties unsetPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset shutdown setIdentity clearIdentity get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException addExceptionStep captureLog startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty An Rn createPersonProfile setInternalOrTestUser $n yn jn opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Tn debug Ur Rt getPageViewId captureTraceFeedback captureTraceMetric pn".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init({{ posthog_key | tojson }}, {
+        api_host: {{ posthog_host | tojson }},
+        ui_host: 'https://us.posthog.com',
+        defaults: '2026-05-30',
+        person_profiles: 'identified_only',
+    })
+</script>
+{% endif %}
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --gridline: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --tile-empty: #f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --gridline: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --tile-empty: #383835;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text-primary);
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  .crumb { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+  .crumb a { color: var(--text-secondary); }
+  h1 { font-size: 30px; margin: 0 0 6px; line-height: 1.2; }
+  .sub { color: var(--text-secondary); margin: 0 0 24px; font-size: 15px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+          border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .hero { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .hero .amount { font-size: 56px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1; }
+  .hero .unit { color: var(--text-muted); font-size: 16px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .fact { background: var(--page); border: 1px solid var(--border); border-radius: 8px;
+          padding: 10px 14px; min-width: 128px; }
+  .fact .n { display: block; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fact .l { display: block; font-size: 11.5px; color: var(--text-muted);
+             text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+  .peers { list-style: none; padding: 0; margin: 0; }
+  .peers li { display: flex; justify-content: space-between; gap: 12px;
+              padding: 7px 0; border-bottom: 1px solid var(--gridline); font-size: 14px; }
+  .peers li:last-child { border-bottom: 0; }
+  .peers .v { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 680px) { .cols { grid-template-columns: 1fr 1fr; } }
+  .field { margin-bottom: 12px; }
+  label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  input { width: 100%; padding: 9px 11px; font-size: 15px; border-radius: 7px;
+          border: 1px solid var(--border); background: var(--page); color: var(--text-primary); }
+  button { padding: 9px 16px; font-size: 15px; border: 0; border-radius: 7px;
+           background: var(--series-1); color: #fff; cursor: pointer; }
+  .share { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .share a, .share button { font-size: 13px; padding: 7px 12px; border-radius: 7px;
+           border: 1px solid var(--border); background: var(--page);
+           color: var(--text-secondary); text-decoration: none; cursor: pointer; }
+  .share a:hover, .share button:hover { color: var(--text-primary); }
+  footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);
+           color: var(--text-muted); font-size: 13px; }
+  footer p { margin: 6px 0; }
+  footer a { color: var(--series-1); }
+  .credit { margin-top: 12px; }
+  .credit a { display: inline-flex; align-items: center; gap: 6px;
+              color: var(--text-secondary); text-decoration: none;
+              border-bottom: 1px solid transparent; }
+  .credit a:hover { color: var(--text-primary); border-bottom-color: var(--border); }
+  .credit .heart { width: 13px; height: 13px; flex: none; fill: #e0393e;
+                   transform-origin: center; animation: beat 2.6s ease-in-out infinite; }
+  @keyframes beat { 0%,70%,100% { transform: scale(1); } 74% { transform: scale(1.24); }
+                    82% { transform: scale(1.04); } 88% { transform: scale(1.15); } }
+  @media (prefers-reduced-motion: reduce) { .credit .heart { animation: none; } }
+  #chart svg { display: block; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumb"><a href="/">Tooth Fairy Rate Index</a> › {{ s.name }}</nav>
+
+    <h1>{{ headline }}</h1>
+    <p class="sub">{{ blurb }}</p>
+
+    <section class="card">
+      {% if s.average is not none %}
+        <div class="hero">
+          <span class="amount">${{ "%.2f"|format(s.average) }}</span>
+          <span class="unit">per tooth</span>
+        </div>
+        <div class="facts">
+          {% if s.rank %}
+          <div class="fact"><span class="n">#{{ s.rank }}</span><span class="l">of {{ s.ranked_total }} states</span></div>
+          {% endif %}
+          {% if s.delta is not none %}
+          <div class="fact">
+            <span class="n">{{ "+" if s.delta >= 0 else "−" }}${{ "%.2f"|format(s.delta|abs) }}</span>
+            <span class="l">vs national</span>
+          </div>
+          {% endif %}
+          <div class="fact"><span class="n">{{ "{:,}".format(s.count) }}</span><span class="l">report{{ "s" if s.count != 1 }}</span></div>
+          {% if s.national %}
+          <div class="fact"><span class="n">${{ "%.2f"|format(s.national) }}</span><span class="l">national average</span></div>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="hero"><span class="amount">—</span></div>
+        <p class="sub" style="margin:12px 0 0">No reports from {{ s.name }} yet. Be the first.</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Add what the tooth fairy pays at your house</h2>
+      <form id="submit-form" novalidate>
+        <div class="field">
+          <label for="amount">Amount (USD)</label>
+          <input type="number" id="amount" name="amount" min="0.01" max="100" step="0.01"
+                 inputmode="decimal" placeholder="e.g. 5.00" required>
+        </div>
+        <div class="field">
+          <label for="zip">Zip code</label>
+          <input type="text" id="zip" name="zip" pattern="\d{5}" maxlength="5"
+                 inputmode="numeric" placeholder="5 digits" required>
+        </div>
+        <button type="submit">Submit</button>
+        <p id="form-message" role="status"></p>
+      </form>
+    </section>
+
+    {% if s.timeseries %}
+    <section class="card">
+      <h2>{{ s.name }} over time</h2>
+      <div id="chart" data-series='{{ s.timeseries | tojson }}'></div>
+    </section>
+    {% endif %}
+
+    <div class="cols">
+      {% if s.highest %}
+      <section class="card">
+        <h2>Highest paying states</h2>
+        <ul class="peers">
+          {% for p in s.highest %}
+          <li><a href="/{{ p.slug }}">{{ p.name }}</a><span class="v">${{ "%.2f"|format(p.average) }}</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+      {% if s.lowest %}
+      <section class="card">
+        <h2>Lowest paying states</h2>
+        <ul class="peers">
+          {% for p in s.lowest %}
+          <li><a href="/{{ p.slug }}">{{ p.name }}</a><span class="v">${{ "%.2f"|format(p.average) }}</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+    </div>
+
+    <section class="card">
+      <h2>Share {{ s.name }}</h2>
+      <div class="share">
+        <a href="https://twitter.com/intent/tweet?text={{ headline | urlencode }}&url={{ (base ~ '/' ~ s.slug) | urlencode }}"
+           target="_blank" rel="noopener noreferrer">Share on X</a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{ (base ~ '/' ~ s.slug) | urlencode }}"
+           target="_blank" rel="noopener noreferrer">Share on Facebook</a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ (base ~ '/' ~ s.slug) | urlencode }}"
+           target="_blank" rel="noopener noreferrer">Share on LinkedIn</a>
+        <button type="button" id="copy-link" data-url="{{ base }}/{{ s.slug }}">Copy link</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>Your zip code is used to find your state, then discarded. It is never stored.</p>
+      <p><a href="/">See every state</a> · <a href="/security.html">Security &amp; compliance</a></p>
+      <p class="credit">
+        <a href="https://massdriver.ai" target="_blank" rel="noopener noreferrer"
+           aria-label="Built with love in California — Massdriver.ai">
+          <span>Built with</span>
+          <svg class="heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.7-4.35-9.2-8.02C.4 9.9 1.6 6.1 4.9 5.2c2-.55 3.9.3 5.1 1.9 1.2-1.6 3.1-2.45 5.1-1.9 3.3.9 4.5 4.7 2.1 7.78C18.7 16.65 12 21 12 21z"/></svg>
+          <span>in California — <strong>Massdriver.ai</strong></span>
+        </a>
+      </p>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  var form = document.getElementById('submit-form');
+  var msg = document.getElementById('form-message');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    msg.textContent = '';
+    var amount = parseFloat(document.getElementById('amount').value);
+    var zip = document.getElementById('zip').value.trim();
+    fetch('/api/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({zip_code: zip, amount: amount})
+    }).then(function (r) {
+      return r.json().then(function (body) { return {ok: r.ok, body: body}; });
+    }).then(function (res) {
+      if (!res.ok) { msg.textContent = res.body.error || 'Something went wrong.'; return; }
+      msg.textContent = 'Thanks! Reload to see it counted.';
+      form.reset();
+    }).catch(function () { msg.textContent = 'Could not reach the server.'; });
+  });
+
+  var copy = document.getElementById('copy-link');
+  copy.addEventListener('click', function () {
+    navigator.clipboard.writeText(copy.dataset.url).then(function () {
+      var original = copy.textContent;
+      copy.textContent = 'Copied';
+      setTimeout(function () { copy.textContent = original; }, 1600);
+    });
+  });
+
+  // Time series, drawn as inline SVG so the page pulls in no chart library.
+  var host = document.getElementById('chart');
+  if (!host) return;
+  var series = JSON.parse(host.dataset.series || '[]');
+  if (series.length < 2) { host.innerHTML = '<p class="sub">Not enough reports yet to draw a trend.</p>'; return; }
+
+  var W = 640, H = 200, padL = 44, padR = 12, padT = 12, padB = 26;
+  var values = series.map(function (d) { return d.average; });
+  var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+  if (min === max) { min = min - 1; max = max + 1; }
+  var xs = function (i) { return padL + (W - padL - padR) * (series.length === 1 ? 0 : i / (series.length - 1)); };
+  var ys = function (v) { return padT + (H - padT - padB) * (1 - (v - min) / (max - min)); };
+
+  var path = series.map(function (d, i) { return (i ? 'L' : 'M') + xs(i).toFixed(1) + ' ' + ys(d.average).toFixed(1); }).join(' ');
+  var ticks = [min, (min + max) / 2, max];
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Average over time">';
+  ticks.forEach(function (t) {
+    var y = ys(t);
+    svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="var(--gridline)" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="var(--text-muted)">$' + t.toFixed(2) + '</text>';
+  });
+  svg += '<path d="' + path + '" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg += '<text x="' + padL + '" y="' + (H - 6) + '" font-size="11" fill="var(--text-muted)">' + series[0].date + '</text>';
+  svg += '<text x="' + (W - padR) + '" y="' + (H - 6) + '" text-anchor="end" font-size="11" fill="var(--text-muted)">' + series[series.length - 1].date + '</text>';
+  svg += '</svg>';
+  host.innerHTML = svg;
+})();
+</script>
+</body>
+</html>

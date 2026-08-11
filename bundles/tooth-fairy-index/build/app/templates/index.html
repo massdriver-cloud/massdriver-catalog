@@ -125,6 +125,14 @@
   }
   .state-tile-code { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
   .state-tile-value { font-size: 11px; margin-top: 2px; }
+  a.state-tile { text-decoration: none; color: inherit; }
+  a.state-tile:hover { outline: 2px solid var(--series-1); outline-offset: 1px; }
+
+  .state-links { list-style: none; padding: 0; margin: 0;
+                 columns: 2; column-gap: 24px; }
+  @media (min-width: 620px) { .state-links { columns: 3; } }
+  .state-links li { padding: 4px 0; font-size: 14px; break-inside: avoid; }
+  .state-links span { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-secondary); }
   .legend-bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(to right, #cde2fb, #0d366b); max-width: 220px; }
@@ -191,7 +199,7 @@
   <div class="wrap">
     <header>
       <h1>🦷 Tooth Fairy Rate Index</h1>
-      <p>An unscientific, entirely anonymous look at what the tooth fairy pays around the country.</p>
+      <p>What the tooth fairy pays around the country, one lost tooth at a time.</p>
     </header>
 
     <section class="card">
@@ -233,9 +241,20 @@
       <div id="chart"></div>
     </section>
 
+    {% if state_links %}
+    <section class="card">
+      <h2>Every state</h2>
+      <ul class="state-links">
+        {% for st in state_links %}
+        <li><a href="/{{ st.slug }}">{{ st.name }}</a> <span>${{ "%.2f"|format(st.average) }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
     <footer>
-      <p>Just for fun — nothing here is scientific. Your zip code is used to find your state and is never stored.</p>
-      <p><a href="/security.html">Security &amp; compliance</a> — what this app collects, and the security checks that ran when it was deployed.</p>
+      <p>Your zip code is used to find your state, then discarded. It is never stored.</p>
+      <p><a href="/security.html">Security &amp; compliance</a></p>
       <p class="credit">
         <a href="https://massdriver.ai" target="_blank" rel="noopener noreferrer"
            aria-label="Built with love in California — Massdriver.ai">
@@ -338,8 +357,9 @@
 
     codes.forEach(function (code) {
       var entry = states[code];
-      var tile = document.createElement("div");
+      var tile = document.createElement("a");
       tile.className = "state-tile";
+      tile.href = "/" + STATE_NAMES[code].toLowerCase().replace(/ /g, "-");
 
       if (entry) {
         var idx = stepIndexForValue(entry.average, min, max);
