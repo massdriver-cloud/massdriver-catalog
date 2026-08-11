@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tooth Fairy Rate Index</title>
+{% if posthog_key %}
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="an ln init xn Cn Br kn In capture Fn nn calculateEventProperties On register register_once register_for_session unregister unregister_for_session Ln getFeatureFlag getFeatureFlagPayload getFeatureFlagResult getAllFeatureFlags isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync Dn identify setPersonProperties unsetPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset shutdown setIdentity clearIdentity get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException addExceptionStep captureLog startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty An Rn createPersonProfile setInternalOrTestUser $n yn jn opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Tn debug Ur Rt getPageViewId captureTraceFeedback captureTraceMetric pn".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init({{ posthog_key | tojson }}, {
+        api_host: {{ posthog_host | tojson }}, // your managed reverse proxy domain
+        ui_host: 'https://us.posthog.com', // necessary because you're using a proxy, this way links will point back to PostHog properly
+        defaults: '2026-05-30',
+        person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
+    })
+</script>
+{% endif %}
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --gridline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --series-1: #2a78d6;
+    --tile-empty: #f0efec;
+    --success: #006300;
+    --error: #d03b3b;
+    --tooltip-bg: #0b0b0b;
+    --tooltip-text: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --gridline: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --series-1: #3987e5;
+      --tile-empty: #383835;
+      --success: #0ca30c;
+      --error: #e66767;
+      --tooltip-bg: #ffffff;
+      --tooltip-text: #0b0b0b;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+
+  header { margin-bottom: 24px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  header p { color: var(--text-secondary); margin: 0; font-size: 15px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 20px 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 16px; margin: 0 0 14px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  form { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; color: var(--text-secondary); }
+  .field input {
+    font-size: 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--page);
+    color: var(--text-primary);
+    width: 160px;
+  }
+  .field input:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+
+  button {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 8px;
+    border: none;
+    background: var(--series-1);
+    color: #ffffff;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+
+  #form-message { flex-basis: 100%; margin: 4px 0 0; font-size: 14px; min-height: 20px; }
+  #form-message.error { color: var(--error); }
+  #form-message.success { color: var(--success); }
+
+  .stat-tile { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .stat-value { font-size: 48px; font-weight: 700; line-height: 1; }
+  .stat-sub { color: var(--text-secondary); font-size: 14px; }
+
+  .state-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+    gap: 4px;
+  }
+  .state-tile {
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+    background: var(--tile-empty);
+    color: var(--text-muted);
+  }
+  .state-tile-code { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+  .state-tile-value { font-size: 11px; margin-top: 2px; }
+
+  .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-secondary); }
+  .legend-bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(to right, #cde2fb, #0d366b); max-width: 220px; }
+
+  .chart-card { position: relative; }
+  #chart { width: 100%; }
+  #chart svg { display: block; overflow: visible; }
+  .empty-note { color: var(--text-muted); font-size: 14px; margin: 8px 0; }
+  .chart-tooltip {
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    font-size: 12px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  footer {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  footer p { margin: 6px 0; }
+  footer a { color: var(--series-1); }
+
+  .credit { margin-top: 12px; }
+  .credit a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .credit a:hover { color: var(--text-primary); border-bottom-color: var(--border); }
+  .credit .heart {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    fill: #e0393e;
+    transform-origin: center;
+    animation: beat 2.6s ease-in-out infinite;
+  }
+  @keyframes beat {
+    0%, 70%, 100% { transform: scale(1); }
+    74% { transform: scale(1.24); }
+    82% { transform: scale(1.04); }
+    88% { transform: scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .credit .heart { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🦷 Tooth Fairy Rate Index</h1>
+      <p>An unscientific, entirely anonymous look at what the tooth fairy pays around the country.</p>
+    </header>
+
+    <section class="card">
+      <h2>What did the tooth fairy leave at your house?</h2>
+      <form id="submit-form" novalidate>
+        <div class="field">
+          <label for="amount">Amount (USD)</label>
+          <input type="number" id="amount" name="amount" min="0.01" max="100" step="0.01" inputmode="decimal" placeholder="e.g. 5.00" required>
+        </div>
+        <div class="field">
+          <label for="zip">Zip code</label>
+          <input type="text" id="zip" name="zip" pattern="\d{5}" maxlength="5" inputmode="numeric" placeholder="5 digits" required>
+        </div>
+        <button type="submit">Submit</button>
+        <p id="form-message" role="status"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>National average</h2>
+      <div class="stat-tile">
+        <span id="national-average" class="stat-value">—</span>
+        <span id="national-count" class="stat-sub">Loading…</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>By state</h2>
+      <div id="state-grid" class="state-grid" aria-live="off"></div>
+      <div class="legend">
+        <span>Lower</span>
+        <span class="legend-bar"></span>
+        <span>Higher</span>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <h2>Over time</h2>
+      <div id="chart"></div>
+    </section>
+
+    <footer>
+      <p>This is a demo app built for a marketing campaign. Please don't enter real personal information — only an amount and a zip code, and the zip code itself is never stored.</p>
+      <p><a href="/security.html">Security &amp; compliance</a> — what this app collects, and the security checks that ran when it was deployed.</p>
+      <p class="credit">
+        <a href="https://massdriver.ai" target="_blank" rel="noopener noreferrer"
+           aria-label="Built with love in California — Massdriver.ai">
+          <span>Built with</span>
+          <svg class="heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.7-4.35-9.2-8.02C.4 9.9 1.6 6.1 4.9 5.2c2-.55 3.9.3 5.1 1.9 1.2-1.6 3.1-2.45 5.1-1.9 3.3.9 4.5 4.7 2.1 7.78C18.7 16.65 12 21 12 21z"/></svg>
+          <span>in California — <strong>Massdriver.ai</strong></span>
+        </a>
+      </p>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var POLL_MS = 5000;
+
+  var STATE_NAMES = {
+    AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+    CO: "Colorado", CT: "Connecticut", DE: "Delaware", DC: "District of Columbia",
+    FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois",
+    IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana",
+    ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
+    MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada",
+    NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York",
+    NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon",
+    PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota",
+    TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia",
+    WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming"
+  };
+
+  // Sequential blue ramp, light -> dark (see the dataviz palette this app follows).
+  var SEQ_STEPS = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7",
+                    "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"];
+  var LIGHT_TEXT_FROM_INDEX = 6;
+
+  function money(n) { return "$" + Number(n).toFixed(2); }
+
+  function stepIndexForValue(value, min, max) {
+    if (max <= min) return 0;
+    var t = Math.max(0, Math.min(1, (value - min) / (max - min)));
+    return Math.round(t * (SEQ_STEPS.length - 1));
+  }
+
+  var form = document.getElementById("submit-form");
+  var amountInput = document.getElementById("amount");
+  var zipInput = document.getElementById("zip");
+  var message = document.getElementById("form-message");
+  var submitBtn = form.querySelector("button[type=submit]");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    message.textContent = "";
+    message.className = "";
+    submitBtn.disabled = true;
+
+    fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amountInput.value, zip_code: zipInput.value })
+    })
+      .then(function (res) {
+        return res.json().then(function (body) { return { ok: res.ok, body: body }; });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          message.textContent = result.body.error || "Something went wrong. Please try again.";
+          message.className = "error";
+          return;
+        }
+        var stateName = STATE_NAMES[result.body.state] || result.body.state;
+        message.textContent = "Thanks! Added to the " + stateName + " total.";
+        message.className = "success";
+        form.reset();
+        loadStats();
+      })
+      .catch(function () {
+        message.textContent = "Network error — please try again.";
+        message.className = "error";
+      })
+      .finally(function () {
+        submitBtn.disabled = false;
+      });
+  });
+
+  var nationalAvgEl = document.getElementById("national-average");
+  var nationalCountEl = document.getElementById("national-count");
+  var stateGridEl = document.getElementById("state-grid");
+  var chartEl = document.getElementById("chart");
+
+  var lastTimeseries = [];
+
+  function renderStates(states) {
+    stateGridEl.innerHTML = "";
+    var codes = Object.keys(STATE_NAMES).sort();
+    var withData = codes.filter(function (c) { return states[c]; });
+    var averages = withData.map(function (c) { return states[c].average; });
+    var min = averages.length ? Math.min.apply(null, averages) : 0;
+    var max = averages.length ? Math.max.apply(null, averages) : 1;
+
+    codes.forEach(function (code) {
+      var entry = states[code];
+      var tile = document.createElement("div");
+      tile.className = "state-tile";
+
+      if (entry) {
+        var idx = stepIndexForValue(entry.average, min, max);
+        tile.style.background = SEQ_STEPS[idx];
+        tile.style.color = idx >= LIGHT_TEXT_FROM_INDEX ? "#ffffff" : "#0b0b0b";
+        tile.title = STATE_NAMES[code] + ": " + money(entry.average) + " average (" +
+          entry.count + " submission" + (entry.count === 1 ? "" : "s") + ")";
+      } else {
+        tile.title = STATE_NAMES[code] + ": no submissions yet";
+      }
+
+      var codeEl = document.createElement("div");
+      codeEl.className = "state-tile-code";
+      codeEl.textContent = code;
+
+      var valueEl = document.createElement("div");
+      valueEl.className = "state-tile-value";
+      valueEl.textContent = entry ? money(entry.average) : "—";
+
+      tile.appendChild(codeEl);
+      tile.appendChild(valueEl);
+      stateGridEl.appendChild(tile);
+    });
+  }
+
+  function renderChart(timeseries) {
+    lastTimeseries = timeseries || [];
+    chartEl.innerHTML = "";
+
+    if (!lastTimeseries.length) {
+      var empty = document.createElement("p");
+      empty.className = "empty-note";
+      empty.textContent = "No data yet — this chart fills in once a few submissions come in.";
+      chartEl.appendChild(empty);
+      return;
+    }
+
+    var width = chartEl.clientWidth || 600;
+    var height = 220;
+    var pad = { top: 16, right: 12, bottom: 26, left: 48 };
+    var plotW = width - pad.left - pad.right;
+    var plotH = height - pad.top - pad.bottom;
+
+    var values = lastTimeseries.map(function (p) { return p.average; });
+    var minV = Math.min.apply(null, values);
+    var maxV = Math.max.apply(null, values);
+    var range = (maxV - minV) || 1;
+
+    function x(i) {
+      return lastTimeseries.length === 1
+        ? pad.left + plotW / 2
+        : pad.left + (i / (lastTimeseries.length - 1)) * plotW;
+    }
+    function y(v) { return pad.top + plotH - ((v - minV) / range) * plotH; }
+
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", height);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Average tooth fairy payout over time");
+
+    var gridColor = getComputedStyle(document.documentElement).getPropertyValue("--gridline").trim();
+    var seriesColor = getComputedStyle(document.documentElement).getPropertyValue("--series-1").trim();
+    var baselineColor = getComputedStyle(document.documentElement).getPropertyValue("--baseline").trim();
+
+    for (var i = 0; i <= 2; i++) {
+      var gy = pad.top + (plotH / 2) * i;
+      var gline = document.createElementNS(svgNS, "line");
+      gline.setAttribute("x1", pad.left);
+      gline.setAttribute("x2", width - pad.right);
+      gline.setAttribute("y1", gy);
+      gline.setAttribute("y2", gy);
+      gline.setAttribute("stroke", gridColor);
+      gline.setAttribute("stroke-width", "1");
+      svg.appendChild(gline);
+    }
+
+    var d = lastTimeseries.map(function (p, i) {
+      return (i === 0 ? "M" : "L") + x(i).toFixed(1) + "," + y(p.average).toFixed(1);
+    }).join(" ");
+    var path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", seriesColor);
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+
+    lastTimeseries.forEach(function (p, i) {
+      var c = document.createElementNS(svgNS, "circle");
+      c.setAttribute("cx", x(i));
+      c.setAttribute("cy", y(p.average));
+      c.setAttribute("r", 3);
+      c.setAttribute("fill", seriesColor);
+      svg.appendChild(c);
+    });
+
+    var crosshair = document.createElementNS(svgNS, "line");
+    crosshair.setAttribute("y1", pad.top);
+    crosshair.setAttribute("y2", pad.top + plotH);
+    crosshair.setAttribute("stroke", baselineColor);
+    crosshair.setAttribute("stroke-width", "1");
+    crosshair.style.display = "none";
+    svg.appendChild(crosshair);
+
+    var hitLayer = document.createElementNS(svgNS, "rect");
+    hitLayer.setAttribute("x", pad.left);
+    hitLayer.setAttribute("y", pad.top);
+    hitLayer.setAttribute("width", Math.max(plotW, 1));
+    hitLayer.setAttribute("height", Math.max(plotH, 1));
+    hitLayer.setAttribute("fill", "transparent");
+    svg.appendChild(hitLayer);
+
+    chartEl.appendChild(svg);
+
+    var tooltip = document.createElement("div");
+    tooltip.className = "chart-tooltip";
+    tooltip.style.display = "none";
+    chartEl.style.position = "relative";
+    chartEl.appendChild(tooltip);
+
+    function nearestIndex(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var relX = ((clientX - rect.left) / rect.width) * width;
+      var best = 0, bestDist = Infinity;
+      lastTimeseries.forEach(function (_, i) {
+        var dist = Math.abs(x(i) - relX);
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      return best;
+    }
+
+    function showAt(clientX) {
+      var idx = nearestIndex(clientX);
+      var p = lastTimeseries[idx];
+      crosshair.setAttribute("x1", x(idx));
+      crosshair.setAttribute("x2", x(idx));
+      crosshair.style.display = "block";
+      tooltip.style.display = "block";
+      tooltip.textContent = p.date + ": " + money(p.average) + " avg (" + p.count + ")";
+      tooltip.style.left = ((x(idx) / width) * 100) + "%";
+    }
+
+    function hide() {
+      crosshair.style.display = "none";
+      tooltip.style.display = "none";
+    }
+
+    svg.addEventListener("mousemove", function (e) { showAt(e.clientX); });
+    svg.addEventListener("mouseleave", hide);
+    svg.addEventListener("touchstart", function (e) { showAt(e.touches[0].clientX); }, { passive: true });
+    svg.addEventListener("touchmove", function (e) { showAt(e.touches[0].clientX); }, { passive: true });
+    svg.addEventListener("touchend", hide);
+  }
+
+  function loadStats() {
+    return fetch("/api/stats")
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+
+        if (data.national.count) {
+          nationalAvgEl.textContent = money(data.national.average);
+          nationalCountEl.textContent = data.national.count +
+            " submission" + (data.national.count === 1 ? "" : "s") + " so far";
+        } else {
+          nationalAvgEl.textContent = "—";
+          nationalCountEl.textContent = "No submissions yet — be the first!";
+        }
+
+        renderStates(data.states || {});
+        renderChart(data.timeseries || []);
+      })
+      .catch(function () { /* keep showing the last known data on a failed poll */ });
+  }
+
+  window.addEventListener("resize", function () {
+    if (lastTimeseries.length) renderChart(lastTimeseries);
+  });
+
+  loadStats();
+  setInterval(loadStats, POLL_MS);
+})();
+</script>
+</body>
+</html>

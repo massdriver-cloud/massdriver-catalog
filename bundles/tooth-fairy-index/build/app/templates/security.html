@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security &amp; Compliance — Tooth Fairy Rate Index</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --border: rgba(11, 11, 11, 0.10);
+    --gridline: #e1e0d9;
+    --series-1: #2a78d6;
+    --pass: #006300;
+    --pass-bg: rgba(0, 99, 0, 0.09);
+    --fail: #b3541e;
+    --fail-bg: rgba(179, 84, 30, 0.10);
+    --none: #898781;
+    --none-bg: rgba(137, 135, 129, 0.12);
+    --note-bg: rgba(42, 120, 214, 0.07);
+    --warn-bg: rgba(179, 84, 30, 0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --border: rgba(255, 255, 255, 0.10);
+      --gridline: #2c2c2a;
+      --series-1: #3987e5;
+      --pass: #0ca30c;
+      --pass-bg: rgba(12, 163, 12, 0.14);
+      --fail: #e08b5a;
+      --fail-bg: rgba(224, 139, 90, 0.14);
+      --none: #898781;
+      --none-bg: rgba(137, 135, 129, 0.16);
+      --note-bg: rgba(57, 135, 229, 0.10);
+      --warn-bg: rgba(224, 139, 90, 0.10);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+
+  header { margin-bottom: 8px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  header p { color: var(--text-secondary); margin: 0; font-size: 15px; }
+
+  h2 {
+    font-size: 18px;
+    margin: 32px 0 4px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  p, li { font-size: 14.5px; color: var(--text-secondary); }
+  p { margin: 8px 0; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  strong { color: var(--text-primary); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    background: var(--none-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-primary);
+  }
+
+  .callout {
+    background: var(--note-bg);
+    border-left: 3px solid var(--series-1);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout.warn { background: var(--warn-bg); border-left-color: var(--fail); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .meta {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0 8px;
+  }
+  .meta dl { margin: 0; display: grid; grid-template-columns: minmax(140px, auto) 1fr; gap: 5px 18px; }
+  .meta dt { font-size: 13px; color: var(--text-muted); }
+  .meta dd { margin: 0; font-size: 13px; color: var(--text-primary); word-break: break-word; }
+
+  .scroll { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gridline);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td code { background: none; padding: 0; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge.pass { color: var(--pass); background: var(--pass-bg); }
+  .badge.fail { color: var(--fail); background: var(--fail-bg); }
+  .badge.none { color: var(--none); background: var(--none-bg); }
+
+  .totals { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+  .total {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    min-width: 108px;
+  }
+  .total .n { display: block; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .total .l { display: block; font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .total.pass .n { color: var(--pass); }
+  .total.fail .n { color: var(--fail); }
+  .total.none .n { color: var(--none); }
+
+  footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  a { color: var(--series-1); }
+
+  .credit { margin-top: 12px; }
+  .credit a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .credit a:hover { color: var(--text-primary); border-bottom-color: var(--border); }
+  .credit .heart {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    fill: #e0393e;
+    transform-origin: center;
+    animation: beat 2.6s ease-in-out infinite;
+  }
+  @keyframes beat {
+    0%, 70%, 100% { transform: scale(1); }
+    74% { transform: scale(1.24); }
+    82% { transform: scale(1.04); }
+    88% { transform: scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .credit .heart { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Security &amp; Compliance</h1>
+      <p>Tooth Fairy Rate Index — what this app handles, what was checked when it was deployed, and what is still open.</p>
+    </header>
+
+    <div class="callout">
+      <p>This page records the automated infrastructure policy checks that ran when this app was
+      deployed, and describes how it is built. It is not a SOC 2 report or a HIPAA attestation —
+      those require an auditor. The control-family columns show which control areas each check
+      relates to.</p>
+    </div>
+
+    <h2>Scope of this record</h2>
+    <div class="meta">
+      <dl>
+        <dt>Application</dt><dd>Tooth Fairy Rate Index — public marketing campaign demo</dd>
+        <dt>Environment</dt><dd><strong>Development</strong> — not a production system</dd>
+        <dt>Hosting</dt><dd>Google Cloud Run, region <code>us-central1</code> (United States)</dd>
+        <dt>Data store</dt><dd>Google Cloud Firestore, Native mode, location <code>nam5</code> (US multi-region)</dd>
+        <dt>App version</dt><dd><code>tooth-fairy-index@0.1.0-dev.20260811T160230Z</code></dd>
+        <dt>App deployment</dt><dd><code>cde8142d-bc43-4e20-993d-53bbde49499e</code> — completed 2026-08-11 16:14 UTC</dd>
+        <dt>Database version</dt><dd><code>gcp-firestore@0.1.0-dev.20260811T061818Z</code></dd>
+        <dt>Database deployment</dt><dd><code>f10c9a45-5cd5-42c7-83ff-7c619f2d82c0</code> — completed 2026-08-11 15:59 UTC</dd>
+        <dt>Scanner</dt><dd>Checkov, run against the OpenTofu execution plan at deploy time</dd>
+      </dl>
+    </div>
+    <p>Everything below describes the two deployments named above. It does not describe any other
+    environment, and it goes stale the moment either is redeployed.</p>
+
+    <h2>1. What data this app collects</h2>
+    <p>A visitor submits two things: a dollar amount and a 5-digit US zip code. The zip code is
+    converted to a US state in memory and <strong>is never written to storage</strong>. What persists is:</p>
+    <ul>
+      <li><strong>State</strong> — a two-letter code such as <code>CA</code></li>
+      <li><strong>Amount</strong> — a number between $0.01 and $100.00</li>
+      <li><strong>Timestamp</strong> — set by the server, not the browser</li>
+    </ul>
+    <p>The application's own database does <strong>not</strong> contain names, email addresses,
+    phone numbers, postal addresses, zip codes, account identifiers, IP addresses, or any
+    identifier that links two submissions to the same person. There are no user accounts and no
+    login. Two submissions from the same household are indistinguishable from two different
+    households.</p>
+    <p>The page uses a basic analytics script to count visits and see how people move through it.
+    It is optional: with no analytics key configured, no analytics script loads at all. Analytics is
+    kept separate from the submitted amounts and shares no identifier with them.</p>
+
+    <div class="callout">
+      <p><strong>On HIPAA specifically:</strong> this application does not process, store, or transmit
+      protected health information. The HIPAA Security Rule references in the mapping table show which
+      safeguard families the underlying technical controls belong to.</p>
+    </div>
+
+    <h2>2. Automated policy checks at deployment</h2>
+    <p>The app deploys in two stages: a <strong>build</strong> stage that compiles the container image
+    inside Google Cloud, and a <strong>deploy</strong> stage that runs the service. Each stage is
+    scanned separately. The database is deployed independently and scanned separately again.</p>
+
+    <div class="totals">
+      <div class="total pass"><span class="n">16</span><span class="l">Passed</span></div>
+      <div class="total fail"><span class="n">2</span><span class="l">Failed</span></div>
+      <div class="total none"><span class="n">0</span><span class="l">Suppressed</span></div>
+    </div>
+
+    <h3>Build stage — 10 passed, 2 failed</h3>
+    <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Check</th><th>What it verifies</th><th>Result</th><th>SOC 2 (TSC)</th><th>HIPAA Security Rule</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>CKV_GCP_42</code></td><td>Service account has no administrator privileges</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.3</td><td>164.308(a)(4), 164.312(a)(1)</td></tr>
+        <tr><td><code>CKV_GCP_117</code></td><td>No broad "basic" roles (owner/editor/viewer) granted</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_46</code></td><td>The default service account is not used</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.2</td><td>164.312(a)(2)(i)</td></tr>
+        <tr><td><code>CKV_GCP_41</code></td><td>Service Account User / Token Creator not granted project-wide</td><td><span class="badge pass">Pass</span></td><td>CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_49</code></td><td>Roles cannot impersonate or manage other service accounts</td><td><span class="badge pass">Pass</span></td><td>CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_101</code></td><td>Container image registry is not publicly accessible</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.6</td><td>164.312(a)(1)</td></tr>
+        <tr><td><code>CKV_GCP_28</code></td><td>Source storage bucket is not anonymously or publicly accessible</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.6</td><td>164.312(a)(1)</td></tr>
+        <tr><td><code>CKV_GCP_114</code></td><td>Public access prevention is enforced on the bucket</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.6</td><td>164.312(a)(1)</td></tr>
+        <tr><td><code>CKV_GCP_29</code></td><td>Uniform bucket-level access is enabled</td><td><span class="badge pass">Pass</span></td><td>CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_78</code></td><td>Bucket versioning is enabled</td><td><span class="badge pass">Pass</span></td><td>A1.2, PI1.4</td><td>164.312(c)(1), 164.308(a)(7)</td></tr>
+        <tr><td><code>CKV_GCP_62</code></td><td>Bucket should log access requests</td><td><span class="badge fail">Fail</span></td><td>CC6.1, CC7.2</td><td>164.312(b), 164.308(a)(1)(ii)(D)</td></tr>
+        <tr><td><code>CKV_GCP_63</code></td><td>Bucket should not write access logs to itself</td><td><span class="badge fail">Fail</span></td><td>CC7.2</td><td>164.312(b)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Deploy stage — 6 passed, 0 failed</h3>
+    <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Check</th><th>What it verifies</th><th>Result</th><th>SOC 2 (TSC)</th><th>HIPAA Security Rule</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>CKV_GCP_42</code></td><td>The app's runtime identity has no administrator privileges</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.3</td><td>164.308(a)(4), 164.312(a)(1)</td></tr>
+        <tr><td><code>CKV_GCP_117</code></td><td>No broad "basic" roles granted to the runtime identity</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_46</code></td><td>The default service account is not used at runtime</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.2</td><td>164.312(a)(2)(i)</td></tr>
+        <tr><td><code>CKV_GCP_41</code></td><td>Service Account User / Token Creator not granted project-wide</td><td><span class="badge pass">Pass</span></td><td>CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_49</code></td><td>The runtime identity cannot impersonate other accounts</td><td><span class="badge pass">Pass</span></td><td>CC6.3</td><td>164.308(a)(4)</td></tr>
+        <tr><td><code>CKV_GCP_101</code></td><td>Registry read access is not public</td><td><span class="badge pass">Pass</span></td><td>CC6.1, CC6.6</td><td>164.312(a)(1)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Database — no checks evaluated</h3>
+    <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Resource</th><th>Checks run</th><th>Result</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>google_firestore_database</code></td>
+          <td>0</td>
+          <td><span class="badge none">No coverage</span></td>
+          <td>The scanner ran and returned no findings of any kind, because its rule set contains no policies for this resource type.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="callout warn">
+      <p>Zero checks is not the same as a pass — the scanner has no rule set for this resource type.
+      The database's protections are described in sections 4 and 5, confirmed by reading the
+      deployment plan rather than by an automated check.</p>
+    </div>
+
+    <h2>3. Open findings</h2>
+    <p>Two checks failed. Both concern the same resource: the temporary storage bucket that holds a
+    zip of the application source code while Google Cloud Build compiles it.</p>
+    <div class="scroll">
+    <table>
+      <thead><tr><th>Finding</th><th>Status</th><th>Assessment</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>CKV_GCP_62</code><br><code>CKV_GCP_63</code></td>
+          <td><span class="badge fail">Open</span></td>
+          <td>Access logging is not enabled on the build source bucket, so reads and writes to it are
+          not individually logged. The bucket contains application source code only — never campaign
+          data, and never anything a visitor submitted. It blocks all public access, enforces uniform
+          access control, and deletes its contents after 14 days.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>These findings originate in the shared deployment template this app was generated from, not in
+    this app's own configuration, so they are present in every app built from that template. The fix
+    belongs in the shared template so that every application inherits it.</p>
+
+    <h2>4. Access control and identity</h2>
+    <ul>
+      <li><strong>Two separate machine identities, each purpose-built.</strong> The build identity can
+      read the source bucket, write logs, and push an image. The runtime identity can read that image
+      and use the database. Neither can do the other's job.</li>
+      <li><strong>The runtime identity holds exactly one project-level role</strong>
+      (<code>roles/datastore.user</code>) — database read/write, and nothing else. It cannot create
+      infrastructure, read other buckets, or manage IAM.</li>
+      <li><strong>No default or shared service account is used</strong>, and no broad
+      owner/editor/viewer role is granted anywhere in this deployment.</li>
+      <li><strong>No credentials in configuration.</strong> The container receives only two
+      environment variables — the Google Cloud project ID and the database name. Authentication uses
+      Google's workload identity; there is no API key, password, or connection string to leak.</li>
+      <li><strong>The web page itself is intentionally public</strong> — see section 6.</li>
+    </ul>
+
+    <h2>5. Encryption, availability and integrity</h2>
+    <ul>
+      <li><strong>In transit:</strong> the site is served over HTTPS only, with a Google-managed
+      certificate and TLS terminated by Google's front end. Plain HTTP is redirected.</li>
+      <li><strong>At rest:</strong> encrypted with Google-managed AES-256 keys, the platform default.
+      <em>Customer-managed encryption keys (CMEK) are not configured.</em></li>
+      <li><strong>Point-in-time recovery is enabled</strong> on the database, so it can be restored to
+      an earlier moment.</li>
+      <li><strong>Delete protection is enabled</strong> on the database — it cannot be deleted by an
+      ordinary API call or an accidental teardown.</li>
+      <li><strong>The service is capacity-bounded</strong> to a maximum of 3 instances, which caps both
+      cost and the blast radius of a traffic flood.</li>
+      <li><strong>Submitted values are validated and bounded</strong> server-side: amounts must fall
+      between $0.01 and $100.00, and non-numeric, infinite, and out-of-range values are rejected. A
+      single visitor cannot meaningfully distort the published average.</li>
+      <li><strong>Output is escaped.</strong> Nothing a visitor types is ever rendered as markup —
+      server-side templating escapes by default and the browser code assigns text, never HTML.</li>
+    </ul>
+
+    <h2>6. Known gaps</h2>
+    <ul>
+      <li><strong>The service is deliberately open to the internet.</strong> Anyone can load the page
+      and submit a value — that is the point of a public campaign. The scanner has no check for this
+      (it isn't a policy category it covers); being public was confirmed by direct inspection.</li>
+      <li><strong>No rate limiting or bot protection.</strong> Submissions are unauthenticated and
+      unthrottled. Amounts are bounded to $0.01–$100.00 per submission, so a script can inflate the
+      submission count but not push a single value out of range, though it could still skew the
+      published average.</li>
+      <li><strong>No automated retention or deletion schedule</strong> on submitted records. They are
+      retained until deleted by hand. Because the records are anonymous by construction, there is no
+      subject to a deletion request.</li>
+      <li><strong>The database has no automated policy coverage at all</strong> (section 2).</li>
+      <li><strong>This is a development environment.</strong> It has not been through a production
+      promotion, which is where change approval gating would normally apply.</li>
+      <li><strong>No independent penetration test or vulnerability scan</strong> has been performed
+      against this application.</li>
+      <li><strong>Container base image patching is not automated.</strong> The image is rebuilt only
+      when the app is redeployed, so a base-image vulnerability disclosed after the last deploy would
+      remain until the next one.</li>
+    </ul>
+
+    <h2>7. Change management and audit trail</h2>
+    <ul>
+      <li>Every deployment is recorded with a unique identifier, the exact version deployed, who
+      triggered it, and a timestamp. The two identifiers in the scope table above are that record.</li>
+      <li>All infrastructure is declared as code and versioned; nothing here was configured by hand
+      in a console.</li>
+      <li>Each build produces an <strong>immutably tagged image</strong>, tagged with the deployment
+      timestamp. The deploy stage verifies that exact tag exists in the registry before releasing it,
+      so a deployment cannot silently ship a stale or different image.</li>
+      <li>Infrastructure provider plugins are <strong>cryptographically signature-verified</strong> at
+      deploy time (signing keys <code>0C0AF313E5FD9F80</code> and <code>6758F1FC1D4FE114</code>).</li>
+      <li>The policy scan shown on this page runs on every deployment, not on request.</li>
+    </ul>
+
+    <h2>8. Verifying this yourself</h2>
+    <p>Everything above comes from records you can read directly:</p>
+    <ul>
+      <li>The scan counts and the two failures are printed verbatim in the deployment logs for the
+      deployment IDs listed in the scope table.</li>
+      <li>The IAM roles, bucket settings, encryption posture, and database protections are all visible
+      in the same logs, in the execution plan that precedes the scan.</li>
+      <li>That the page collects nothing beyond state and amount is verifiable by reading the
+      application source, which is version-controlled alongside its infrastructure.</li>
+    </ul>
+    <p>For anything not covered here, the platform team that owns the deployment pipeline holds the
+    logs and the source.</p>
+
+    <footer>
+      <p>This is a demo app built for a marketing campaign. Please don't enter real personal
+      information — only an amount and a zip code, and the zip code itself is never stored.</p>
+      <p>Record generated for the deployments listed above. <a href="/">Back to the index</a></p>
+      <p class="credit">
+        <a href="https://massdriver.ai" target="_blank" rel="noopener noreferrer"
+           aria-label="Built with love in California — Massdriver.ai">
+          <span>Built with</span>
+          <svg class="heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.7-4.35-9.2-8.02C.4 9.9 1.6 6.1 4.9 5.2c2-.55 3.9.3 5.1 1.9 1.2-1.6 3.1-2.45 5.1-1.9 3.3.9 4.5 4.7 2.1 7.78C18.7 16.65 12 21 12 21z"/></svg>
+          <span>in California — <strong>Massdriver.ai</strong></span>
+        </a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
