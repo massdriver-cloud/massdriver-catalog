@@ -17,6 +17,10 @@
 
   var KEY_SPEED = 260; // world units per second while a movement key is held
   var MOVE_MIN_GAP = 140; // ms between /api/move calls
+  // Must match SPEED in the API. Both sides walk the same route at the same
+  // rate, so they stay together without the client being corrected constantly.
+  var WALK_SPEED = 170; // world units per second
+  var DRIFT_SNAP = 140; // only correct the drawn position past this much error
   var MOVE_SETTLE = 700; // ms of no movement before we trust the server's position
   var POLL_MS = 500; // /api/state interval, also the server side heartbeat
   var TIMEOUT_MS = 8000;
@@ -349,6 +353,10 @@
       username: p.username,
       x: clamp(num(p.x, 0), 0, WORLD_W),
       y: clamp(num(p.y, 0), 0, WORLD_H),
+      // Where the server has this player heading. Keeping it lets everyone be
+      // animated walking between polls instead of jumping once per response.
+      dest_x: clamp(num(p.dest_x, num(p.x, 0)), 0, WORLD_W),
+      dest_y: clamp(num(p.dest_y, num(p.y, 0)), 0, WORLD_H),
       hp: num(p.hp, 0),
       max_hp: Math.max(1, num(p.max_hp, 20)),
       rocks: Math.max(0, num(p.rocks, 0)),
@@ -437,17 +445,15 @@
       S.intent.y = next.y;
       S.render.x = next.x;
       S.render.y = next.y;
-    } else if (opts.fromMove) {
-      // The server answered the exact move we asked for. If it put us anywhere
-      // other than where we asked, it is right and we are wrong.
-      if (dist(next.x, next.y, S.sentPos.x, S.sentPos.y) > 8) {
-        S.intent.x = next.x;
-        S.intent.y = next.y;
+    } else if (typeof next.dest_x === "number" && typeof next.dest_y === "number") {
+      // The server reports where we are heading, not just where we are. Adopt
+      // the destination only when it is genuinely somewhere else — treating the
+      // reported position as a new destination is what made keyboard walking
+      // stutter backwards between polls.
+      if (!S.moveDirty && dist(S.intent.x, S.intent.y, next.dest_x, next.dest_y) > 24) {
+        S.intent.x = next.dest_x;
+        S.intent.y = next.dest_y;
       }
-    } else if (!S.moveDirty && nowMs() - S.lastMoveSent > MOVE_SETTLE) {
-      // Nothing in flight, so the server position is the truth.
-      S.intent.x = next.x;
-      S.intent.y = next.y;
     }
 
     if (!next.alive || next.hp <= 0) {
@@ -1146,26 +1152,50 @@
     if (S.keys.has("down")) dy += 1;
 
     if ((dx || dy) && S.you && S.you.alive) {
+      // Held keys aim at a point a little ahead of where we are now. Advancing
+      // the destination itself would run it away from the player faster than
+      // they can walk, and the server would keep hauling them back.
       var len = Math.sqrt(dx * dx + dy * dy) || 1;
-      S.intent.x = clamp(S.intent.x + (dx / len) * KEY_SPEED * dt, 0, WORLD_W);
-      S.intent.y = clamp(S.intent.y + (dy / len) * KEY_SPEED * dt, 0, WORLD_H);
+      S.intent.x = clamp(S.render.x + (dx / len) * 90, 0, WORLD_W);
+      S.intent.y = clamp(S.render.y + (dy / len) * 90, 0, WORLD_H);
       S.moveDirty = true;
     }
 
     if (S.moveDirty) sendMove(false);
 
-    // smoothing: server positions are the truth, we just glide toward them
-    var k = 1 - Math.exp(-dt * 13);
-    if (dist(S.render.x, S.render.y, S.intent.x, S.intent.y) > 260) {
-      S.render.x = S.intent.x;
-      S.render.y = S.intent.y;
-    } else {
-      S.render.x += (S.intent.x - S.render.x) * k;
-      S.render.y += (S.intent.y - S.render.y) * k;
+    // Walk toward the destination at a fixed speed. Easing toward it would
+    // arrive almost instantly over a long click, which reads as teleporting.
+    var togo = dist(S.render.x, S.render.y, S.intent.x, S.intent.y);
+    if (togo > 0.5) {
+      var step = WALK_SPEED * dt;
+      if (step >= togo) {
+        S.render.x = S.intent.x;
+        S.render.y = S.intent.y;
+      } else {
+        S.render.x += ((S.intent.x - S.render.x) / togo) * step;
+        S.render.y += ((S.intent.y - S.render.y) / togo) * step;
+      }
+    }
+
+    // The server walks the same route at the same speed, so it should agree.
+    // Correct only a real disagreement, and never mid-stride.
+    if (S.you && dist(S.render.x, S.render.y, S.you.x, S.you.y) > DRIFT_SNAP) {
+      S.render.x = S.you.x;
+      S.render.y = S.you.y;
     }
 
     var ko = 1 - Math.exp(-dt * 7);
     S.others.forEach(function (o) {
+      // Everyone else walks at the same speed, so carry them toward their
+      // destination between polls rather than stepping once per response.
+      if (typeof o.p.dest_x === "number") {
+        var otogo = dist(o.p.x, o.p.y, o.p.dest_x, o.p.dest_y);
+        if (otogo > 0.5) {
+          var ostep = Math.min(WALK_SPEED * dt, otogo);
+          o.p.x += ((o.p.dest_x - o.p.x) / otogo) * ostep;
+          o.p.y += ((o.p.dest_y - o.p.y) / otogo) * ostep;
+        }
+      }
       if (dist(o.rx, o.ry, o.p.x, o.p.y) > 300) {
         o.rx = o.p.x;
         o.ry = o.p.y;

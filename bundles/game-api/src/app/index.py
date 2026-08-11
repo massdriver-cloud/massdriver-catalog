@@ -37,6 +37,11 @@ SPAWN_BATCH = 3  # most items added in one top-up
 
 WORLD_KEY = "world#spawn"  # bookkeeping row, never a player
 
+# Walking has a speed. A move request sets a destination and the server works
+# out where you have actually reached, so nobody arrives instantly and a client
+# cannot teleport by lying about its position.
+SPEED = 170.0  # world units per second
+
 table = boto3.resource("dynamodb").Table(TABLE_NAME)
 
 
@@ -117,13 +122,47 @@ def is_player(record):
     return record.get("kind", "player") == "player"
 
 
+def raw_record(username):
+    record = table.get_item(Key={"pk": username}).get("Item")
+    return record if record and is_player(record) else None
+
+
+def live_position(record, now=None):
+    """Where a walk has reached by now.
+
+    The stored x/y is where the player was when the destination was last set;
+    everything between there and the destination is worked out from the clock.
+    """
+    now = time.time() if now is None else now
+    x = float(record.get("x", 0))
+    y = float(record.get("y", 0))
+    dest_x = float(record.get("dest_x", x))
+    dest_y = float(record.get("dest_y", y))
+    started = float(record.get("moved_at", now))
+
+    span = ((dest_x - x) ** 2 + (dest_y - y) ** 2) ** 0.5
+    if span < 0.5:
+        return x, y
+    travelled = SPEED * max(0.0, now - started)
+    if travelled >= span:
+        return dest_x, dest_y
+    fraction = travelled / span
+    return x + (dest_x - x) * fraction, y + (dest_y - y) * fraction
+
+
 def as_player(item):
     if not item:
         return None
+    live_x, live_y = live_position(item)
     return {
         "username": item["pk"],
-        "x": int(item.get("x", 0)),
-        "y": int(item.get("y", 0)),
+        "x": int(round(live_x)),
+        "y": int(round(live_y)),
+        # Where this player is heading, so a viewer can animate the walk
+        # between polls instead of stepping once per response.
+        "dest_x": int(round(float(item.get("dest_x", item.get("x", 0))))),
+        "dest_y": int(round(float(item.get("dest_y", item.get("y", 0))))),
+        "speed": SPEED,
         "hp": int(item.get("hp", 0)),
         "max_hp": int(item.get("max_hp", STARTING_HP)),
         "rocks": int(item.get("rocks", 0)),
@@ -143,11 +182,16 @@ def get_player(username):
 def spawn(username):
     """Place a player somewhere in the world with a full loadout of nothing."""
     now = int(time.time())
+    spawn_x = random.randint(50, WORLD_W - 50)
+    spawn_y = random.randint(50, WORLD_H - 50)
     item = {
         "pk": username,
         "kind": "player",
-        "x": random.randint(50, WORLD_W - 50),
-        "y": random.randint(50, WORLD_H - 50),
+        "x": spawn_x,
+        "y": spawn_y,
+        "dest_x": spawn_x,
+        "dest_y": spawn_y,
+        "moved_at": Decimal(str(round(time.time(), 3))),
         "hp": STARTING_HP,
         "max_hp": STARTING_HP,
         # You arrive empty-handed. The ground is where you get armed.
@@ -251,6 +295,35 @@ def maybe_spawn(existing):
     return fresh
 
 
+def settle(username, record, now=None):
+    """Record how far the walk has got, and collect anything it crossed.
+
+    Called before any decision that depends on position, so the stored point is
+    never stale when it matters.
+    """
+    now = time.time() if now is None else now
+    x0, y0 = float(record.get("x", 0)), float(record.get("y", 0))
+    live_x, live_y = live_position(record, now)
+
+    if (live_x - x0) ** 2 + (live_y - y0) ** 2 < 1.0:
+        return {"rock": 0, "stick": 0}
+
+    picked = collect_along(username, x0, y0, live_x, live_y)
+    table.update_item(
+        Key={"pk": username},
+        UpdateExpression="SET x = :x, y = :y, moved_at = :now",
+        ExpressionAttributeValues={
+            ":x": int(round(live_x)),
+            ":y": int(round(live_y)),
+            ":now": Decimal(str(round(now, 3))),
+        },
+    )
+    record["x"] = int(round(live_x))
+    record["y"] = int(round(live_y))
+    record["moved_at"] = Decimal(str(round(now, 3)))
+    return picked
+
+
 def point_to_segment(px, py, ax, ay, bx, by):
     """Distance from a point to the line segment a→b.
 
@@ -318,16 +391,26 @@ def do_state(body):
     username = clean_username(body.get("username"))
     if not username:
         return respond(400, {"error": "unknown username"})
-    you = get_player(username)
-    if you is None:
+    record = raw_record(username)
+    if record is None:
         return respond(404, {"error": "no such player, log in again"})
-    if you["alive"]:
+
+    picked = {"rock": 0, "stick": 0}
+    if record.get("alive"):
+        # Walking happens between requests, so progress is banked here too —
+        # otherwise standing still after a click would never collect anything.
+        picked = settle(username, record)
         touch(username)
-        you["last_seen"] = int(time.time())
+        record["last_seen"] = int(time.time())
+
+    you = as_player(raw_record(username) or record)
 
     items = world_items()
     items.extend(maybe_spawn(items))
-    return respond(200, {"you": you, "players": world_view(), "items": items})
+    return respond(
+        200,
+        {"you": you, "players": world_view(), "items": items, "picked": picked},
+    )
 
 
 def do_move(body):
@@ -338,32 +421,35 @@ def do_move(body):
     if x is None or y is None:
         return respond(400, {"error": "x and y must be numbers"})
 
-    before = get_player(username)
-    if before is None:
+    record = raw_record(username)
+    if record is None:
         return respond(404, {"error": "no such player, log in again"})
-
-    try:
-        result = table.update_item(
-            Key={"pk": username},
-            UpdateExpression="SET x = :x, y = :y, last_seen = :now",
-            ConditionExpression=Attr("alive").eq(True),
-            ExpressionAttributeValues={
-                ":x": clamp(x, 0, WORLD_W),
-                ":y": clamp(y, 0, WORLD_H),
-                ":now": int(time.time()),
-            },
-            ReturnValues="ALL_NEW",
-        )
-    except table.meta.client.exceptions.ConditionalCheckFailedException:
+    if not record.get("alive"):
         return respond(409, {"error": "you are dead"})
 
-    moved = as_player(result["Attributes"])
-    picked = collect_along(username, before["x"], before["y"], moved["x"], moved["y"])
-    if picked["rock"] or picked["stick"]:
-        moved["rocks"] += picked["rock"]
-        moved["sticks"] += picked["stick"]
+    now = time.time()
+    # Advance the walk to this instant first, so the new heading starts from
+    # where the player actually is rather than where they set off from.
+    picked = settle(username, record, now)
 
-    return respond(200, {"you": moved, "picked": picked})
+    result = table.update_item(
+        Key={"pk": username},
+        UpdateExpression=(
+            "SET dest_x = :dx, dest_y = :dy, x = :x, y = :y, "
+            "moved_at = :now, last_seen = :seen"
+        ),
+        ConditionExpression=Attr("alive").eq(True),
+        ExpressionAttributeValues={
+            ":dx": clamp(x, 0, WORLD_W),
+            ":dy": clamp(y, 0, WORLD_H),
+            ":x": int(record.get("x", 0)),
+            ":y": int(record.get("y", 0)),
+            ":now": Decimal(str(round(now, 3))),
+            ":seen": int(now),
+        },
+        ReturnValues="ALL_NEW",
+    )
+    return respond(200, {"you": as_player(result["Attributes"]), "picked": picked})
 
 
 def do_pickup(body):
@@ -513,6 +599,24 @@ def do_admin_update(body):
     if "hp" in body and "alive" not in body:
         sets.append("alive = :alive")
         values[":alive"] = values[":hp"] > 0
+
+    # Placing someone by hand ends whatever walk they were on, otherwise they
+    # would slide straight back toward their old destination.
+    if "x" in body or "y" in body:
+        current = raw_record(username) or {}
+        live_x, live_y = live_position(current)
+        sets.append("dest_x = :dest_x")
+        sets.append("dest_y = :dest_y")
+        sets.append("moved_at = :moved_at")
+        values[":dest_x"] = values.get(":x", int(round(live_x)))
+        values[":dest_y"] = values.get(":y", int(round(live_y)))
+        values[":moved_at"] = Decimal(str(round(time.time(), 3)))
+        values.setdefault(":x", int(round(live_x)))
+        values.setdefault(":y", int(round(live_y)))
+        if "x = :x" not in sets:
+            sets.append("x = :x")
+        if "y = :y" not in sets:
+            sets.append("y = :y")
 
     result = table.update_item(
         Key={"pk": username},
