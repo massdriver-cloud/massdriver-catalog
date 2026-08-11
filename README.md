@@ -636,8 +636,23 @@ Once imported, the credential shows up in the Massdriver UI at `https://app.mass
 
 Delete the local JSON key file once the import succeeds.
 
+### 6. Grant projects access to the credential
+
+Importing the credential does **not** make it usable. A resource in Massdriver is private to the organization until it is explicitly shared, so until you add a grant the GCP service account will not appear as a selectable credential when you build out a project — the environment will simply show nothing to connect to.
+
+In the Massdriver UI, open the credential you imported in step 5, go to its **grants / sharing** settings, and add the **`resource:export`** action. `resource:export` is what allows a project to consume the resource as a dependency; visibility follows automatically from the grant.
+
+You have two choices about scope:
+
+- **Organization-wide** — add `resource:export` with no conditions. Every project in the organization can use this GCP service account. Simplest, and usually right for a sandbox or a single-cloud-account setup.
+- **Scoped to specific projects** — add `resource:export` with **recipient conditions**, which restrict the grant by attribute (for example, only projects tagged for a given team, environment class, or data classification). This is how you keep a production GCP account from being reachable by every project in the org.
+
+Scoped grants match on **custom attributes**, so the attributes you want to filter on must already be declared on the organization and set on the recipient projects — a condition that references an attribute key the organization doesn't define is silently dropped, which quietly widens the grant to everyone. Declare and set your attributes first, then add the conditional grant, then confirm the credential is visible from a project you *expect* to have access and invisible from one you don't.
+
+Repeat this for every credential you import — each GCP service account is granted independently.
+
 <!-- WIP-HERE -->
-### 6. Deploy the Cloud Run stack
+### 7. Deploy the Cloud Run stack
 
 > [!NOTE]
 > **🚧 Work in progress.** The GCP bundles and resource types for the Cloud Run stack are being built on the `gcp-cloud-run` branch. This section will cover creating a project, adding bundles to the canvas, connecting them, and deploying.
