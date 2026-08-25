@@ -133,18 +133,6 @@ params:
         message:
           pattern: "Must be an IPv4 address (e.g. 10.0.0.2)."
 
-dependencies:
-  enable_flow_logs:
-    oneOf:
-      - properties:
-          enable_flow_logs:
-            const: false
-      - properties:
-          enable_flow_logs:
-            const: true
-        required:
-          - flow_log_retention_days
-
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:

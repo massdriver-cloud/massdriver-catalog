@@ -129,18 +129,6 @@ params:
         options: .subnets
         value: .id
 
-dependencies:
-  high_availability:
-    oneOf:
-      - properties:
-          high_availability:
-            const: false
-      - properties:
-          high_availability:
-            const: true
-        required:
-          - multi_az_zones
-
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:

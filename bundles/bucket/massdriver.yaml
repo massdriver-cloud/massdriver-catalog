@@ -111,19 +111,6 @@ params:
         message:
           pattern: "Must be a full origin (e.g. https://example.com)."
 
-dependencies:
-  object_lock:
-    oneOf:
-      - properties:
-          object_lock:
-            const: false
-      - properties:
-          object_lock:
-            const: true
-        required:
-          - object_lock_retention_days
-          - versioning_enabled
-
 # v2: shown in the product as "dependencies". The key in massdriver.yaml stays
 # `connections:` until a backward-compatible rename ships.
 connections:
