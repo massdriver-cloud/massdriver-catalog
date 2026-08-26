@@ -1,4 +1,5 @@
 name: mysql-database
+version: 0.0.0
 label: MySQL Database
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/mysql/icon.svg
 

@@ -1,7 +1,7 @@
 name: postgres
 description: "Example PostgreSQL bundle showing instance sizing, HA selection, and per-environment retention policy. Edit ./bundles/postgres/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres
-version: 0.1.0
+version: 0.0.0
 
 params:
   examples:
@@ -129,25 +129,15 @@ params:
         options: .subnets
         value: .id
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required:
-    - network
-  properties:
-    network:
-      $ref: virtual-network
-      title: Virtual Network
+dependencies:
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  required:
-    - database
-  properties:
-    database:
-      $ref: postgres-database
-      title: PostgreSQL Database
+resources:
+  database:
+    resource_type: postgres-database@0.0.0
+    required: true
 
 steps:
   - path: src

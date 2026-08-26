@@ -4,7 +4,7 @@ description: >-
   CPU/memory limits, log level, plus an `app:` block that lifts connection
   values into env vars and declares the secrets the workload expects.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/application
-version: 0.1.0
+version: 0.0.0
 
 params:
   examples:
@@ -154,33 +154,21 @@ params:
         options: .policies
         value: .name
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required:
-    - network
-    - database
-    # - bucket
-  properties:
-    network:
-      $ref: virtual-network
-      title: Virtual Network
-    database:
-      $ref: postgres-database
-      title: PostgreSQL Database
-    bucket:
-      $ref: object-storage
-      title: Object Storage
+dependencies:
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+  database:
+    resource_type: postgres-database@0.0.0
+    required: true
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: false
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  required:
-    - application
-  properties:
-    application:
-      $ref: workload
-      title: Workload
+resources:
+  application:
+    resource_type: workload@0.0.0
+    required: true
 
 steps:
   - path: src
