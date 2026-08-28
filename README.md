@@ -143,7 +143,7 @@ Each template includes:
 - `icon.svg` - Placeholder icon
 - `src/` or `chart/` - IaC boilerplate for the specific provisioner
 
-For more details, see the [Bundle Templates](https://docs.massdriver.cloud/guides/bundle-templates) guide.
+For more details, see the [Bundle Templates](https://docs.massdriver.cloud/bundle-development/publishing/bundle-templates) guide.
 
 ### 📁 `platforms/`
 
