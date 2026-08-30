@@ -53,10 +53,10 @@ PAGE = """<!doctype html>
   * {{ box-sizing: border-box; }}
   body {{ margin: 0; background: var(--ground); color: var(--ink);
          font-family: "Inter Tight", system-ui, sans-serif; line-height: 1.6; }}
-  .bar {{ background: #000; color: #EDEBF2; font-size: 13px; font-weight: 600;
+  .bar {{ background: var(--accent); color: #1A1206; font-size: 13px; font-weight: 600;
          letter-spacing: .02em; padding: .55rem 1.5rem; display: flex; gap: .5rem; }}
-  .bar .sep {{ opacity: .4; font-weight: 400; }}
-  .bar .app {{ font-weight: 400; opacity: .8; }}
+  .bar .sep {{ opacity: .5; font-weight: 400; }}
+  .bar .app {{ font-weight: 500; opacity: .8; }}
   .wrap {{ max-width: 68rem; margin: 0 auto; padding: 0 1.5rem 6rem; }}
   header.hero {{ padding: 6.5rem 0 3.5rem; border-bottom: 1px solid var(--rule); }}
   .eyebrow {{ font-size: 12px; letter-spacing: .18em; text-transform: uppercase;

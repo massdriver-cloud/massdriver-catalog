@@ -117,11 +117,11 @@ PAGE = """<!doctype html>
 <style>
   body {{ font: 15px/1.55 system-ui, -apple-system, sans-serif; margin: 0;
          color: #16181d; }}
-  .corp {{ background: #16181d; color: #f4f4f5; font-size: 13px; font-weight: 600;
+  .corp {{ background: #E8B44F; color: #1A1206; font-size: 13px; font-weight: 600;
           letter-spacing: .02em; padding: .55rem 1.25rem; display: flex; gap: .5rem;
           align-items: center; }}
-  .corp .sep {{ opacity: .45; font-weight: 400; }}
-  .corp .app {{ font-weight: 400; opacity: .85; }}
+  .corp .sep {{ opacity: .5; font-weight: 400; }}
+  .corp .app {{ font-weight: 500; opacity: .8; }}
   .wrap {{ max-width: 52rem; margin: 3rem auto; padding: 0 1.25rem; }}
   h1 {{ margin-bottom: .25rem; }}
   .lede {{ color: #555; margin-top: 0; }}
