@@ -1,4 +1,5 @@
 name: virtual-network
+version: 0.0.0
 label: Virtual Network
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/network/icon.svg
 

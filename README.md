@@ -338,6 +338,194 @@ Each resource type ships per-source form-fill walkthroughs that render alongside
 > [!NOTE]
 > The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 2.0`. Reference these when you wire your real cloud resources up.
 
+## The Access Model
+
+Three kinds of people share this platform, and they need different amounts of rope.
+
+- **Platform Ops** manage the infrastructure code. They own the shared services, the bundle
+  catalog, and the cloud credentials.
+- **Developers** are professional engineers. They build and run their own projects, and they
+  are allowed to ship things that face the public internet.
+- **Citizen Developers** build apps outside their main job. They should be able to see what
+  everyone else has built, so they stop solving the same problem twice. They should not be
+  able to change anyone else's work, and they should not be able to put anything on the
+  public internet without a human agreeing to it first.
+
+### How Massdriver decides who can do what
+
+A group holds a list of policies. A policy has three parts: an effect (allow or deny), a
+list of actions, and an optional set of conditions. Conditions match against attributes on
+the thing you are acting on.
+
+Two rules control everything else:
+
+1. **Conditions AND together inside one policy.** A policy with two conditions matches only
+   when both are true.
+2. **Policies OR together across every group you belong to.** They are loaded into one flat
+   list, and after that the system cannot tell which group each policy came from.
+
+The second rule is the one that surprises people. **A group is not a boundary.** Putting a
+narrow policy in a small group does not keep it narrow. If you are also in a group that can
+see a hundred projects, a policy with no conditions reaches all hundred.
+
+So: **to limit an action, put the condition on that action's own policy.** Conditions on a
+different policy in the same group do nothing for it.
+
+A policy with no conditions at all never looks at the thing you are acting on. It matches
+everything. The only thing holding it back is what you can already see, and what you can see
+is set by your `project:view` policies — possibly in an entirely different group.
+
+### The four attributes
+
+| Key | Scope | Values | What it decides |
+| --- | --- | --- | --- |
+| `managed_by` | project | `platform`, `engineering`, `citizen` | Who is responsible for this project. Drives discovery. |
+| `team` | project | `platform`, `artists` | Which team owns it. Drives "change only my own project". |
+| `tier` | environment | `dev`, `staging`, `production` | How careful to be. Drives deploy versus propose. |
+| `exposure` | component | `internal`, `external` | Whether this app faces the public internet. |
+
+**`managed_by` answers "who builds this", not "who uses this".** An earlier draft of this
+model used an `audience` attribute with values like `internal` and `external`. That breaks
+the first time a citizen developer ships something customer-facing: either the app drops out
+of citizen discovery, or every citizen developer gains view access to a customer-facing
+project. Who builds a thing and who consumes it are different questions, and only the first
+one belongs in an access rule.
+
+**`team` exists because `managed_by` alone cannot express "mine".** `managed_by: citizen`
+gets you "every citizen developer sees every citizen project." It cannot get you "…but
+changes only their own," because a policy has no idea which projects belong to the person
+reading it. That needs a second value plus a small per-team group.
+
+**`exposure` sits on components, not projects, because that is the only place it works.**
+`project:design` — adding a component to a canvas and wiring it up — is the only action in
+the whole model that gates creating infrastructure, and it conditions on component
+attributes. Put `exposure` on the project instead and you can describe intent, but you
+cannot enforce it. On components it also handles the normal case where one project holds an
+internal admin tool and a public API.
+
+### Which attribute can gate which action
+
+Each action accepts conditions from exactly one scope. This is fixed and you cannot change it.
+
+| Action | Accepts conditions from |
+| --- | --- |
+| `project:view`, `project:update`, `project:delete` | project attributes |
+| `project:design` | **component** attributes |
+| `environment:create`, `environment:deploy`, `environment:configure`, `environment:decommission` | environment attributes |
+| `repo:pull`, `repo:push`, `repo:grant` | repo attributes |
+| `instance:configure`, `instance:deploy`, `instance:plan`, `instance:propose` | project, environment, and component attributes |
+| `resource:*` | none |
+
+There is also a set of built-in keys you can use as conditions anywhere they make sense:
+`md-id`, `md-project`, `md-environment`, `md-component`, `md-repo`, `md-instance`,
+`md-bundle`. These are how you pin a policy to one named project when no custom attribute
+fits.
+
+> [!WARNING]
+> The API call that lists valid conditions for an action returns **only custom attributes**.
+> It does not mention the `md-*` keys. Ask it about `instance:deploy` before you have
+> declared any custom attributes and it returns an empty object, which reads as "this action
+> cannot be limited." That is wrong. `instance:deploy` accepts several kinds of conditions.
+
+### The groups
+
+**Platform Ops** — every action, no conditions. They are the people who fix it when it breaks.
+
+**Developers**
+
+| Actions | Conditions |
+| --- | --- |
+| `project:view` | `managed_by`: platform, engineering, citizen |
+| `project:design` | `exposure`: internal, external |
+| `instance:configure`, `instance:deploy`, `instance:plan` | `managed_by`: engineering + `tier`: dev, staging |
+| `instance:propose` | `managed_by`: engineering + `tier`: production |
+| `environment:create`, `environment:configure`, `environment:deploy` | `tier`: dev, staging |
+| `repo:create`, `repo:view`, `repo:pull`, `repo:push`, `resource:view` | none |
+
+**Citizen Developers** — everybody in the program joins this one. It gives read access and
+nothing else.
+
+| Actions | Conditions |
+| --- | --- |
+| `project:view` | `managed_by`: citizen, platform |
+| `repo:view`, `resource:view` | none |
+
+Citizen projects and the shared platform are both visible. Seeing the platform matters: the
+shared database is the thing their apps are built on, and they cannot use what they cannot
+find. They can look at it and change nothing.
+
+**Citizen Developers - Artists** — one group like this per citizen team. This is the half
+that grants change access, and every policy in it carries its own fence.
+
+| Actions | Conditions |
+| --- | --- |
+| `project:design` | `exposure`: internal + `md-project`: artists |
+| `instance:configure`, `instance:deploy`, `instance:plan` | `team`: artists + `tier`: dev |
+| `instance:propose` | `team`: artists + `tier`: staging, production |
+| `environment:create`, `environment:configure`, `environment:deploy` | `md-project`: artists + `tier`: dev |
+| `repo:view`, `resource:view` | none |
+
+A citizen developer in both groups sees every citizen project and can change only the artists
+project. In `dev` they deploy on their own. In `staging` and `production` they can only
+propose, and somebody with deploy rights decides. That is the point where the work stops and
+asks a human.
+
+They cannot add a component marked `external`, so no citizen app reaches the public internet
+until a developer or an operator places it.
+
+### Three things that will bite you
+
+**A condition on the wrong kind of key turns an allow into "everyone."** Before a policy is
+evaluated, condition keys that cannot appear on the target are removed. If that empties the
+condition set, an allow policy matches everything. `instance:deploy` with a condition on a
+repo-scoped attribute is not a narrow policy — it is an organization-wide grant. It saves
+without complaint, and it reads back exactly as you wrote it. The only way to catch it is to
+check each key against the list above.
+
+**The same mistake in a deny does nothing at all.** A deny whose conditions empty out is
+dropped instead of widened. It sits in the list looking like protection.
+
+**Deny cannot be used to carve out an exception.** Conditions only match positively. There is
+no way to write "deny everything except X." Write the allow correctly instead.
+
+### Setting it up
+
+Attributes, groups, and policies are managed in the web app under **Settings**, or through
+the Massdriver MCP server. The CLI does not cover them.
+
+Tagging projects and environments does have CLI commands:
+
+```bash
+mass project update scp -a managed_by=platform,team=platform
+mass project update artists -a managed_by=citizen,team=artists
+
+mass environment update scp-dev -a tier=dev
+mass environment update artists-dev -a tier=dev
+```
+
+`-a` replaces the whole attribute set for that project or environment, so pass every
+attribute you want to keep, every time.
+
+Declare an attribute with `required` off, tag everything that already exists, and only then
+mark it required. Marking an attribute required while older projects are missing it leaves
+you with resources that cannot be updated until you go back and fill it in.
+
+`managed_by` and `tier` are required. A project with no `managed_by` matches no citizen view
+condition and is invisible to them, which is the safe direction to fail, but it is confusing
+to debug. Requiring the attribute means the question gets answered when the project is
+created. `team` and `exposure` stay optional: `team` so operators can make scratch projects
+without inventing one, and `exposure` because a citizen developer must tag a component
+`internal` to place it at all, which gets you the same result without forcing the tag onto
+networks and databases where the idea does not apply.
+
+### Known gap
+
+`repo:push` is granted to Developers with no conditions, so they can publish a new version of
+any bundle in the catalog, including the platform bundles. Closing it needs a repo-scoped
+attribute — `catalog_tier` with values like `platform` and `application` — and a condition on
+the push policy. It is listed here rather than fixed because it is a deliberate choice about
+how much you trust your engineers, not an oversight.
+
 ## Customizing Your Catalog
 
 ### Prerequisites

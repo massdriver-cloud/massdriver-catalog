@@ -1,0 +1,106 @@
+name: gcp-artifact-registry
+description: "A GCP Artifact Registry repository for container images. Deploys one real GCP resource, so it doubles as the fastest check that a service account credential works."
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/gcp-artifact-registry
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Application images
+      repository_name: "app-images"
+      location: "us-central1"
+      immutable_tags: false
+      cleanup_untagged_after_days: 30
+    - __name: Production (immutable tags)
+      repository_name: "prod-images"
+      location: "us-central1"
+      immutable_tags: true
+      cleanup_untagged_after_days: 7
+  required:
+    - repository_name
+    - location
+  properties:
+    repository_name:
+      title: Repository Name
+      description: Name of the Artifact Registry repository. Cannot be renamed after creation.
+      type: string
+      minLength: 2
+      maxLength: 63
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "2–63 lowercase characters, digits, or hyphens. Must start and end with a letter or digit."
+      $md.immutable: true
+    location:
+      title: Location
+      description: Region the repository lives in. Keep this close to where your workloads run — pulling images across regions is slower and incurs egress cost.
+      type: string
+      default: "us-central1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-central1"
+          title: "us-central1 — Iowa"
+        - const: "us-east1"
+          title: "us-east1 — South Carolina"
+        - const: "us-east4"
+          title: "us-east4 — Northern Virginia"
+        - const: "us-west1"
+          title: "us-west1 — Oregon"
+        - const: "us-west2"
+          title: "us-west2 — Los Angeles"
+        - const: "europe-west1"
+          title: "europe-west1 — Belgium"
+        - const: "europe-west2"
+          title: "europe-west2 — London"
+        - const: "europe-west3"
+          title: "europe-west3 — Frankfurt"
+        - const: "asia-east1"
+          title: "asia-east1 — Taiwan"
+        - const: "asia-northeast1"
+          title: "asia-northeast1 — Tokyo"
+        - const: "asia-southeast1"
+          title: "asia-southeast1 — Singapore"
+        - const: "australia-southeast1"
+          title: "australia-southeast1 — Sydney"
+    immutable_tags:
+      title: Immutable Tags
+      description: Prevent tags from being moved to a different image once published. Stops a deployed tag from silently changing underneath a running workload.
+      type: boolean
+      default: false
+      $md.immutable: true
+    cleanup_untagged_after_days:
+      title: Delete Untagged Images After (days)
+      description: Untagged images are usually leftovers from overwritten builds. Set to 0 to keep them forever.
+      type: integer
+      default: 30
+      minimum: 0
+      maximum: 3650
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+
+resources:
+  registry:
+    resource_type: container-registry@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - repository_name
+    - location
+    - immutable_tags
+    - cleanup_untagged_after_days
+    - "*"
+  repository_name:
+    ui:placeholder: "app-images"
+  location:
+    ui:help: "Match the region your Cloud Run services run in."
+  immutable_tags:
+    ui:help: "One-way switch. Immutable tags cannot be turned off after the repository is created."
+  cleanup_untagged_after_days:
+    ui:widget: updown
+    ui:help: "Applies only to images with no tag. Tagged images are never deleted by this policy."

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Cloud Storage Bucket">
+  <rect width="64" height="64" rx="12" fill="#1a73e8"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M16 20 L48 20 L44 48 L20 48 Z"/>
+    <path d="M16 20 L48 20" stroke-linecap="butt"/>
+    <path d="M22 20 L20 14 L44 14 L42 20"/>
+  </g>
+</svg>

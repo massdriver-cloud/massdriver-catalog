@@ -1,0 +1,160 @@
+name: gcp-cloud-storage-bucket
+description: >-
+  A Google Cloud Storage bucket for application file storage — uploads, exports, backups. Locked down by default
+  (private, uniform IAM access) with optional versioning, access logging, and customer-managed encryption for
+  sensitive data.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/gcp-cloud-storage-bucket
+version: 0.0.0
+
+params:
+  examples:
+    - __name: App data
+      bucket_name: "app-data"
+      location: "us-central1"
+      storage_class: "STANDARD"
+      enable_versioning: true
+      enable_access_logging: false
+      enable_cmek: false
+      delete_objects_after_days: 0
+    - __name: Sensitive data (logged + encrypted)
+      bucket_name: "sensitive-data"
+      location: "us-central1"
+      storage_class: "STANDARD"
+      enable_versioning: true
+      enable_access_logging: true
+      enable_cmek: true
+      delete_objects_after_days: 0
+    - __name: Scratch / temporary files
+      bucket_name: "scratch"
+      location: "us-central1"
+      storage_class: "STANDARD"
+      enable_versioning: false
+      enable_access_logging: false
+      enable_cmek: false
+      delete_objects_after_days: 30
+  required:
+    - bucket_name
+    - location
+    - storage_class
+  properties:
+    bucket_name:
+      title: Bucket Name
+      description: A short name for what's going in this bucket, like "uploads" or "exports". Combined with your project and environment to make it globally unique. You cannot rename it later.
+      type: string
+      minLength: 3
+      maxLength: 40
+      pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "3–40 lowercase characters, digits, or hyphens. Must start and end with a letter or digit."
+      $md.immutable: true
+    location:
+      title: Location
+      description: The region your files live in. Pick the region closest to whatever is reading and writing to this bucket — usually the same region as your app. You cannot change this later.
+      type: string
+      default: "us-central1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-central1"
+          title: "us-central1 — Iowa"
+        - const: "us-east1"
+          title: "us-east1 — South Carolina"
+        - const: "us-east4"
+          title: "us-east4 — Northern Virginia"
+        - const: "us-west1"
+          title: "us-west1 — Oregon"
+        - const: "us-west2"
+          title: "us-west2 — Los Angeles"
+        - const: "europe-west1"
+          title: "europe-west1 — Belgium"
+        - const: "europe-west2"
+          title: "europe-west2 — London"
+        - const: "europe-west3"
+          title: "europe-west3 — Frankfurt"
+        - const: "asia-east1"
+          title: "asia-east1 — Taiwan"
+        - const: "asia-northeast1"
+          title: "asia-northeast1 — Tokyo"
+        - const: "asia-southeast1"
+          title: "asia-southeast1 — Singapore"
+        - const: "australia-southeast1"
+          title: "australia-southeast1 — Sydney"
+    storage_class:
+      title: Storage Class
+      description: >-
+        How often you'll access these files. This changes what Google charges you — colder classes are cheaper
+        to store but cost more (and are slower) to read back, and charge a penalty fee if you delete or
+        overwrite data too soon after writing it.
+      type: string
+      default: "STANDARD"
+      oneOf:
+        - const: "STANDARD"
+          title: "Standard — accessed regularly"
+        - const: "NEARLINE"
+          title: "Nearline — accessed monthly or less, kept 30+ days"
+        - const: "COLDLINE"
+          title: "Coldline — accessed a few times a year, kept 90+ days"
+        - const: "ARCHIVE"
+          title: "Archive — rarely touched, kept 365+ days"
+    enable_versioning:
+      title: Keep Old Versions of Files
+      description: >-
+        When a file is overwritten or deleted, keep the previous copy instead of losing it for good. Recommended
+        for anything you can't easily regenerate. Every version kept uses extra storage.
+      type: boolean
+      default: true
+    enable_access_logging:
+      title: Log Who Accesses This Bucket
+      description: Record every read and write to a second, dedicated bucket, so you can review it later or investigate an incident. Adds a small amount of storage cost for the logs themselves.
+      type: boolean
+      default: false
+    enable_cmek:
+      title: Encrypt With A Key You Control
+      description: >-
+        Google encrypts everything in this bucket automatically either way. Turning this on adds a key you
+        control (in Cloud KMS) as an extra layer, so access to the data can be cut off by disabling the key.
+        Worth turning on for sensitive data; unnecessary for anything else.
+      type: boolean
+      default: false
+    delete_objects_after_days:
+      title: Automatically Delete Files After (days)
+      description: Permanently delete files once they reach this age. Good for temporary or scratch data you don't need to keep. Set to 0 to keep files until someone deletes them by hand.
+      type: integer
+      default: 0
+      minimum: 0
+      maximum: 3650
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+
+resources:
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - bucket_name
+    - location
+    - storage_class
+    - enable_versioning
+    - enable_access_logging
+    - enable_cmek
+    - delete_objects_after_days
+    - "*"
+  bucket_name:
+    ui:placeholder: "uploads"
+  location:
+    ui:help: "Match the region your app runs in for the fastest access."
+  enable_cmek:
+    ui:help: "Requires Cloud KMS. Turning this off later stops new files from using the key, but does not re-encrypt files already written with it."
+  delete_objects_after_days:
+    ui:widget: updown
