@@ -25,14 +25,40 @@ another app's scoped one. Check what is wired into `postgres_cluster` on the can
 A previous deploy created the role and then failed before recording it, or the role was created
 by hand. Terraform will not adopt an object it did not create.
 
-Connect as the admin user and either drop the role, or import it:
+Either drop the role, or adopt it into state.
 
-```
-tofu import postgresql_role.app <name>_app
+Dropping is only safe if nothing owns objects yet. `DROP ROLE` fails while the role owns a schema
+or tables, which is the database telling you the app already has data. Connect as the admin user
+through the Cloud SQL Auth Proxy:
+
+```bash
+cloud-sql-proxy --port 5433 cory-sandbox-362007:us-central1:db-scp-dev-db
 ```
 
-Dropping is only safe if nothing owns objects yet. `DROP ROLE` fails while the role owns a
-schema or tables, which is the database telling you the app already has data.
+```bash
+psql -h 127.0.0.1 -p 5433 -U postgres -d shared -W -c "DROP ROLE artist_portal_app;"
+```
+
+To adopt it instead, add an `import` block to `src/main.tf`, publish, and redeploy — the state
+lives with the deployment, so a local `tofu import` has nothing to write to:
+
+```hcl
+import {
+  to = postgresql_role.app
+  id = "artist_portal_app"
+}
+```
+
+```bash
+mass bundle publish --development --bundle-directory bundles/pg-table-set
+```
+
+```bash
+mass instance deploy artists-dev-tables -m "adopt existing role" -f
+```
+
+Remove the `import` block and publish again once the deploy succeeds; it is only needed for the
+one-time recovery.
 
 ## Deploy fails with `pq: relation "<schema>.<table>" does not exist`
 
@@ -51,9 +77,17 @@ and not only in another environment.
 
 ## Changing `app_name`
 
-It is marked immutable, so Massdriver will not let you change it in place. If you genuinely
-need to rename, the data has to move by hand: create the new schema, `ALTER TABLE ... SET
-SCHEMA`, then decommission the old instance. Nothing in this bundle does that for you.
+It is marked immutable, so Massdriver will not let you change it in place. If you genuinely need to
+rename, the data has to move by hand. Deploy a second instance with the new name so the new role
+and schema exist, then move each table across as the admin user:
+
+```bash
+psql -h 127.0.0.1 -p 5433 -U postgres -d shared -W -c "ALTER TABLE artist_portal.artists SET SCHEMA roster; ALTER TABLE roster.artists OWNER TO roster_app;"
+```
+
+Repeat the `ALTER TABLE` for every table in the schema, re-link the app to the new instance, then
+decommission the old one. Nothing in this bundle does any of that for you, and the old instance's
+decommission still deletes whatever is left in the old schema.
 
 ## Removing a `shared_tables` entry
 
@@ -65,8 +99,16 @@ owns the reading app — the deployment history shows who added the entry and wh
 
 Dropping the role fails while it still owns the schema and everything in it. Decommission
 removes the grants and the role, and the schema goes with it, so **the app's data is deleted**.
-Back it up first if it matters:
+Back it up first if it matters. Your laptop is not on the instance's authorized-networks
+allowlist, so go through the Cloud SQL Auth Proxy:
 
+```bash
+cloud-sql-proxy --port 5433 cory-sandbox-362007:us-central1:db-scp-dev-db
 ```
-pg_dump --schema=<app_name> ...
+
+```bash
+pg_dump -h 127.0.0.1 -p 5433 -U artist_portal_app -d shared -W --schema=artist_portal -F c -f artist_portal-$(date +%Y%m%d-%H%M%S).dump
 ```
+
+Get the instance's connection name with `gcloud sql instances list --project=cory-sandbox-362007
+--format="value(connectionName)"` if it differs from the one above.

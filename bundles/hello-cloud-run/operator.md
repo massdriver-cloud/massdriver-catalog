@@ -30,6 +30,68 @@ The Cloud Build trigger invocation itself failed, before any build ran.
   a brand-new instance and something upstream failed first. Check the full deploy log from the
   top, not just this step.
 
+## A deploy fails within a minute with "Error acquiring the state lock"
+
+Something else holds the OpenTofu state lock for this instance's `build` or `deploy` step. A
+completely blank "Lock Info" block — no ID, no holder, no timestamp — is normal for this failure on
+this backend and does not indicate a second problem.
+
+```bash
+mass deployment list artists-dev-hello --limit 5
+```
+
+- If the most recent deployment is `RUNNING`, `PENDING`, or `APPROVED`, leave it alone. It may
+  legitimately hold the lock. Wait for a terminal status.
+- If everything is terminal and the deploy still failed on the lock, the cause is almost always an
+  `ABORTED` deployment whose provisioner had already started applying. Aborting only updates
+  Massdriver's record of the deployment — it does not stop the OpenTofu process, which keeps
+  running against real infrastructure and keeps the lock until it finishes on its own. For this
+  bundle that is bounded by the 480s Cloud Build wait, so a lock stuck for this reason clears
+  roughly 8–9 minutes after the abort. Not because the lock expires, but because that step finally
+  finishes and releases it normally.
+
+Retry first — redeploy with the same config. If an orphaned worker is still finishing its step this
+fails again with the identical empty-lock error, which is expected rather than a new problem.
+
+If it is stuck well past that window, use the platform's break-glass command rather than reaching
+for OpenTofu directly:
+
+```bash
+mass instance orphan artists-dev-hello
+```
+
+That resets the instance to `INITIALIZED`, bulk-aborts lingering deployment records so a late
+worker will not retry, and clears the state lock on the backend. It preserves the existing state
+files. Only add `--delete-state` if you also intend to discard tracked infrastructure, which is
+irreversible and is never what a lock problem calls for. Redeploy right after.
+
+Do not reach for `tofu force-unlock`. It is not wired for direct use against this backend outside a
+running deployment's own credentials, and since the conflict response carries no lock ID you would
+be forcing an unlock blind. `mass instance orphan` is the supported equivalent and keeps
+Massdriver's deployment bookkeeping in sync with the state backend.
+
+Never clear a lock while any deployment for this instance is genuinely `RUNNING`, `PENDING`, or
+`APPROVED`. Clearing a lock out from under an apply that is still in flight lets that apply write
+to state something else just reset, which is how state gets corrupted and real infrastructure gets
+destroyed.
+
+## Aborting a deployment did not stop it
+
+Aborting is only safe for a deployment that has not started running — `PENDING` or `APPROVED`.
+Nothing has touched state or taken a lock, so there is nothing left behind. Confirm the status
+first:
+
+```bash
+mass deployment get 12345678-1234-1234-1234-123456789012
+```
+
+Aborting a deployment that is already `RUNNING` does not stop it. It only changes Massdriver's
+record to `ABORTED` — the build or apply underneath keeps running to completion against real
+infrastructure, unsupervised, for as long as it takes. To supersede a running deployment, let it
+finish (success or failure) and then deploy the corrected configuration on top of whatever it left
+behind. Aborting a running deployment just to stop waiting on it adds a lock-contention window on
+top of the wait you were already going to have.
+
 ## The service is deployed but returns 403 Forbidden to real users
 
 `public_access` is off (the default). If this service is meant to be reachable by anyone with
@@ -80,10 +142,25 @@ instance kept running, regardless of traffic.
 
 This bundle has no traffic-splitting or revision-pinning of its own — every deploy replaces 100%
 of traffic with a freshly built image. To roll back, redeploy an *older Massdriver deployment* of
-this instance (its bundle version and params, not just its params): find it in the deployment
-history and re-run it. Because the app source lives inside the bundle package itself, that
-rebuilds the exact old code under a brand-new image tag and Cloud Run revision — same behavior as
-the original, not a resurrection of the old container image.
+this instance (its bundle version and params, not just its params). Because the app source lives
+inside the bundle package itself, that rebuilds the exact old code under a brand-new image tag and
+Cloud Run revision — same behavior as the original, not a resurrection of the old container image.
+
+Find a known-good deployment:
+
+```bash
+mass deployment list artists-dev-hello --limit 10 --status completed --action provision
+```
+
+Rolling back creates a proposed deployment, which then has to be approved before it runs:
+
+```bash
+mass instance rollback 12345678-1234-1234-1234-123456789012
+```
+
+```bash
+mass deployment approve 87654321-4321-4321-4321-210987654321
+```
 
 ## Costs are climbing
 
@@ -100,4 +177,22 @@ service is now serving is actually the new one:
 
 ```bash
 gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.latestReadyRevisionName)"
+```
+
+If the newest revision is not the one serving traffic, the new revision failed to go ready — see
+the 503 entry above.
+
+Publishing a new bundle version does not by itself redeploy anything. After publishing, move the
+instance onto the new version and deploy it:
+
+```bash
+mass bundle publish --development --bundle-directory bundles/hello-cloud-run
+```
+
+```bash
+mass instance version artists-dev-hello@latest+dev
+```
+
+```bash
+mass instance deploy artists-dev-hello -m "pick up app change" -f
 ```

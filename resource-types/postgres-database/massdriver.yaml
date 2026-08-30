@@ -66,6 +66,14 @@ schema:
           title: Password
           description: Authentication password. Masked everywhere except in IaC at deploy time.
           type: string
+    management_hostname:
+      title: Management Host
+      description: >-
+        An address that infrastructure code can reach, for bundles that have to run SQL against
+        this instance to create schemas or grant on tables. Absent when the instance is only
+        reachable from inside the network, which is the normal case. Applications must use
+        `auth.hostname` instead — this address exists for provisioning, not for traffic.
+      type: string
     id:
       title: ID
       description: Unique database instance identifier from the cloud provider.

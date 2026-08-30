@@ -1,103 +1,325 @@
-# Cloud Run runbook
+# Merch Inventory runbook
 
-## The deploy fails at "verify_image" with "Cloud Build did not produce ... within 480s"
+## The page loads but shows "This app has no database connection yet."
 
-The build step ran but didn't finish (or failed) before the wait expired. The error message
-itself includes the real Cloud Build status and a direct log link — read that first:
+`DATABASE_HOST` or `DATABASE_SCHEMA` is not in the container's environment, which means the
+`database` connection is not wired on the canvas. Those variables are only injected when the
+`pg-table-set` component is actually linked to this app.
 
-- **status `QUEUED` or `WORKING`** — the build genuinely didn't finish in time (a much bigger
-  app, or a cold Cloud Build worker pool). Re-running the deploy retries from scratch with a
-  fresh build; if this keeps happening for this app, that's a signal the fixed 480s wait needs
-  raising in the template.
-- **status `FAILURE` or `INTERNAL_ERROR`** — open the log link. The most common cause is a real
-  error in the app's `Dockerfile` or source (`docker build` failed). Fix the app code; it
-  rebuilds on the next deploy.
-- **status `FAILURE` with a permission error in the log** — the Cloud Build service account lost
-  its `roles/artifactregistry.writer` binding on the registry. Redeploy this bundle; it re-creates
-  the binding every time.
+Check what the running revision was given:
 
-If the error message shows "Build status: unknown", the trigger invocation itself
-(`data.http.run_build`) never returned a usable build ID — check the "run_build" failure below
-instead.
+```bash
+gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(spec.template.spec.containers[0].env)"
+```
 
-## The deploy fails at "run_build" with a 403 or 404
+If `DATABASE_SCHEMA` is missing, link `merch-dev-tables` to this app on the canvas and redeploy:
 
-The Cloud Build trigger invocation itself failed, before any build ran.
+```bash
+mass instance deploy merch-dev-inventory -m "wire database connection" -f
+```
 
-- **403** — the credential deploying this bundle lacks `cloudbuild.builds.create` /
-  `cloudbuild.triggers.get` on the project. Check its IAM roles.
-- **404** — the trigger doesn't exist yet, almost always because this is the very first deploy of
-  a brand-new instance and something upstream failed first. Check the full deploy log from the
-  top, not just this step.
+Linking alone is not enough — the environment is only rebuilt on the next deploy.
 
-## The service is deployed but returns 403 Forbidden to real users
+## The page loads but shows "Could not reach the database: connection timeout expired"
 
-`public_access` is off (the default). If this service is meant to be reachable by anyone with
-the URL, turn `public_access` on and redeploy. If it's meant to stay private, the caller needs
-`roles/run.invoker` on this service and a valid identity token — it isn't supposed to work
-without one.
+The app resolved the database host but could not open a TCP connection to it. The shared
+PostgreSQL instance has a private address only, so Cloud Run can reach it exclusively through a
+Serverless VPC connector.
 
-## The service returns 503, or a new revision never goes ready (image pull failure)
+Almost always the `vpc_connector` connection is missing, or the connector is in a different region
+than this service. A connector only serves Cloud Run services in its own region.
 
-The build step always succeeds before the deploy step runs (a failed build step halts the whole
-deployment), so a pull failure here means something changed between the two — most often a stale
-IAM binding.
+```bash
+gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(spec.template.metadata.annotations)"
+```
+
+If there is no `run.googleapis.com/vpc-access-connector` annotation, link the shared network's
+connector (`scp-dev-network`) to this app and redeploy. If the annotation is there, confirm the
+connector's region matches `{{params.region}}` — the network bundle's own runbook covers resizing
+and relocating it.
+
+## The page loads but shows "Could not reach the database: permission denied for schema merch_inventory"
+
+The login exists but the grants are gone, or the app is pointed at a schema it does not own. This
+is a `pg-table-set` problem, not a Cloud Run one — redeploying this app will not fix it.
+
+```bash
+mass instance deploy merch-dev-tables -m "reapply schema grants" -f
+```
+
+To look at the grants directly, run the Cloud SQL Auth Proxy — your laptop is not on the
+instance's authorized-networks allowlist. Get the connection name first:
+
+```bash
+gcloud sql instances list --project=cory-sandbox-362007 --format="value(connectionName)"
+```
+
+```bash
+cloud-sql-proxy --port 5433 cory-sandbox-362007:us-central1:db-scp-dev-db
+```
+
+Then, in another terminal (the password is on the `merch-dev-tables` instance's resource panel in
+Massdriver — `psql -W` will prompt for it):
+
+```bash
+psql -h 127.0.0.1 -p 5433 -U merch_inventory_app -d shared -W -c "\dn+ merch_inventory"
+```
+
+## The page loads but shows "Could not reach the database: relation "merch_inventory.items" does not exist"
+
+The app creates its own table on the first request, so this only appears when the `CREATE TABLE`
+itself failed and the error was swallowed on an earlier request — usually because the login could
+create a connection but not objects in the schema. Treat it as the `permission denied` case above:
+redeploy `merch-dev-tables`, then reload the page to let the app create the table again.
+
+## The table is empty and the example items never appeared
+
+The seed rows are only inserted when the table has zero rows. A genuinely empty table does get
+reseeded on the next page load.
+
+If the page shows `0 rows` in the footer and reloading does not change it, the insert is failing
+rather than being skipped. That is a write-permission problem: see the `permission denied` entry
+above.
+
+## A CSV upload fails with "invalid input syntax for type integer"
+
+`qty` is a whole-number column, not free text. One bad value fails the whole upload — the rows go
+in as a single transaction, so nothing at all is added and the page shows the error instead of a
+row count. There is no partial import to clean up.
+
+`48 units`, `1,200`, `12.5`, and an empty cell all fail. Write just the digits:
+
+```
+sku,item,location,qty
+HD-NVY-L,"Hoodie, navy, L",Warehouse,48
+```
+
+A thousands separator is the usual culprit on an export from a spreadsheet — format the quantity
+column as plain number with no separator, re-export, and upload the whole file again.
+
+## A CSV upload put the location in the wrong column
+
+An item name containing a comma splits across columns unless it is quoted. Unquoted,
+`TS-BLK-M,Tour tee, black, M,Lisbon,120` reads as six cells, not four. Only the first four are
+kept, so the row becomes SKU `TS-BLK-M`, item `Tour tee`, location ` black`, quantity ` M` — and
+`Lisbon` and `120` are dropped entirely. The bad quantity usually fails the upload, but a row that
+happens to shift a number into fourth place imports silently and wrongly.
+
+Every spreadsheet program quotes these automatically when exporting CSV. A file hand-edited in a
+text editor may not:
+
+```
+sku,item,location,qty
+TS-BLK-M,"Tour tee, black, M",Lisbon,120
+```
+
+Columns past the fourth are discarded, and a row with too few columns is padded with empty
+strings rather than rejected, so a mis-split row can insert quietly. Check the row count on the
+page against the number of lines in the file.
+
+## A CSV upload reports "Added 0 row(s)"
+
+Either the file had no usable lines, or every line was treated as a header.
+
+The parser skips the first row only when its first cell reads `sku`. Blank lines are dropped.
+Columns must be in the order `sku,item,location,qty`.
+
+A file saved as UTF-16 from Excel arrives as unreadable characters rather than an error — re-save
+it as plain CSV (UTF-8) and upload again.
+
+## A SKU appears twice with different quantities instead of one combined row
+
+Uploads append, and there is no unique constraint on `sku`. Re-uploading a stock count adds a
+second row for the same SKU rather than updating the first, so the page shows both and the totals
+are wrong.
+
+Collapse them to the most recent row per SKU (connect through the Cloud SQL Auth Proxy as above):
+
+```bash
+psql -h 127.0.0.1 -p 5433 -U merch_inventory_app -d shared -W -c "DELETE FROM merch_inventory.items a USING merch_inventory.items b WHERE a.id < b.id AND a.sku = b.sku;"
+```
+
+That keeps the highest `id` for each SKU, which is the row from the newest upload.
+
+## Cloud Run logs are empty — no request lines at all
+
+Expected. The app suppresses the default per-request access log, so a healthy service writes
+almost nothing to stdout. An empty log stream is not evidence that requests are failing or that the
+container is not running.
+
+Errors are not logged either — they are rendered into the page itself, in the orange box. Load the
+page and read that text; it is the app's error output.
+
+To confirm the service is actually up rather than silent:
 
 ```bash
 gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.conditions)"
 ```
 
-- **`PERMISSION_DENIED` / `NOT_FOUND` pulling the image** — the runtime service account's
-  `roles/artifactregistry.reader` binding on the registry is missing or was revoked outside
-  Massdriver. Redeploy this bundle; the binding is re-applied every deploy.
-- **Revision stuck in `Retrying`** — the container is crashing on startup, not failing to pull.
-  Check the revision's own logs, not the build's:
-  ```bash
-  gcloud run services logs read {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --limit=50
-  ```
-- **503 on individual requests, service otherwise `Ready`** — the app itself is erroring or
-  timing out per-request. This is application-level; the platform only guarantees the container
-  is running, not that every request inside it succeeds.
+## The deploy fails at "verify_image" with "Cloud Build did not produce ... within 480s"
 
-## The service is deployed but times out or refuses connections from a database/bucket/Firestore it's connected to
+The build step ran but did not finish (or failed) before the wait expired. The error message
+itself carries the real Cloud Build status and a direct log link — read that first:
 
-Check which optional connection is missing, not broken:
+- **status `QUEUED` or `WORKING`** — the build genuinely did not finish in time, usually a cold
+  Cloud Build worker pool. Re-running the deploy retries from scratch with a fresh build.
+- **status `FAILURE` or `INTERNAL_ERROR`** — open the log link. The most common cause is a real
+  error in `build/app/main.py` or `build/app/Dockerfile`. Fix it and deploy again.
+- **status `FAILURE` with a permission error in the log** — the Cloud Build service account lost
+  its push binding on the registry. Redeploy this bundle; it re-creates the binding every time.
 
-- **Database** — confirm the `database` connection is actually wired to this instance, and that
-  the network's Serverless VPC connector is in the *same region* as `{{params.region}}`. A
-  connector only serves Cloud Run services in its own region.
-- **Bucket / Firestore** — these don't need the VPC connector (they're reached over Google's own
-  network, not privately), so a timeout here is almost always a missing IAM binding rather than
-  routing. Redeploy — both bindings are re-applied on every deploy.
+If the message shows "Build status: unknown", the trigger invocation never returned a usable build
+ID — see the next entry instead.
 
-## Cold starts are hurting latency
+## The deploy fails at "run_build" with a 403 or 404
 
-`min_instances` is 0, so the service scales to zero when idle and the next request pays the
-startup cost. Raise `min_instances` to 1 (or more) to keep it warm — this has an ongoing cost per
-instance kept running, regardless of traffic.
+The Cloud Build trigger invocation failed before any build ran.
 
-## Rolling back to a previous version
+- **403** — the credential deploying this bundle lacks `cloudbuild.builds.create` or
+  `cloudbuild.triggers.get` on `cory-sandbox-362007`, or it cannot act as the build service
+  account. Check its IAM roles.
+- **404** — the trigger does not exist yet, almost always because this is the first deploy of a new
+  instance and something upstream failed first. Read the deploy log from the top:
 
-This bundle has no traffic-splitting or revision-pinning of its own — every deploy replaces 100%
-of traffic with a freshly built image. To roll back, redeploy an *older Massdriver deployment* of
-this instance (its bundle version and params, not just its params): find it in the deployment
-history and re-run it. Because the app source lives inside the bundle package itself, that
-rebuilds the exact old code under a brand-new image tag and Cloud Run revision — same behavior as
-the original, not a resurrection of the old container image.
+```bash
+mass deployment list merch-dev-inventory --limit 5
+```
 
-## Costs are climbing
+```bash
+mass deployment logs 12345678-1234-1234-1234-123456789012
+```
 
-Two independent levers: `max_instances` caps the ceiling under load (check if traffic actually
-needs it that high), and `size` sets the CPU/memory of every copy (a service sized for peak load
-running at `min_instances: 1` all day is a bigger bill than the same service that scales to zero).
+## The service is deployed but returns 403 Forbidden to real users
 
-## An app-code change isn't showing up after deploy
+`public_access` is off, which is the default. Ingress is restricted to traffic originating inside
+Google Cloud, so a browser on a laptop gets a 403 no matter who is signed in.
 
-Confirm the deploy actually redeployed rather than just picking up a new bundle release with the
-same param set — every deploy always rebuilds and re-pushes a fresh image (the tag is unique per
-deployment), so if the old behavior is still showing up, check that the Cloud Run *revision* the
-service is now serving is actually the new one:
+If this page is meant to be reachable from anywhere, turn `public_access` on and redeploy:
+
+```bash
+mass instance deploy merch-dev-inventory --patch='.public_access = true' -m "open to the internet" -f
+```
+
+If it is meant to stay internal, that 403 is the bundle working correctly.
+
+## The service returns 503, or a new revision never goes ready
+
+```bash
+gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.conditions)"
+```
+
+- **`PERMISSION_DENIED` or `NOT_FOUND` pulling the image** — the runtime service account's pull
+  binding on the registry was revoked outside Massdriver. Redeploy; the binding is re-applied every
+  deploy.
+- **Revision stuck in `Retrying`** — the container is crashing at startup, not failing to pull. A
+  missing `psycopg` or a syntax error in `main.py` shows up here:
+
+```bash
+gcloud run services logs read {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --limit=50
+```
+
+## A deploy fails within a minute with "Error acquiring the state lock"
+
+Something else holds the OpenTofu state lock for this instance's `build` or `deploy` step. A
+completely blank "Lock Info" block — no ID, no holder, no timestamp — is normal for this failure on
+this backend and does not indicate a second problem.
+
+```bash
+mass deployment list merch-dev-inventory --limit 5
+```
+
+- If the most recent deployment is `RUNNING`, `PENDING`, or `APPROVED`, leave it alone. It may
+  legitimately hold the lock. Wait for a terminal status.
+- If everything is terminal and the deploy still failed on the lock, the cause is almost always an
+  `ABORTED` deployment whose provisioner had already started applying. Aborting only updates
+  Massdriver's record — the OpenTofu process keeps running against real infrastructure and keeps
+  the lock until it finishes on its own. For this bundle that is bounded by the 480s Cloud Build
+  wait, so the lock clears by itself roughly 8–9 minutes after the abort.
+
+Retry first. If it is stuck well past that window:
+
+```bash
+mass instance orphan merch-dev-inventory
+```
+
+That resets the instance to `INITIALIZED`, aborts lingering deployment records, and clears the
+lock, keeping the existing state files. Only add `--delete-state` if you also intend to discard
+tracked infrastructure, which a lock problem never calls for.
+
+Do not reach for `tofu force-unlock` — the conflict response carries no lock ID, so it would be a
+blind unlock, and it leaves Massdriver's bookkeeping out of sync with the state backend.
+
+Never clear a lock while a deployment for this instance is genuinely `RUNNING`, `PENDING`, or
+`APPROVED`. Clearing a lock under a live apply is how state gets corrupted.
+
+## Aborting a deployment did not stop it
+
+Aborting is only safe for a deployment that has not started running — `PENDING` or `APPROVED`.
+
+```bash
+mass deployment get 12345678-1234-1234-1234-123456789012
+```
+
+Aborting a `RUNNING` deployment changes Massdriver's record to `ABORTED` but does not stop the
+build or the apply underneath. That work continues unsupervised. To supersede a running deployment,
+let it finish and then deploy the corrected configuration on top of what it left behind.
+
+## A change to main.py is not showing up
+
+Every deploy rebuilds and re-pushes a fresh image under a tag unique to that deployment, so a stale
+page means the service is still serving an older revision:
 
 ```bash
 gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.latestReadyRevisionName)"
 ```
+
+If the newest revision is not the one serving traffic, the new revision failed to go ready — see
+the 503 entry above.
+
+Publishing a new bundle version does not by itself redeploy anything. After publishing, move the
+instance and deploy:
+
+```bash
+mass bundle publish --development --bundle-directory bundles/merch-inventory
+```
+
+```bash
+mass instance version merch-dev-inventory@latest+dev
+```
+
+```bash
+mass instance deploy merch-dev-inventory -m "pick up main.py change" -f
+```
+
+## Rolling back
+
+This bundle has no traffic splitting and no revision pinning — every deploy replaces all traffic
+with a freshly built image. Roll back by returning to an older deployment of this instance, which
+rebuilds that older source under a brand-new tag rather than resurrecting the old container.
+
+Find a known-good deployment:
+
+```bash
+mass deployment list merch-dev-inventory --limit 10 --status completed --action provision
+```
+
+Rolling back creates a proposed deployment, which then has to be approved before it runs:
+
+```bash
+mass instance rollback 12345678-1234-1234-1234-123456789012
+```
+
+```bash
+mass deployment approve 87654321-4321-4321-4321-210987654321
+```
+
+## The first visit after a quiet period takes several seconds
+
+`min_instances` is 0, so the service scales to zero when idle and the next request pays the
+container start plus the first database connection. Keep one copy warm if that matters:
+
+```bash
+mass instance deploy merch-dev-inventory --patch='.min_instances = 1' -m "keep one copy warm" -f
+```
+
+That bills continuously for the warm copy whether or not anyone visits.

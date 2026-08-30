@@ -2,64 +2,38 @@
 templating: mustache
 ---
 
-# MySQL Runbook
+# MySQL runbook
 
-> **Templating context:** `slug`, `params`, `connections.<name>`, `artifacts.<name>`.
-
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Database ID | `{{artifacts.database.id}}` |
-| Version | `{{artifacts.database.version}}` |
-| Host | `{{artifacts.database.auth.hostname}}` |
-| Port | `{{artifacts.database.auth.port}}` |
-| Database | `{{artifacts.database.auth.database}}` |
-| Username | `{{artifacts.database.auth.username}}` |
-| Character set | `{{params.character_set}}` |
-| Collation | `{{params.collation}}` |
-| Instance size | `{{params.instance_size}}` |
-| Storage | `{{params.allocated_storage_gb}} GB` |
-| HA | `{{params.high_availability}}` |
-| Backup retention | `{{params.backup_retention_days}}d` |
-| Slow log | `{{params.slow_query_log_enabled}}` |
-| Network | `{{connections.network.id}}` ({{connections.network.cidr}}) |
-
----
-
-## Connecting in a hurry
+## I need a mysql session on this database right now
 
 ```bash
-mysql \
-  -h {{artifacts.database.auth.hostname}} \
-  -P {{artifacts.database.auth.port}} \
-  -u {{artifacts.database.auth.username}} \
-  -p'{{artifacts.database.auth.password}}' \
-  {{artifacts.database.auth.database}}
+mysql -h {{artifacts.database.auth.hostname}} \
+      -P {{artifacts.database.auth.port}} \
+      -u {{artifacts.database.auth.username}} -p \
+      {{artifacts.database.auth.database}}
 ```
 
-Connection string form:
+`-p` with no value attached makes mysql prompt for the password instead of taking it on the
+command line, where it would land in your shell history and in `ps` output. Get the value from
+this instance's database resource in Massdriver — the field is marked sensitive, so opening it is
+audit-logged — or from `DATABASE_PASSWORD` inside a connected app's container.
 
-```
-mysql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}
-```
+For a client that wants a DSN, use
+`mysql://{{artifacts.database.auth.username}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}`
+and let the client prompt for the password. A DSN with the password baked into it is a full
+credential in one string — it does not belong in a ticket, a chat message, or a `.env` you will
+forget about.
 
-> Avoid pasting the password into chat — share via your secret manager.
+## The "Slow Query Rate" alarm fired, or requests are timing out
 
----
-
-## Active alarms — what they mean
-
-### Slow Query Rate (> 50/5min)
-
-A query, or a small set of queries, is regularly missing the `{{params.slow_query_log_long_query_time_seconds}}s` threshold. App requests are likely timing out.
+{{#params.slow_query_log_enabled}}
+Something is regularly crossing the
+`{{params.slow_query_log_long_query_time_seconds}}s` threshold. Start with the worst offenders of
+the last hour — the slow log lives in the `mysql` schema, not in your application database:
 
 ```bash
-# Top offenders from the slow query log
 mysql -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
-      -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
-      mysql -e "
+      -u {{artifacts.database.auth.username}} -p mysql -e "
 SELECT
   query_time,
   rows_examined,
@@ -71,8 +45,21 @@ ORDER BY query_time DESC
 LIMIT 20;"
 ```
 
+A large `rows_examined` next to a small `rows_sent` is the signature of a missing index.
+{{/params.slow_query_log_enabled}}
+{{^params.slow_query_log_enabled}}
+`slow_query_log_enabled` is off, so there is no slow log to read and this alarm does not exist on
+this instance. Turn it on and redeploy if you are trying to catch a slow query — it costs disk,
+so turn it back off afterwards on a small instance:
+
+```bash
+mass instance deploy {{slug}} -P '.slow_query_log_enabled = true' -m "catching a slow query" -f
+```
+{{/params.slow_query_log_enabled}}
+
+What is running this instant:
+
 ```sql
--- Performance schema — running queries right now
 SELECT
   CONCAT(USER, '@', HOST) AS user,
   DB,
@@ -84,32 +71,48 @@ WHERE COMMAND != 'Sleep'
 ORDER BY TIME DESC;
 ```
 
+Take the worst statement from either list and ask MySQL where the time goes:
+
 ```sql
--- Get the EXPLAIN for one of them
-EXPLAIN ANALYZE <paste the slow query here>;
+EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = 42 ORDER BY created_at DESC LIMIT 50;
 ```
 
-Fixes: add the missing index, rewrite the query, or use a covering index. If the query is from a known ORM, add a hint via the framework.
+Fixes, in the order they usually work: add the missing index, make it a covering index, or
+rewrite the query. If the statement comes out of an ORM, the fix belongs in the application, not
+here.
 
-### Replication Lag (> 30s) — HA only
+## The "Replication Lag" alarm fired, and a failover right now would lose data
 
-The replica is falling behind. A failover right now would lose committed data.
+{{#params.high_availability}}
+Against the primary:
 
 ```sql
--- Run against the primary
 SHOW REPLICAS;
-
--- Run against the replica
-SHOW REPLICA STATUS\G
--- Look at: Seconds_Behind_Source, Replica_IO_Running, Replica_SQL_Running, Last_Errno
 ```
 
-Common causes: long-running write on the primary holding row locks the replica must wait for; replica under-sized; cross-AZ network saturation.
-
-### Storage 80% Full
+Against the replica:
 
 ```sql
--- Where's the space going?
+SHOW REPLICA STATUS\G
+```
+
+Read `Seconds_Behind_Source`, `Replica_IO_Running`, `Replica_SQL_Running` and `Last_Errno`. Both
+`Running` values must be `Yes`; a non-zero `Last_Errno` means replication has stopped rather than
+fallen behind, which is a different problem and will not recover on its own.
+
+Usual causes: a long write on the primary holding row locks the replica has to wait for, a
+replica smaller than the primary, or saturated network between availability zones.
+{{/params.high_availability}}
+{{^params.high_availability}}
+`high_availability` is off on this instance, so there is no replica and this alarm does not exist
+here. Turn HA on and redeploy if you need one — it roughly doubles the cost.
+{{/params.high_availability}}
+
+## The "Storage 80% Full" alarm fired, or writes are being refused
+
+Where the space is going:
+
+```sql
 SELECT
   table_schema,
   table_name,
@@ -121,77 +124,89 @@ ORDER BY gb DESC
 LIMIT 10;
 ```
 
+Binary logs are the usual surprise — they are not your data and they are not in the table sizes
+above:
+
 ```sql
--- Binary log size (often the surprise culprit)
 SHOW BINARY LOGS;
-PURGE BINARY LOGS BEFORE NOW() - INTERVAL 3 DAY;  -- only if you control replication and have alternate copies
 ```
-
-If you can't free space, bump `allocated_storage_gb` and redeploy.
-
----
-
-## Common operations
-
-### Database size
-
-```bash
-mysql -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
-      -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
-      -e "SELECT table_schema, ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
-          FROM information_schema.tables
-          WHERE table_schema = '{{artifacts.database.auth.database}}'
-          GROUP BY table_schema;"
-```
-
-### Take a backup
-
-```bash
-mysqldump \
-  -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
-  -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
-  --single-transaction --routines --triggers --events \
-  {{artifacts.database.auth.database}} \
-  > backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
-```
-
-### Restore
-
-```bash
-mysql \
-  -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
-  -u {{artifacts.database.auth.username}} -p'{{artifacts.database.auth.password}}' \
-  {{artifacts.database.auth.database}} \
-  < backup-{{artifacts.database.auth.database}}-YYYYMMDD-HHMMSS.sql
-```
-
-### Kill long-running queries
 
 ```sql
--- List longest queries
+PURGE BINARY LOGS BEFORE NOW() - INTERVAL 3 DAY;
+```
+
+Only purge if you control replication and have another copy of those logs. A replica that has not
+read a log you delete cannot catch up and has to be rebuilt.
+
+If you cannot free enough space, add disk. It is allocated
+`{{params.allocated_storage_gb}} GB` now:
+
+```bash
+mass instance deploy {{slug}} -P '.allocated_storage_gb = 200' -m "storage 80% full" -f
+```
+
+## One query is stuck and everything behind it is blocked
+
+Find it:
+
+```sql
 SELECT id, time, state, info
 FROM information_schema.processlist
 WHERE command != 'Sleep' AND time > 60
 ORDER BY time DESC;
-
--- Kill by ID
-KILL QUERY <id>;
 ```
 
----
+Kill the statement using the `id` from that list, leaving the connection open so the application
+sees an error rather than a dropped socket:
 
-## Disaster recovery
+```sql
+KILL QUERY 4821;
+```
 
-`database_name`, `username`, `db_version`, `character_set`, and `collation` are **immutable**. Changing any of them in Massdriver triggers a destroy and recreate.
+## I need a dump before I do something risky
 
-Migration playbook:
+Automatic backups cover the last `{{params.backup_retention_days}}` days, but they restore the
+whole instance. For a schema change or a migration you want to undo in minutes, take your own
+dump first:
 
-1. `mysqldump` the existing database (see above).
-2. Deploy a new mysql bundle instance with the new values.
-3. Restore the dump into the new instance.
-4. Update each consuming app's connection link to point at the new instance.
-5. Verify, then destroy the old instance.
+```bash
+mysqldump -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+          -u {{artifacts.database.auth.username}} -p \
+          --single-transaction --routines --triggers --events \
+          {{artifacts.database.auth.database}} \
+          > backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).sql
+```
 
----
+`--single-transaction` gives a consistent snapshot without locking the tables, which is what you
+want on an instance still serving traffic.
 
-**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/mysql/operator.md
+Putting it back:
+
+```bash
+mysql -h {{artifacts.database.auth.hostname}} -P {{artifacts.database.auth.port}} \
+      -u {{artifacts.database.auth.username}} -p \
+      {{artifacts.database.auth.database}} \
+      < backup-{{artifacts.database.auth.database}}-20260514-021500.sql
+```
+
+A dump restored over a live database overwrites rows written since the dump was taken. Stop the
+apps first, or restore into a fresh instance.
+
+## Changing `database_name`, `username`, `db_version`, `character_set`, or `collation`
+
+All five are immutable, so the form will not let you edit them. Changing any one of them means a
+different instance, and the data goes with the old one when you destroy it.
+
+1. Take a dump (above).
+2. Deploy a second mysql instance with the new values. Today's are
+   `{{artifacts.database.auth.database}}` / `{{artifacts.database.auth.username}}` / MySQL
+   `{{artifacts.database.version}}` / `{{params.character_set}}` / `{{params.collation}}`.
+3. Restore the dump into it. If you are changing the character set, check for mangled text in a
+   few rows with accented or non-Latin characters before you trust the load.
+4. Re-link each consuming app to the new instance on the canvas, then redeploy those apps. Until
+   an app is redeployed it keeps the old connection details in its environment.
+5. Once the apps are serving from the new instance, destroy the old one:
+
+```bash
+mass instance destroy {{slug}}
+```

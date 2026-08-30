@@ -54,12 +54,14 @@ mass bundle new -n my-app -t gcp-cloud-run -o bundles
 
 Then replace the placeholder code in `build/app/` with your real application, and publish.
 
-**Check `operator.md` after scaffolding.** The scaffold step has been observed stripping the
-`{{dependencies...}}` / `{{resources...}}` / `{{params...}}` runbook placeholders down to empty
-strings (it renders the whole template tree, not just `massdriver.yaml`, and those tags aren't in
-its scaffold-time context). Diff the new bundle's `operator.md` against this template's — if any
-`{{...}}` expression turned into a blank, copy this template's `operator.md` over it verbatim
-before publishing.
+The runbook a new app starts with uses worked example names — an `artist-portal` service in the
+`cory-sandbox-362007` project. Swap those for the new app's own service name, project, and instance
+id so every command runs as written.
+
+Scaffolding renders every file in the tree, not just `massdriver.yaml`, and only `name` and
+`description` are in scope while it does. Any other doubled-brace expression becomes an empty string in
+the scaffolded bundle, which is why the commands here are written with real values instead of
+Massdriver's runtime tags.
 
 ## Where your app's code lives
 

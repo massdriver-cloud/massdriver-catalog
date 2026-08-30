@@ -7,12 +7,13 @@ resource "massdriver_resource" "database" {
     version           = var.postgres_version
     high_availability = var.keep_running_if_a_zone_fails
 
+    # Applications always get the private address. They reach it over the
+    # platform's serverless connector, and nothing about turning on IaC access
+    # should change the path real traffic takes.
+    management_hostname = length(var.iac_authorized_networks) > 0 ? google_sql_database_instance.main.public_ip_address : null
+
     auth = {
-      # Consumers get one address, so it has to be the one every consumer can
-      # reach. With no authorized networks that is the private IP. Once an
-      # operator has opted the instance into direct SQL management, the public
-      # address is the only one both the provisioner and the apps can use.
-      hostname = length(var.iac_authorized_networks) > 0 ? google_sql_database_instance.main.public_ip_address : google_sql_database_instance.main.private_ip_address
+      hostname = google_sql_database_instance.main.private_ip_address
       port     = 5432
       database = google_sql_database.app.name
       username = google_sql_user.app.name

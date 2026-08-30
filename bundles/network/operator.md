@@ -2,37 +2,14 @@
 templating: mustache
 ---
 
-# Network Runbook
+# Network runbook
 
-> **Templating context:** `slug`, `params`, `artifacts.<name>`. Connections aren't used by this bundle.
+## The "Egress Throughput Anomaly" alarm fired — over 1 GB/s is leaving this network
 
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Network ID | `{{artifacts.network.id}}` |
-| CIDR | `{{artifacts.network.cidr}}` |
-| Flow logs | `{{params.enable_flow_logs}}` (retention: `{{params.flow_log_retention_days}}d`) |
-
-### Subnets
-
-| ID | CIDR | Type |
-|----|------|------|
-{{#artifacts.network.subnets}}
-| `{{id}}` | `{{cidr}}` | `{{type}}` |
-{{/artifacts.network.subnets}}
-
----
-
-## Active alarms — what they mean
-
-### Egress Throughput Anomaly
-
-The network is pushing > 1 GB/s outbound. Either a real traffic spike (good news, check business metrics) or data exfiltration.
+Either a real traffic spike, which the business metrics will confirm within a minute, or data
+leaving somewhere it should not. Find the top talkers:
 
 ```bash
-# AWS — top talkers in the last 10 minutes via flow logs
 aws logs start-query \
   --log-group-name "/aws/vpc/flowlogs/{{artifacts.network.id}}" \
   --start-time $(date -u -d '10 minutes ago' +%s) \
@@ -44,14 +21,16 @@ aws logs start-query \
                   | limit 20'
 ```
 
-If destinations look unfamiliar, page the security on-call.
+If the destination addresses are unfamiliar, page the security on-call before you throttle
+anything — cutting egress destroys the evidence of where it was going.
 
-### NAT Port Exhaustion
+## The "NAT Port Exhaustion" alarm fired, or outbound connections are being refused
 
-The shared NAT gateway is out of ephemeral ports. New outbound connections will start failing for everything in `{{artifacts.network.id}}`.
+The shared NAT gateway is out of ephemeral ports. Every workload in `{{artifacts.network.id}}`
+starts failing to open new outbound connections, all at once, for no reason visible in any single
+application's logs.
 
 ```bash
-# Check which subnet's instances are opening the most connections
 aws cloudwatch get-metric-statistics \
   --namespace AWS/NATGateway \
   --metric-name ActiveConnectionCount \
@@ -60,44 +39,18 @@ aws cloudwatch get-metric-statistics \
   --period 60 --statistics Maximum
 ```
 
-Workarounds while you investigate: add a second NAT in another AZ (or temporarily attach an Elastic IP per heavy workload), then redeploy.
+One workload opening thousands of short-lived connections is the usual cause — a scraper, a
+health checker with no keep-alive, or a retry loop. While you find it, add a second NAT gateway
+in another availability zone, or give the heaviest workload its own address so it stops sharing
+the port pool.
 
----
-
-## Common operations
-
-### Verify a CIDR doesn't overlap before adding a subnet
-
-```bash
-python3 -c "
-from ipaddress import ip_network
-net = ip_network('{{artifacts.network.cidr}}')
-existing = [{{#artifacts.network.subnets}}'{{cidr}}',{{/artifacts.network.subnets}}]
-new = ip_network('NEW_SUBNET_CIDR_HERE')
-print('subset:', new.subnet_of(net))
-print('overlaps:', any(new.overlaps(ip_network(c)) for c in existing))
-"
-```
-
-### Subnet exhaustion check
-
-```bash
-# What % of each subnet's IPs are in use? Run inside the VPC.
-{{#artifacts.network.subnets}}
-echo -n "{{id}} ({{cidr}}): "
-aws ec2 describe-network-interfaces \
-  --filters Name=subnet-id,Values={{id}} \
-  --query 'length(NetworkInterfaces)' --output text
-{{/artifacts.network.subnets}}
-```
-
-### Flow log queries
+## Connections are being dropped and no application log says why
 
 {{#params.enable_flow_logs}}
-Flow logs are enabled (retention `{{params.flow_log_retention_days}}d`). Useful starter queries:
+Flow logs are on, retained `{{params.flow_log_retention_days}}` days. Rejected traffic is where
+misconfigured security groups show up:
 
 ```bash
-# Most rejected traffic in the last hour — surfaces misconfigured security groups
 aws logs start-query \
   --log-group-name "/aws/vpc/flowlogs/{{artifacts.network.id}}" \
   --start-time $(date -u -d '1 hour ago' +%s) \
@@ -108,29 +61,71 @@ aws logs start-query \
                   | sort hits desc
                   | limit 20'
 ```
+
+A high count on one `dstport` from one `srcaddr` is a rule that was never opened. A low count
+spread across many ports is a port scan.
 {{/params.enable_flow_logs}}
 {{^params.enable_flow_logs}}
-**Flow logs are disabled on this network.** Enable them and redeploy if you're troubleshooting connectivity issues.
+Flow logs are off on this network, so there is no record of what was dropped. You cannot answer
+this question retroactively. Turn them on, redeploy, and reproduce the failure:
+
+```bash
+mass instance deploy {{slug}} -P '.enable_flow_logs = true' -m "troubleshooting dropped connections" -f
+```
 {{/params.enable_flow_logs}}
 
----
+## A workload cannot get an IP address — a subnet is full
 
-## Disaster recovery
+Count the interfaces already placed in each subnet and compare against the subnet's size:
 
-This bundle's CIDR (`{{params.cidr}}`) is **immutable**. To re-IP, deploy a new network bundle instance, migrate workloads, then decommission this one.
+```bash
+{{#artifacts.network.subnets}}
+echo -n "{{id}} ({{cidr}}): "
+aws ec2 describe-network-interfaces \
+  --filters Name=subnet-id,Values={{id}} \
+  --query 'length(NetworkInterfaces)' --output text
+{{/artifacts.network.subnets}}
+```
 
-### Pre-migration checklist
+A /24 holds 251 usable addresses, not 256 — the cloud provider reserves five. Load balancers,
+NAT gateways and managed database endpoints each take addresses without appearing as instances,
+so a subnet can fill up while looking half empty in the console.
 
-1. Snapshot every dependent resource (databases, persistent volumes).
-2. Note all peering / transit-gateway attachments on `{{artifacts.network.id}}`.
-3. Communicate the cutover window — expect 5–15 min of inbound traffic disruption.
+You cannot resize a subnet in place. Add another one in the same availability zone and place new
+workloads there.
 
-### Post-migration
+## Deploy fails because a new subnet CIDR overlaps an existing one
 
-- Update DNS to point at the new network's load balancers.
-- Verify outbound connectivity from a workload in each subnet type (`public`, `private`).
-- Re-establish VPN / Direct Connect / ExpressRoute on the new network before destroying the old one.
+Check the range before you add it. Swap `10.0.3.0/24` for the range you want:
 
----
+```bash
+python3 -c "
+from ipaddress import ip_network
+net = ip_network('{{artifacts.network.cidr}}')
+existing = [{{#artifacts.network.subnets}}'{{cidr}}',{{/artifacts.network.subnets}}]
+new = ip_network('10.0.3.0/24')
+print('inside the network:', new.subnet_of(net))
+print('overlaps an existing subnet:', any(new.overlaps(ip_network(c)) for c in existing))
+"
+```
 
-**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network/operator.md
+You need `inside the network: True` and `overlaps an existing subnet: False`. Anything else and
+the deploy will fail, or worse, succeed and break routing for the subnet it collided with.
+
+## Changing `cidr`, or moving this network to a different address range
+
+`cidr` is immutable — it is `{{artifacts.network.cidr}}` and the form will not let you edit it.
+Re-IPing means a second network instance and moving every workload across, with real downtime.
+
+Before the cutover:
+
+1. Snapshot every stateful thing attached to this network — databases, persistent volumes.
+2. Write down the peering and transit-gateway attachments on `{{artifacts.network.id}}`. They do
+   not move with the workloads and each one has to be recreated by hand on the new network.
+3. Tell people the window. Expect five to fifteen minutes where inbound traffic fails.
+
+After the cutover, and before you destroy the old network:
+
+- Point DNS at the new network's load balancers.
+- Bring up VPN, Direct Connect or ExpressRoute on the new network. If you destroy the old network
+  first, you lose the only path you had to reconfigure the far end.

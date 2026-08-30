@@ -7,7 +7,7 @@ The GCP service account connected to this bundle cannot manage Firestore.
 Check that the Firestore API is enabled on the project:
 
 ```
-https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=PROJECT_ID
+https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=cory-sandbox-362007
 ```
 
 If the API is on, the service account is missing a role. It needs `roles/datastore.owner` at
@@ -20,14 +20,14 @@ has a database — created by hand, by another tool, or in the legacy Datastore 
 second, differently-moded database through this bundle will fail. Check what's already there:
 
 ```bash
-gcloud firestore databases list --project=PROJECT_ID
+gcloud firestore databases list --project=cory-sandbox-362007
 ```
 
 If an unrelated database is sitting in the way, this bundle is pointed at the wrong project, or
 someone needs to decide which database wins before this bundle can deploy cleanly here.
 
-If instead the database listed is one this instance was just trying to create — you'll recognize
-it by name, `db-<this instance's name prefix>` — this is a different, known issue: the Google
+If instead the database listed is one this instance was just trying to create — an instance named
+`fans-dev-profiles` creates `db-fans-dev-profiles` — this is a different, known issue: the Google
 provider occasionally reports `Provider produced inconsistent result after apply` on the very
 first database created in a project right after the Firestore API finishes enabling. The database
 is actually created successfully; only the provider's follow-up read fails, so Terraform never
@@ -38,7 +38,7 @@ doesn't know about. Fix it by importing the orphan back into state on the next d
    ```hcl
    import {
      to = google_firestore_database.main
-     id = "projects/PROJECT_ID/databases/db-<this instance's name prefix>"
+     id = "projects/cory-sandbox-362007/databases/db-fans-dev-profiles"
    }
    ```
 2. Publish and redeploy — this absorbs the existing database into state instead of trying to
@@ -66,7 +66,7 @@ If the policy looks right, check the binding actually landed. Firestore IAM is g
 project level, not on the individual database, so look at the project's bindings:
 
 ```bash
-gcloud projects get-iam-policy PROJECT_ID --flatten="bindings[].members" --filter="bindings.role:roles/datastore"
+gcloud projects get-iam-policy cory-sandbox-362007 --flatten="bindings[].members" --filter="bindings.role:roles/datastore"
 ```
 
 The consuming workload's service account should appear with the expected role. If this project
@@ -79,12 +79,14 @@ Only possible if **Keep A Rolling 7-Day Backup** was on *before* the data was lo
 the last 7 days. Firestore's point-in-time recovery restores into a new database, it does not
 overwrite the live one:
 
+{{#resources.database}}
 ```bash
 gcloud firestore databases restore \
-  --source-database=projects/PROJECT_ID/databases/DATABASE_NAME \
-  --destination-database=DATABASE_NAME-restored \
+  --source-database={{resources.database.id}} \
+  --destination-database={{resources.database.name}}-restored \
   --snapshot-time="2026-08-10T12:00:00Z"
 ```
+{{/resources.database}}
 
 Then point a temporary client at the restored database to pull back what's needed before deciding
 what to do with it — do not delete the restored copy until you've confirmed the data is what you

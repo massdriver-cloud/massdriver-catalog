@@ -9,16 +9,14 @@ A virtual network with subnets, optional flow-log retention, and DNS configurati
 
 This bundle is a worked example of the four things every bundle in the catalog brings together:
 
-- **Self-service experience** — the params schema (CIDR, subnets, flow logs, DNS servers) is what your developers will fill out. Try the Small / Medium / Large presets, the conditional `flow_log_retention_days` field, and the immutable `cidr`.
-- **Operator guide** (`operator.md`) — a 2am runbook templated with the live network's CIDR, subnet table, and flow-log settings. Open it from the instance's runbook tab in the UI.
-- **Compliance** — two `massdriver_instance_alarm` definitions (`Egress Throughput Anomaly`, `NAT Port Exhaustion`) and immutability markers on fields that should never change post-deploy.
-- **IaC code** (`src/`) — a placeholder Terraform/OpenTofu module that wires `params` and `connections` into `massdriver_resource` outputs. Replace it with your real network module.
+- **Self-service experience** — the params (CIDR, subnets, flow logs, DNS servers) are what your developers fill out. Small, Medium and Large presets fill the whole form in one click. Subnets are a re-orderable list where each one declares whether it is public or private, rather than the IaC guessing from position. Every CIDR field explains what a valid value looks like when you get it wrong.
+- **Operator guide** (`operator.md`) — a 2am runbook, templated so it shows this network's live CIDR, its subnets, and whether flow logs are on.
+- **Compliance** — `$md.immutable: true` on `cidr`, because re-IPing a network is a migration and not an edit, and the form should say so before the deploy does. Two `massdriver_instance_alarm` definitions: `Egress Throughput Anomaly` and `NAT Port Exhaustion`.
+- **IaC code** (`src/`) — a placeholder module that wires `params` into `massdriver_resource` outputs. Replace it with your real network module.
 
 ## Customize it
 
-1. Edit `massdriver.yaml` — adjust the params schema to match the inputs your network module actually takes (region, peering, transit gateway IDs, etc.).
-2. Rewrite `src/` to be your real Terraform/OpenTofu. `_massdriver_variables.tf` regenerates from your params + connections on every `mass bundle build`, so the schema and the variables stay in sync.
-3. Update `operator.md` with your team's actual runbook steps — re-IP playbook, NAT exhaustion fix, on-call escalation.
+1. Edit `massdriver.yaml` — match the params to the inputs your network module actually takes (region, peering, transit gateway IDs, and so on). The [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) covers every key.
+2. Rewrite `src/` to be your real Terraform/OpenTofu. `_massdriver_variables.tf` regenerates from your params and connections on every `mass bundle build`, so the schema and the variables stay in sync.
+3. Update `operator.md` with your team's actual runbook — re-IP playbook, NAT exhaustion fix, on-call escalation.
 4. Tune the alarm definitions in `src/alarms.tf` to thresholds your team will actually wake up for.
-
-See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

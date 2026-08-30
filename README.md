@@ -858,6 +858,45 @@ looks exactly like a deploy of the code you just published.
 | Grant a resource to environments (`resource:export`) | The resource's sharing settings |
 | Grant a bundle repository to projects (`repo:pull`) | The repository's sharing settings |
 
+### The shared database has a public address, and that is a demo compromise
+
+Read this before showing anyone the platform, because it is the thing a security-minded person
+in the room will spot.
+
+Creating a schema and granting on a table are SQL statements. The Google Cloud API cannot express
+either, so `pg-table-set` opens a real PostgreSQL connection, and the provisioner runs outside
+your network. To let it in, `gcp-cloud-sql-postgres` turns on a public IP whenever
+`iac_authorized_networks` has an entry.
+
+What that does and does not allow, precisely:
+
+- The instance accepts connections from the listed addresses only. Everything else is refused at
+  the Cloud SQL layer, before authentication.
+- `ssl_mode` is `ENCRYPTED_ONLY`, so an unencrypted connection is impossible on either address.
+- **No application uses it.** Apps get `auth.hostname`, which is the private address, and reach it
+  over the serverless connector. The public address is published separately as
+  `management_hostname`, which only infrastructure code reads.
+- With `iac_authorized_networks` empty, no public address exists at all.
+
+It is still a compromise, and it was made to get a demo running rather than because it is the
+right long-term shape. Two things are wrong with it:
+
+**The allowlist is a single address, and the provisioner egresses from a pool.** Deploys fail
+intermittently with `connection timed out` against the public address, and succeed on retry, for
+no reason visible in the logs. If you hit that, redeploy. The real fix is to allowlist the
+provisioner's whole egress range rather than one address observed once.
+
+**A database holding every app's data should not be reachable from the internet at all**, however
+narrow the allowlist. Two ways to get there:
+
+- Create the app's login with the Cloud SQL API instead, which needs no network path, and let each
+  app create its own schema on first request — it already creates its own tables that way. The
+  instance goes back to private-only. What this costs is `shared_tables`: cross-app grants are SQL,
+  and nothing would have a path to issue them.
+- Or invert who grants. Let the app that **owns** a table declare which other apps may read it, and
+  issue that grant itself at startup, since it owns the object. No provisioner access needed, and
+  approval sits with the team whose data it is — which is the better governance answer anyway.
+
 ### Before pg-table-set can deploy
 
 Creating a schema and granting access to a table are SQL statements. The Google Cloud API cannot

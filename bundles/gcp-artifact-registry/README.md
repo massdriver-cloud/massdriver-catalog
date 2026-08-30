@@ -36,7 +36,7 @@ images can connect to it — a Cloud Run service picks the **Pull** policy, a bu
 The registry address looks like this:
 
 ```
-us-central1-docker.pkg.dev/your-project/app-images-abc123
+us-central1-docker.pkg.dev/cory-sandbox-362007/app-images-scp-dev-registry
 ```
 
 You can see the exact value on the resource in Massdriver after deploying. To push an image
@@ -44,6 +44,6 @@ from your machine:
 
 ```bash
 gcloud auth configure-docker us-central1-docker.pkg.dev
-docker tag my-app:latest us-central1-docker.pkg.dev/your-project/app-images-abc123/my-app:v1
-docker push us-central1-docker.pkg.dev/your-project/app-images-abc123/my-app:v1
+docker tag my-app:latest us-central1-docker.pkg.dev/cory-sandbox-362007/app-images-scp-dev-registry/my-app:v1
+docker push us-central1-docker.pkg.dev/cory-sandbox-362007/app-images-scp-dev-registry/my-app:v1
 ```

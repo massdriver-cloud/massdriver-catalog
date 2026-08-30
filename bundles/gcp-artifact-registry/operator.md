@@ -7,7 +7,7 @@ The GCP service account connected to this bundle cannot manage Artifact Registry
 Check that the Artifact Registry API is enabled on the project:
 
 ```
-https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com?project=PROJECT_ID
+https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com?project=cory-sandbox-362007
 ```
 
 If the API is on, the service account is missing a role. It needs
@@ -19,7 +19,7 @@ The credential itself is broken, not the permissions. This is almost always a ma
 key from importing the JSON through the web UI instead of the CLI. Re-import it:
 
 ```bash
-mass resource create -n my-gcp-project -t gcp-service-account -f ~/Downloads/key.json
+mass resource create -n cory-sandbox-362007 -t gcp-service-account -f ~/Downloads/key.json
 ```
 
 Then redeploy. Nothing about the bundle needs to change.
@@ -29,7 +29,7 @@ Then redeploy. Nothing about the bundle needs to change.
 Confirm the image actually exists at the tag the workload is asking for:
 
 ```bash
-gcloud artifacts docker images list REGISTRY_URL
+gcloud artifacts docker images list {{resources.registry.registry_url}}
 ```
 
 If the image is there, the consuming workload's service account is missing
@@ -61,7 +61,7 @@ destroying.
 Storage is billed per GB. Check what is actually in there:
 
 ```bash
-gcloud artifacts docker images list REGISTRY_URL --include-tags
+gcloud artifacts docker images list {{resources.registry.registry_url}} --include-tags
 ```
 
 Untagged images piling up means **Delete Untagged Images After** is set to 0 or is too long.

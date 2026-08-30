@@ -2,57 +2,37 @@
 templating: mustache
 ---
 
-# PostgreSQL Runbook
+# PostgreSQL runbook
 
-> **Templating context:** `slug`, `params`, `connections.<name>`, `artifacts.<name>`.
-
-## At a glance
-
-| Field | Value |
-|-------|-------|
-| Instance slug | `{{slug}}` |
-| Database ID | `{{artifacts.database.id}}` |
-| Version | `{{artifacts.database.version}}` |
-| Host | `{{artifacts.database.auth.hostname}}` |
-| Port | `{{artifacts.database.auth.port}}` |
-| Database | `{{artifacts.database.auth.database}}` |
-| Username | `{{artifacts.database.auth.username}}` |
-| Instance size | `{{params.instance_size}}` |
-| Storage | `{{params.allocated_storage_gb}} GB` |
-| HA | `{{params.high_availability}}` |
-| Backup retention | `{{params.backup_retention_days}}d` |
-| Network | `{{connections.network.id}}` ({{connections.network.cidr}}) |
-
----
-
-## Connecting in a hurry
+## I need a psql session on this database right now
 
 ```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql \
-  -h {{artifacts.database.auth.hostname}} \
-  -p {{artifacts.database.auth.port}} \
-  -U {{artifacts.database.auth.username}} \
-  -d {{artifacts.database.auth.database}}
+psql -h {{artifacts.database.auth.hostname}} \
+     -p {{artifacts.database.auth.port}} \
+     -U {{artifacts.database.auth.username}} \
+     -d {{artifacts.database.auth.database}} -W
 ```
 
-Connection string form (for tools that want a DSN):
+`-W` makes psql prompt for the password instead of taking it on the command line, where it would
+land in your shell history and in `ps` output. Get the value from this instance's database
+resource in Massdriver — the field is marked sensitive, so opening it is audit-logged — or from
+`DATABASE_PASSWORD` inside a connected app's container.
 
-```
-postgresql://{{artifacts.database.auth.username}}:{{artifacts.database.auth.password}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}
-```
+For a client that wants a DSN, use
+`postgresql://{{artifacts.database.auth.username}}@{{artifacts.database.auth.hostname}}:{{artifacts.database.auth.port}}/{{artifacts.database.auth.database}}`
+and let the client prompt for the password. A DSN with the password baked into it is a full
+credential in one string — it does not belong in a ticket, a chat message, or a `.env` you will
+forget about.
 
-> The password above is rendered from the deployed resource. Avoid copying it into chat or tickets — share via your secret manager.
+## The "High Connections" alarm fired, or new connections are timing out
 
----
+The connection pool is saturating. Once it fills, every new connection is refused. Usual causes:
+a deploy that leaks connections, a cache restart hammering the database, or a queue worker
+fanning out.
 
-## Active alarms — what they mean
-
-### High Connections (> 80)
-
-The pool is saturating. New connections will start timing out. Common causes: a deploy that leaks connections, an in-memory cache restart hammering the DB, or a queue worker fan-out.
+Find who is holding the connections:
 
 ```sql
--- Top offenders right now
 SELECT
   application_name,
   client_addr,
@@ -65,8 +45,10 @@ GROUP BY application_name, client_addr, state
 ORDER BY conns DESC;
 ```
 
+Sessions sitting in `idle in transaction` hold both a connection and their locks. Cut the ones
+older than five minutes loose:
+
 ```sql
--- Kill idle-in-transaction sessions older than 5 minutes
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = '{{artifacts.database.auth.database}}'
@@ -74,14 +56,21 @@ WHERE datname = '{{artifacts.database.auth.database}}'
   AND state_change < now() - interval '5 minutes';
 ```
 
-If the offender is a known application, redeploy with a smaller pool. If you can't identify the source, scale the database **temporarily** (next size up) and open an incident.
+If you recognise the application, redeploy it with a smaller pool. If you cannot identify the
+source, buy time by moving this instance up one size (it is `{{params.instance_size}}` today) and
+open an incident:
 
-### Storage 80% Full
+```bash
+mass instance deploy {{slug}} -P '.instance_size = "m"' -m "temporary size bump, connection storm" -f
+```
 
-Disk pressure. PostgreSQL stops accepting writes near 100%. Order of triage:
+## The "Storage 80% Full" alarm fired, or writes are being refused
+
+PostgreSQL stops accepting writes as the disk approaches full. Work through this in order.
+
+Where the space is going:
 
 ```sql
--- Where is the space going?
 SELECT
   schemaname,
   tablename,
@@ -92,8 +81,9 @@ ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC
 LIMIT 10;
 ```
 
+Dead tuples that autovacuum has not reclaimed:
+
 ```sql
--- Bloat from un-vacuumed dead tuples
 SELECT
   relname,
   n_dead_tup,
@@ -103,14 +93,30 @@ ORDER BY n_dead_tup DESC
 LIMIT 10;
 ```
 
-Fixes, in order: `VACUUM (FULL)` a known-bloated table (locks it!), drop unneeded indexes, increase `allocated_storage_gb` on this bundle's parameters and redeploy.
+Total size, so you can tell whether anything you did actually helped:
 
-### Replication Lag (> 30s) — HA only
+```bash
+psql -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+     -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} -W \
+     -c "SELECT pg_size_pretty(pg_database_size('{{artifacts.database.auth.database}}'));"
+```
 
-The standby is falling behind primary. Failover within the next few minutes would lose committed data.
+Cheapest fix first: `VACUUM (FULL)` the most bloated table — it takes an exclusive lock, so that
+table is unreadable for the duration. Then drop indexes nothing uses. Then add disk:
+
+```bash
+mass instance deploy {{slug}} -P '.allocated_storage_gb = 200' -m "storage 80% full" -f
+```
+
+It is allocated `{{params.allocated_storage_gb}} GB` now. Storage grows online, but most cloud
+providers cannot shrink it again, so do not overshoot by an order of magnitude.
+
+## The "Replication Lag" alarm fired, and a failover right now would lose data
+
+{{#params.high_availability}}
+Ask the primary how far behind the standby is:
 
 ```sql
--- From primary
 SELECT
   client_addr,
   state,
@@ -118,63 +124,70 @@ SELECT
 FROM pg_stat_replication;
 ```
 
-Common causes: long-running transaction on the primary blocking WAL apply on the replica, network saturation between AZs, or under-sized replica. Page the on-call DBA if lag keeps growing.
+Usual causes: a long-running transaction on the primary blocking WAL apply on the standby,
+saturated network between availability zones, or a standby smaller than the primary. If
+`lag_bytes` keeps climbing, do not fail over — you would be promoting a copy that is missing
+committed transactions. Page the on-call DBA.
+{{/params.high_availability}}
+{{^params.high_availability}}
+`high_availability` is off on this instance, so there is no standby and this alarm does not
+exist here. Turn HA on and redeploy if you need one — it roughly doubles the cost.
+{{/params.high_availability}}
 
----
+## The primary is unresponsive and I need to fail over
 
-## Common operations
-
-### Database size
-
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} psql \
-  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
-  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
-  -c "SELECT pg_size_pretty(pg_database_size('{{artifacts.database.auth.database}}'));"
-```
-
-### Take a backup (out-of-band)
+Use the failover action on this instance in Massdriver first. If that is unavailable, the cloud
+provider's own CLI does the same thing:
 
 ```bash
-PGPASSWORD={{artifacts.database.auth.password}} pg_dump \
-  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
-  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
-  -F c -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).dump
-```
-
-### Restore from a `pg_dump -F c` file
-
-```bash
-PGPASSWORD={{artifacts.database.auth.password}} pg_restore \
-  -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
-  -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} \
-  --clean --if-exists \
-  backup-{{artifacts.database.auth.database}}-YYYYMMDD-HHMMSS.dump
-```
-
-### Manually trigger failover (HA only)
-
-Use the bundle's failover button in Massdriver. If that's unavailable, your cloud provider's CLI:
-
-```bash
-# AWS RDS example
 aws rds reboot-db-instance --db-instance-identifier {{artifacts.database.id}} --force-failover
 ```
 
----
+{{^params.high_availability}}
+There is no standby on this instance, so there is nothing to fail over to. Recovery here means
+restoring a backup onto a new instance. Backups are kept for `{{params.backup_retention_days}}`
+days.
+{{/params.high_availability}}
 
-## Disaster recovery
+## I need a dump before I do something risky
 
-`database_name`, `username`, and `db_version` are **immutable**. Changing any of them in Massdriver triggers a destroy and recreate — your data goes with the instance.
+Automatic backups cover the last `{{params.backup_retention_days}}` days, but they restore the
+whole instance. For a single table, a schema change, or a migration you want to be able to undo
+in minutes, take your own dump first:
 
-If you need to change any of those, follow the migration playbook:
+```bash
+pg_dump -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+        -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} -W \
+        -F c -f backup-{{artifacts.database.auth.database}}-$(date +%Y%m%d-%H%M%S).dump
+```
 
-1. Take an out-of-band backup (see above).
-2. Deploy a new postgres bundle instance with the new values.
-3. Restore the dump into the new instance.
-4. Update each consuming app's connection link to point at the new instance.
-5. Verify, then destroy the old instance.
+Putting it back, into a database that already exists:
 
----
+```bash
+pg_restore -h {{artifacts.database.auth.hostname}} -p {{artifacts.database.auth.port}} \
+           -U {{artifacts.database.auth.username}} -d {{artifacts.database.auth.database}} -W \
+           --clean --if-exists \
+           backup-{{artifacts.database.auth.database}}-20260514-021500.dump
+```
 
-**Edit this runbook:** https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/postgres/operator.md
+`--clean --if-exists` drops each object before recreating it. On a database that is still taking
+writes, that is destructive — restore into a fresh instance unless you have already stopped the
+apps.
+
+## Changing `database_name`, `username`, or `db_version`
+
+All three are immutable, so the form will not let you edit them. Changing any one of them means a
+different instance, and the data goes with the old one when you destroy it.
+
+1. Take a dump (above).
+2. Deploy a second postgres instance with the new values. Today's are
+   `{{artifacts.database.auth.database}}` / `{{artifacts.database.auth.username}}` / PostgreSQL
+   `{{artifacts.database.version}}`.
+3. Restore the dump into it.
+4. Re-link each consuming app to the new instance on the canvas, then redeploy those apps. Until
+   an app is redeployed it keeps the old connection details in its environment.
+5. Once the apps are serving from the new instance, destroy the old one:
+
+```bash
+mass instance destroy {{slug}}
+```

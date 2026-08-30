@@ -34,8 +34,9 @@ variable "postgres_cluster" {
       port     = number
       username = string
     })
-    high_availability = optional(bool)
-    id                = string
+    high_availability   = optional(bool)
+    id                  = string
+    management_hostname = optional(string)
     policies = list(object({
       id   = string
       name = string

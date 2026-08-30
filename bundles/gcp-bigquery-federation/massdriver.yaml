@@ -1,0 +1,146 @@
+name: gcp-bigquery-federation
+description: >-
+  Lets analysts query the apps' live database from BigQuery without copying any data out of it.
+  Creates a BigQuery dataset and a connection to the shared Cloud SQL PostgreSQL instance, so a
+  query in the BigQuery console reads the real tables as they are right now.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/gcp-bigquery-federation
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Analysts read the app tables
+      dataset_name: "analytics"
+      analyst_access: "read_only"
+      analysts:
+        - "group:analytics@example.com"
+      keep_saved_tables_for_days: 0
+      allow_delete_with_contents: false
+    - __name: A reporting team that saves its own summary tables
+      dataset_name: "reporting"
+      analyst_access: "read_and_save"
+      analysts:
+        - "group:analytics@example.com"
+        - "group:finance@example.com"
+      keep_saved_tables_for_days: 90
+      allow_delete_with_contents: false
+  required:
+    - dataset_name
+    - analyst_access
+  properties:
+    dataset_name:
+      title: Dataset Name
+      description: >-
+        What analysts will see this called in BigQuery. Pick something short — they type it in
+        every query. This cannot be changed later; renaming means creating a new one.
+      type: string
+      default: "analytics"
+      minLength: 1
+      maxLength: 40
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Start with a letter, then use only lowercase letters, numbers, and underscores. BigQuery does not allow hyphens here."
+      $md.immutable: true
+    analysts:
+      title: Who is allowed to run these queries?
+      description: >-
+        Everyone listed here can query the app data. Nobody else can, not even people who can
+        already see the rest of the project. Prefer a group over a list of people — a group stays
+        correct when somebody joins or leaves.
+      type: array
+      default: []
+      items:
+        type: string
+        title: Person, group, or service
+        description: >-
+          Written the way Google writes it, with the kind first — `group:analytics@example.com`,
+          `user:sam@example.com`, or `serviceAccount:reports@my-project.iam.gserviceaccount.com`.
+        pattern: ^(user|group|serviceAccount|domain):[^\s]+$
+        message:
+          pattern: "Start with user:, group:, serviceAccount:, or domain: — for example group:analytics@example.com."
+        examples:
+          - group:analytics@example.com
+    analyst_access:
+      title: What should analysts be able to do here?
+      description: >-
+        This only controls what they can do inside BigQuery. It has no effect on the app database,
+        which stays read-only through this connection no matter what is chosen here.
+      type: string
+      default: "read_only"
+      oneOf:
+        - const: "read_only"
+          title: "Run queries and read the results"
+        - const: "read_and_save"
+          title: "Also save results here as tables, for dashboards and scheduled reports"
+    keep_saved_tables_for_days:
+      title: Delete saved tables after (days)
+      description: >-
+        Applies to tables analysts save in this dataset, so old scratch work stops being billed
+        forever. Set to 0 to keep everything until somebody deletes it by hand.
+      type: integer
+      default: 0
+      minimum: 0
+      maximum: 3650
+    encryption_key:
+      title: Your own encryption key
+      description: >-
+        Leave this empty unless your organisation requires it. Everything BigQuery stores is
+        encrypted either way — this decides whether Google holds the key or you do. If you supply
+        one it has to be a Cloud KMS key in the same region as the database this reads, or a
+        global one.
+      type: string
+      default: ""
+      pattern: ^$|^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$
+      message:
+        pattern: "Either empty, or the full name of a Cloud KMS key: projects/PROJECT/locations/REGION/keyRings/RING/cryptoKeys/KEY."
+      examples:
+        - projects/acme-platform/locations/us-central1/keyRings/analytics/cryptoKeys/bigquery
+    allow_delete_with_contents:
+      title: Allow this dataset to be deleted while it still has tables in it?
+      description: >-
+        Leave this off and tearing down this component stops if anyone has saved a table here,
+        rather than deleting their work. Turn it on for something short-lived you expect to throw
+        away.
+      type: boolean
+      default: false
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+  postgres_cluster:
+    resource_type: postgres-database@0.0.0
+    required: true
+  analytics_login:
+    resource_type: postgres-table-set@0.0.0
+    required: true
+
+resources:
+  dataset:
+    resource_type: analytics-dataset@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - dataset_name
+    - analysts
+    - analyst_access
+    - keep_saved_tables_for_days
+    - encryption_key
+    - allow_delete_with_contents
+    - "*"
+  dataset_name:
+    ui:placeholder: "analytics"
+  analysts:
+    ui:options:
+      orderable: false
+    ui:help: "Leave empty while you are setting this up — nobody but an administrator can query it until somebody is listed."
+  keep_saved_tables_for_days:
+    ui:widget: updown
+    ui:help: "Only affects tables saved after this is set. Tables that already exist keep whatever expiry they had."

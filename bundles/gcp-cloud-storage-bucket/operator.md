@@ -8,7 +8,7 @@ with your own key is on) Cloud KMS.
 Check that the Cloud Storage API is enabled on the project:
 
 ```
-https://console.cloud.google.com/apis/library/storage.googleapis.com?project=PROJECT_ID
+https://console.cloud.google.com/apis/library/storage.googleapis.com?project=cory-sandbox-362007
 ```
 
 If the API is on, the service account is missing a role. It needs `roles/storage.admin` at
@@ -70,9 +70,9 @@ already deleted comes back unless **Keep Old Versions of Files** was also on.
 
 ## Compliance scan shows findings on a `-logs` bucket you didn't create directly
 
-Turning on **Log Who Accesses This Bucket** creates a second, dedicated bucket (named
-`<your bucket>-logs`) to receive the access logs. That bucket will always show two findings —
-"Bucket should log access" and "Bucket should not log to itself" — because it deliberately has no
+Turning on **Log Who Accesses This Bucket** creates a second, dedicated bucket
+(`{{resources.bucket.name}}-logs`) to receive the access logs. That bucket will always show two
+findings — "Bucket should log access" and "Bucket should not log to itself" — because it has no
 logging of its own. Configuring it to log to itself would just duplicate every entry into the
 thing generating it; configuring it to log to yet another bucket only pushes the same problem one
 level further out. Google's own guidance for GCS access logging is that the destination bucket
@@ -101,9 +101,11 @@ orphaned key rings are harmless (no cost, nothing points at them) but do accumul
 project across every full teardown-and-recreate; if that matters for your organization's KMS
 hygiene, list them periodically:
 
+{{#resources.bucket}}
 ```bash
-gcloud kms keyrings list --location=LOCATION --project=PROJECT_ID
+gcloud kms keyrings list --location={{resources.bucket.region}} --project=cory-sandbox-362007
 ```
+{{/resources.bucket}}
 
 Turning **Encrypt With A Key You Control** off does not decrypt existing objects or re-encrypt
 them with a Google-owned key — it only changes what new objects use. The key itself is never

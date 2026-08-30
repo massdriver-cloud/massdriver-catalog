@@ -1,0 +1,73 @@
+name: postgres-table-grants
+version: 0.0.0
+label: Postgres Table Grants
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+
+schema:
+  title: Postgres Table Grants
+  description: >-
+    A login for an existing PostgreSQL database, allowed to reach a named list of tables and
+    nothing else. The login owns no schema and cannot create tables of its own.
+  type: object
+  additionalProperties: false
+  required:
+    - auth
+    - read
+    - read_write
+  properties:
+    auth:
+      title: Authentication
+      description: Connection parameters for this login.
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Host
+          description: Database server hostname or IP address.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: TCP port the database listens on.
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 5432
+        database:
+          title: Database
+          description: Database name to connect to.
+          type: string
+          minLength: 1
+        username:
+          title: Username
+          description: The login this app was issued.
+          type: string
+          minLength: 1
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: Password for the login. Masked everywhere except in IaC at deploy time.
+          type: string
+    read:
+      title: Readable Tables
+      description: Tables this login can read, as `schema.table`.
+      type: array
+      items:
+        type: string
+    read_write:
+      title: Writable Tables
+      description: Tables this login can read and change, as `schema.table`.
+      type: array
+      items:
+        type: string

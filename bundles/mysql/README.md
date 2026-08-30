@@ -9,16 +9,14 @@ A MySQL instance with sizing, HA, character set, and slow-query controls. Depend
 
 This bundle is a worked example of the four things every bundle in the catalog brings together:
 
-- **Self-service experience** — t-shirt sized instances (`xs` → `xl`), an `$md.enum` subnet picker populated from the linked network, immutable `character_set` / `collation` dropdowns, a 32-char-capped `username` (MySQL's limit), and a conditional `slow_query_log_long_query_time_seconds` that appears only when slow query logging is on.
-- **Operator guide** (`operator.md`) — a 2am runbook templated with the live host, port, character set, and slow-query settings. Open it from the instance's runbook tab in the UI.
-- **Compliance** — immutability on `username` / `character_set` / `collation`, `$md.copyable: false` so credentials don't carry into cloned environments, `$md.sensitive: true` on the password output (masked in the UI and audit-logged on download), and three `massdriver_instance_alarm` definitions (`Storage 80% Full`, conditional `Slow Query Rate`, conditional `Replication Lag`).
-- **IaC code** (`src/`) — a placeholder Terraform/OpenTofu module that wires `params` and the upstream network `connection` into `massdriver_resource` outputs. Replace it with your real MySQL module (RDS, Cloud SQL, Azure Database, self-hosted, whatever you run).
+- **Self-service experience** — t-shirt sized instances (`xs` through `xl`), so nobody has to know what a `db.t4g.small` is. A version dropdown that labels 5.7 as end-of-life. An `$md.enum` subnet picker that fills itself in from the linked network. And a `username` capped at 32 characters, because that is MySQL's limit and the error you get for exceeding it is not obvious.
+- **Operator guide** (`operator.md`) — a 2am runbook, templated so it shows this instance's live host, port, character set, and slow-query threshold.
+- **Compliance** — `$md.immutable: true` on `username`, `database_name`, `db_version`, `character_set` and `collation`, all of which mean a rebuild rather than an edit. `$md.copyable: false` on `username`, so credentials do not follow a cloned environment. The password field on the `mysql-database` resource type carries `$md.sensitive: true`, so it is masked in the UI and its download is audit-logged. Three `massdriver_instance_alarm` definitions: `Storage 80% Full`, plus a `Slow Query Rate` that only exists when slow-query logging is on and a `Replication Lag` that only exists on HA instances.
+- **IaC code** (`src/`) — a placeholder module that wires `params` and the upstream network `connection` into `massdriver_resource` outputs. Replace it with your real MySQL module (RDS, Cloud SQL, Azure Database, self-hosted, whatever you run).
 
 ## Customize it
 
-1. Edit `massdriver.yaml` — match the params to your real MySQL module's inputs (engine version, parameter group, binlog settings, etc.).
-2. Rewrite `src/` to be your real Terraform/OpenTofu. `_massdriver_variables.tf` regenerates from your params + connections on every `mass bundle build`, so the schema and the variables stay in sync.
+1. Edit `massdriver.yaml` — match the params to your real MySQL module's inputs (engine version, parameter group, binlog settings, and so on). The [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) covers every key.
+2. Rewrite `src/` to be your real Terraform/OpenTofu. `_massdriver_variables.tf` regenerates from your params and connections on every `mass bundle build`, so the schema and the variables stay in sync.
 3. Update `operator.md` with your team's actual runbook — failover steps, slow-query investigation, restore-from-backup procedure.
 4. Tune the alarm definitions in `src/alarms.tf` to thresholds your team will actually wake up for.
-
-See the [catalog README](../../README.md) and [Bundle YAML Spec](https://docs.massdriver.cloud/guides/bundle-yaml-spec) for more.

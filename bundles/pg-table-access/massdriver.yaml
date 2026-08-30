@@ -1,0 +1,87 @@
+name: pg-table-access
+description: >-
+  Issues an app a login for the shared database, allowed to reach only the tables you list. The
+  tables have to exist already — this hands out access to data that is there, it does not create
+  anything.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/pg-table-access
+version: 0.0.0
+
+params:
+  examples:
+    - __name: A reporting job that reads one team's data
+      login_name: "reporting"
+      read:
+        - "tour_dates.shows"
+      read_write: []
+    - __name: An internal console across several teams
+      login_name: "ops_console"
+      read:
+        - "tour_dates.shows"
+        - "fan_signups.signups"
+      read_write:
+        - "merch_inventory.items"
+  required:
+    - login_name
+  properties:
+    login_name:
+      title: What should this login be called?
+      description: >-
+        Name it after the app or the job that uses it, so an audit log entry says who was
+        reading. This cannot be changed later without reissuing the login.
+      type: string
+      pattern: ^[a-z][a-z0-9_]{1,30}$
+      message:
+        pattern: "Lowercase letters, digits, and underscores. Must start with a letter. 2-31 characters."
+      $md.immutable: true
+      examples:
+        - reporting
+        - ops_console
+    read:
+      title: Which tables can it read?
+      description: >-
+        One table per line, written as `schema.table`. The schema is the app that owns the data.
+        Anything not listed here is unreachable, which is the point.
+      type: array
+      default: []
+      items:
+        type: string
+        pattern: ^[a-z][a-z0-9_]{0,62}\.[a-z][a-z0-9_]{0,62}$
+        message:
+          pattern: "Write it as schema.table, for example tour_dates.shows."
+        examples:
+          - tour_dates.shows
+    read_write:
+      title: Which tables can it change?
+      description: >-
+        Same format. Only add a table here when the team that owns it has agreed — writing to
+        somebody else's table is how two apps start corrupting each other.
+      type: array
+      default: []
+      items:
+        type: string
+        pattern: ^[a-z][a-z0-9_]{0,62}\.[a-z][a-z0-9_]{0,62}$
+        message:
+          pattern: "Write it as schema.table, for example merch_inventory.items."
+        examples:
+          - merch_inventory.items
+
+dependencies:
+  postgres_cluster:
+    resource_type: postgres-database@0.0.0
+    required: true
+
+resources:
+  grants:
+    resource_type: postgres-table-grants@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - login_name
+    - read
+    - read_write
+    - "*"

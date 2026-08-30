@@ -1,0 +1,127 @@
+name: analytics-dataset
+version: 0.0.0
+label: Analytics Dataset
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-bigquery-federation/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: analytics
+
+schema:
+  title: Analytics Dataset
+  description: >-
+    A warehouse dataset analysts run queries in, together with the connection that reads an
+    operational database in place. Nothing is copied into the dataset — the connection is how a
+    query reaches the live tables.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - project_id
+    - dataset_id
+    - location
+    - connection_id
+    - policies
+  properties:
+    id:
+      title: ID
+      description: Unique resource identifier from the cloud provider (e.g. a full resource name or selfLink).
+      type: string
+      minLength: 1
+    project_id:
+      title: Project ID
+      description: Cloud project the dataset is billed to and lives in.
+      type: string
+      minLength: 1
+    dataset_id:
+      title: Dataset ID
+      description: Name of the dataset itself, without the project prefix.
+      type: string
+      minLength: 1
+      pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
+      message:
+        pattern: "Start with a letter or underscore, then letters, digits, or underscores. No hyphens."
+    location:
+      title: Location
+      description: >-
+        Region the dataset and its connection live in. A query can only reach a database in this
+        same location.
+      type: string
+      minLength: 1
+      examples:
+        - us-central1
+    connection_id:
+      title: Connection ID
+      description: >-
+        The identifier a query uses to reach the operational database, written the way it is
+        typed into a query — project, location, and connection name joined by dots.
+      type: string
+      minLength: 1
+      examples:
+        - acme-platform.us-central1.analytics_scp_dev_warehouse_postgres
+    source_database:
+      title: Source Database
+      description: The database the connection reads, and the login it reads as.
+      type: object
+      additionalProperties: false
+      required:
+        - database
+        - username
+      properties:
+        database:
+          title: Database
+          description: Database name the connection opens.
+          type: string
+          minLength: 1
+        username:
+          title: Username
+          description: >-
+            Login the connection authenticates as. Every query through this connection is limited
+            to what this login was granted, whoever ran it.
+          type: string
+          minLength: 1
+    federated_tables:
+      title: Federated Tables
+      description: >-
+        Tables the connection's login may read. Anything not listed here is refused by the source
+        database even though the connection reaches it.
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema
+          - table
+        properties:
+          schema:
+            title: Schema
+            description: Schema of the app that owns the table.
+            type: string
+            minLength: 1
+          table:
+            title: Table
+            description: Table name.
+            type: string
+            minLength: 1
+    policies:
+      title: Access Policies
+      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: Policy identifier. For GCP this is the IAM role a consumer gets bound to.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: Human-readable policy name.
+            type: string
+            minLength: 1

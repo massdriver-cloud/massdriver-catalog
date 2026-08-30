@@ -39,7 +39,7 @@ normal for this failure on this backend; it doesn't mean anything else is wrong.
 **Check what's actually going on before touching anything:**
 
 ```bash
-mass deployment list {{id}} --limit 5
+mass deployment list artists-dev-portal --limit 5
 ```
 
 - If the most recent deployment is `RUNNING`, `PENDING`, or `APPROVED`, leave it alone — it may
@@ -63,7 +63,7 @@ mass deployment list {{id}} --limit 5
 2. **If it's been stuck well past that window**, use the platform's break-glass command instead of
    reaching for OpenTofu directly:
    ```bash
-   mass instance orphan {{id}}
+   mass instance orphan artists-dev-portal
    ```
    This resets the instance to `INITIALIZED`, bulk-aborts any lingering deployment records so a
    late worker won't retry, and clears the state lock on the backend. It preserves the existing
@@ -114,7 +114,7 @@ deployment), so a pull failure here means something changed between the two — 
 IAM binding.
 
 ```bash
-gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.conditions)"
+gcloud run services describe artist-portal-artists-dev-portal --region=us-central1 --project=cory-sandbox-362007 --format="value(status.conditions)"
 ```
 
 - **`PERMISSION_DENIED` / `NOT_FOUND` pulling the image** — the runtime service account's
@@ -123,7 +123,7 @@ gcloud run services describe {{resources.service.name}} --region={{resources.ser
 - **Revision stuck in `Retrying`** — the container is crashing on startup, not failing to pull.
   Check the revision's own logs, not the build's:
   ```bash
-  gcloud run services logs read {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --limit=50
+  gcloud run services logs read artist-portal-artists-dev-portal --region=us-central1 --project=cory-sandbox-362007 --limit=50
   ```
 - **503 on individual requests, service otherwise `Ready`** — the app itself is erroring or
   timing out per-request. This is application-level; the platform only guarantees the container
@@ -134,7 +134,8 @@ gcloud run services describe {{resources.service.name}} --region={{resources.ser
 Check which optional connection is missing, not broken:
 
 - **Database** — confirm the `database` connection is actually wired to this instance, and that
-  the network's Serverless VPC connector is in the *same region* as `{{params.region}}`. A
+  the network's Serverless VPC connector is in the *same region* as this service's `region`
+  param. A
   connector only serves Cloud Run services in its own region.
 - **Bucket / Firestore** — these don't need the VPC connector (they're reached over Google's own
   network, not privately), so a timeout here is almost always a missing IAM binding rather than
@@ -169,5 +170,5 @@ deployment), so if the old behavior is still showing up, check that the Cloud Ru
 service is now serving is actually the new one:
 
 ```bash
-gcloud run services describe {{resources.service.name}} --region={{resources.service.region}} --project={{dependencies.gcp_service_account.project_id}} --format="value(status.latestReadyRevisionName)"
+gcloud run services describe artist-portal-artists-dev-portal --region=us-central1 --project=cory-sandbox-362007 --format="value(status.latestReadyRevisionName)"
 ```
