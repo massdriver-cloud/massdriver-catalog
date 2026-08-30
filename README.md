@@ -380,7 +380,7 @@ is set by your `project:view` policies — possibly in an entirely different gro
 | Key | Scope | Values | What it decides |
 | --- | --- | --- | --- |
 | `managed_by` | project | `platform`, `engineering`, `citizen` | Who is responsible for this project. Drives discovery. |
-| `team` | project | `platform`, `artists` | Which team owns it. Drives "change only my own project". |
+| `team` | project | `platform`, `artists`, `tourdates`, `merch`, `fans` | Which team owns it. Drives "change only my own project". |
 | `tier` | environment | `dev`, `staging`, `production` | How careful to be. Drives deploy versus propose. |
 | `exposure` | component | `internal`, `external` | Whether this app faces the public internet. |
 
@@ -454,8 +454,11 @@ Citizen projects and the shared platform are both visible. Seeing the platform m
 shared database is the thing their apps are built on, and they cannot use what they cannot
 find. They can look at it and change nothing.
 
-**Citizen Developers - Artists** — one group like this per citizen team. This is the half
-that grants change access, and every policy in it carries its own fence.
+**Citizen Developers - <team>** — one group like this per citizen team. There are four:
+Artists, Tour Dates, Merch, Fans. This is the half that grants change access, and every policy
+in it carries its own fence.
+
+Taking the Artists one as the pattern — substitute the team's own name everywhere:
 
 | Actions | Conditions |
 | --- | --- |
@@ -465,8 +468,11 @@ that grants change access, and every policy in it carries its own fence.
 | `environment:create`, `environment:configure`, `environment:deploy` | `md-project`: artists + `tier`: dev |
 | `repo:view`, `resource:view` | none |
 
-A citizen developer in both groups sees every citizen project and can change only the artists
-project. In `dev` they deploy on their own. In `staging` and `production` they can only
+Every fence is repeated on every policy on purpose. It reads as duplication and it is not —
+drop the condition from one row and that action reaches every project the person can see,
+which is all four.
+
+A citizen developer in both groups sees every citizen project and can change only their own. In `dev` they deploy on their own. In `staging` and `production` they can only
 propose, and somebody with deploy rights decides. That is the point where the work stops and
 asks a human.
 
@@ -510,13 +516,30 @@ Declare an attribute with `required` off, tag everything that already exists, an
 mark it required. Marking an attribute required while older projects are missing it leaves
 you with resources that cannot be updated until you go back and fill it in.
 
-`managed_by` and `tier` are required. A project with no `managed_by` matches no citizen view
-condition and is invisible to them, which is the safe direction to fail, but it is confusing
-to debug. Requiring the attribute means the question gets answered when the project is
-created. `team` and `exposure` stay optional: `team` so operators can make scratch projects
-without inventing one, and `exposure` because a citizen developer must tag a component
-`internal` to place it at all, which gets you the same result without forcing the tag onto
-networks and databases where the idea does not apply.
+All four are required. A project with no `managed_by` matches no citizen view condition and is
+invisible to them; a component with no `exposure` matches no design condition and cannot be
+placed. Both fail in the safe direction, but they fail confusingly — the person sees "you
+cannot do that" with nothing pointing at the missing tag. Requiring the attribute moves the
+question to the moment the project or component is created, where it is obvious.
+
+The cost is that `team` is a closed list. Onboarding a new team means extending the allowed
+values before the project can be created, and that edit is a read-modify-write of the whole
+list — pass every existing value along with the new one or you will drop the others.
+
+### The projects
+
+| Project | `managed_by` | `team` | What is in it |
+| --- | --- | --- | --- |
+| `scp` | platform | platform | The network, the registry, and the shared Postgres |
+| `artists` | citizen | artists | Artist Portal |
+| `tourdates` | citizen | tourdates | Tour Dates |
+| `merch` | citizen | merch | Merch Inventory |
+| `fans` | citizen | fans | Fan Signups |
+
+Each citizen project holds two components: a `pg-table-set` for its schema and login, and the
+app itself. They are separate projects rather than four apps in one because the project is the
+visibility boundary — one project would mean any citizen developer who can change one app can
+change all of them.
 
 ### Known gap
 
@@ -737,6 +760,103 @@ Nothing builds on anyone's laptop. No `docker`, no `gcloud`.
 > always IAM propagation rather than a bundle defect. The Cloud Build service account needs
 > `storage.objectViewer` on the staging bucket, and the caller needs `iam.serviceAccountUser` on
 > the build service account. Each bundle's `operator.md` covers its own failure modes.
+
+### Every management task, and the command for it
+
+Everything below was used to build the platform described here. Attributes, groups, and policies
+are the only things with no CLI — they live in the web app under **Settings**, or go through the
+Massdriver MCP server.
+
+**Projects and environments**
+
+```bash
+mass project create tourdates --name "Tour Dates" \
+  -d "Show schedule, built by the touring team." \
+  -a managed_by=citizen,team=tourdates
+
+mass environment create tourdates dev --name dev -a tier=dev
+
+mass project update artists      -a managed_by=citizen,team=artists
+mass environment update scp-dev  -a tier=dev
+```
+
+`-a` replaces the whole attribute set rather than merging into it. Pass every attribute you want
+to keep, every time, on both commands.
+
+**Catalog**
+
+```bash
+mass repository create gcp-network -t bundle
+mass repository create network     -t resource-type
+
+mass resource-type publish resource-types/network/massdriver.yaml
+
+mass bundle build   --bundle-directory bundles/gcp-network
+mass bundle publish --development --bundle-directory bundles/gcp-network
+```
+
+`mass bundle build` regenerates the Terraform variables from `massdriver.yaml`. Run it after every
+schema change, before publishing, or the bundle ships with stale variables.
+
+`make publish-resource-types` does the create-and-publish loop for every resource type at once.
+
+**Credentials and resources**
+
+```bash
+mass resource create -f ~/Downloads/key.json -t gcp-service-account -n "Massdriver Sandbox"
+mass resource list
+
+mass environment default artists-dev <resource-id>
+```
+
+**Blueprints**
+
+```bash
+mass component add tourdates pg-table-set --id data --name "Tour Dates Data" \
+  -d "This app's own schema and login inside the shared database." \
+  -a exposure=internal
+
+mass component link tourdates-data.table_set tourdates-app.database \
+  --from-version latest+dev --to-version latest+dev
+
+mass component remove tourdates-data
+```
+
+`--from-version latest+dev` is what tracks the development channel. Without the `+dev` suffix the
+component pins to released versions only and will not see anything published with
+`--development`.
+
+**Instances and deployments**
+
+```bash
+mass instance deploy tourdates-dev-data -m "Schema and scoped login for tour dates" -f
+mass instance deploy tourdates-dev-data --plan
+mass instance deploy tourdates-dev-app  --propose
+
+mass instance version tourdates-dev-app latest+dev
+mass instance remote-reference set tourdates-dev-data postgres_cluster scp-dev-db.database
+mass instance destroy tourdates-dev-app
+
+mass deployment logs <deployment-id>
+mass deployment approve <deployment-id>
+```
+
+`-f` streams the logs until the deployment finishes, which is usually what you want for anything
+you are watching. `--propose` creates the deployment without running it, for the environments
+where somebody else has to approve.
+
+An instance pinned to an older version will not pick up a new publish. `mass instance version`
+re-pins it. This is easy to miss: a deploy that succeeds against the version it was pinned to
+looks exactly like a deploy of the code you just published.
+
+**Things with no CLI**
+
+| Task | Where |
+| --- | --- |
+| Declare, change, or delete a custom attribute | Settings → Custom Attributes |
+| Create a group, add members, author policies | Settings → Groups |
+| Grant a resource to environments (`resource:export`) | The resource's sharing settings |
+| Grant a bundle repository to projects (`repo:pull`) | The repository's sharing settings |
 
 ### Before pg-table-set can deploy
 

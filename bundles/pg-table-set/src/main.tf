@@ -39,12 +39,8 @@ resource "postgresql_schema" "app" {
   owner = postgresql_role.app.name
 
   # Owning the schema is what gives the app full control of its own tables without
-  # any per-table grant. Everything it creates here belongs to it from the start.
-  policy {
-    create = true
-    usage  = true
-    role   = postgresql_role.app.name
-  }
+  # any per-table grant. Everything it creates here belongs to it from the start,
+  # so no policy block is needed — and the one this resource offers is deprecated.
 }
 
 # Reading another app's data takes two grants: USAGE on their schema, then the

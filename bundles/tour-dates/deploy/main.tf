@@ -20,7 +20,7 @@ locals {
   size = local.size_specs[var.size]
 
   # Optional connections auto-wire as environment variables so the app never
-  # needs its own config UI for where its database or bucket lives. Secrets
+  # needs its own config UI for where its database lives. Secrets
   # (the database password) ride the same path other bundles in this catalog
   # already use for sensitive values passed through Terraform.
   connection_env_vars = concat(
@@ -33,14 +33,6 @@ locals {
       # The schema this app owns. Everything it creates belongs here, and this is
       # the only part of the shared database it can write to.
       { name = "DATABASE_SCHEMA", value = var.database.schema },
-    ] : [],
-    var.bucket != null ? [
-      { name = "BUCKET_NAME", value = var.bucket.name },
-      { name = "BUCKET_URL", value = var.bucket.url },
-    ] : [],
-    var.firestore != null ? [
-      { name = "FIRESTORE_PROJECT_ID", value = var.firestore.project_id },
-      { name = "FIRESTORE_DATABASE", value = var.firestore.name },
     ] : [],
   )
 
@@ -67,20 +59,6 @@ resource "google_project_iam_member" "runtime_cloudsql_client" {
   count   = var.database != null ? 1 : 0
   project = var.gcp_service_account.project_id
   role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.runtime.email}"
-}
-
-resource "google_storage_bucket_iam_member" "runtime_bucket" {
-  count  = var.bucket != null ? 1 : 0
-  bucket = var.bucket.name
-  role   = [for p in var.bucket.policies : p.id if p.name == "Read and Write"][0]
-  member = "serviceAccount:${google_service_account.runtime.email}"
-}
-
-resource "google_project_iam_member" "runtime_firestore" {
-  count   = var.firestore != null ? 1 : 0
-  project = var.gcp_service_account.project_id
-  role    = [for p in var.firestore.policies : p.id if p.name == "Read and Write"][0]
   member  = "serviceAccount:${google_service_account.runtime.email}"
 }
 
