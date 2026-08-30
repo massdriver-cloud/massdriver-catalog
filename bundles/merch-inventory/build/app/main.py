@@ -66,14 +66,67 @@ def esc(v):
         .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+BORROWED = [t.strip() for t in os.environ.get("BORROWED_READ", "").split(",") if t.strip()]
+
+
+def borrowed_dsn():
+    host = os.environ.get("BORROWED_HOST")
+    if not host or not BORROWED:
+        return None
+    return "host={} port={} dbname={} user={} password={} sslmode=require".format(
+        host,
+        os.environ.get("BORROWED_PORT", "5432"),
+        os.environ.get("BORROWED_NAME"),
+        os.environ.get("BORROWED_USER"),
+        os.environ.get("BORROWED_PASSWORD"),
+    )
+
+
+def borrowed_section():
+    """Render the other team's table, or say why it is not showing."""
+    conn_str = borrowed_dsn()
+    if not conn_str:
+        return ""
+    qualified = BORROWED[0]
+    schema, _, table = qualified.partition(".")
+    try:
+        with psycopg.connect(conn_str, connect_timeout=8) as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT * FROM "{}"."{}" ORDER BY 1'.format(
+                    schema.replace('"', '""'), table.replace('"', '""')))
+                cols = [d.name for d in cur.description]
+                rows = cur.fetchall()
+    except Exception as e:  # noqa: BLE001
+        return '<h2>{}</h2><p class="warn">Could not read it: {}</p>'.format(
+            esc(qualified), esc(e))
+
+    head = "".join("<th>{}</th>".format(esc(c)) for c in cols)
+    body = "".join(
+        "<tr>" + "".join("<td>{}</td>".format(esc(c)) for c in r) + "</tr>" for r in rows)
+    return (
+        '<h2>{}</h2>'
+        '<p class="lede">Owned by another team. This app was granted read access to this one '
+        'table and can reach nothing else of theirs.</p>'
+        '<table><tr>{}</tr>{}</table>'
+    ).format(esc(qualified), head, body)
+
+
 PAGE = """<!doctype html>
 <meta charset="utf-8">
 <title>{title}</title>
 <style>
-  body {{ font: 15px/1.55 system-ui, -apple-system, sans-serif; max-width: 52rem;
-         margin: 3rem auto; padding: 0 1.25rem; color: #16181d; }}
+  body {{ font: 15px/1.55 system-ui, -apple-system, sans-serif; margin: 0;
+         color: #16181d; }}
+  .corp {{ background: #16181d; color: #f4f4f5; font-size: 13px; font-weight: 600;
+          letter-spacing: .02em; padding: .55rem 1.25rem; display: flex; gap: .5rem;
+          align-items: center; }}
+  .corp .sep {{ opacity: .45; font-weight: 400; }}
+  .corp .app {{ font-weight: 400; opacity: .85; }}
+  .wrap {{ max-width: 52rem; margin: 3rem auto; padding: 0 1.25rem; }}
   h1 {{ margin-bottom: .25rem; }}
   .lede {{ color: #555; margin-top: 0; }}
+  h2 {{ font-size: 1.05rem; margin: 2.5rem 0 .25rem; padding-top: 1.5rem;
+        border-top: 1px solid #e4e6ea; }}
   table {{ border-collapse: collapse; width: 100%; margin: 1.5rem 0; }}
   th, td {{ text-align: left; padding: .5rem .7rem; border-bottom: 1px solid #e4e6ea; }}
   th {{ font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #666; }}
@@ -87,11 +140,14 @@ PAGE = """<!doctype html>
   button {{ font: inherit; padding: .4rem .9rem; border-radius: 6px; border: 1px solid #b9bec7;
            background: #fff; cursor: pointer; }}
 </style>
+<div class="corp"><span>🎵 MusiCorp</span><span class="sep">::</span><span class="app">{title}</span></div>
+<div class="wrap">
 <h1>{title}</h1>
 <p class="lede">{purpose}</p>
 {body}
 <p class="meta">schema <strong>{schema}</strong> &middot; table <strong>{table}</strong>
 &middot; signed in as <strong>{user}</strong> &middot; {count} rows</p>
+</div>
 """
 
 FORM = """
@@ -114,7 +170,7 @@ def render(conn, note=""):
     table = "<table><tr>{}</tr>{}</table>".format(head, body_rows)
     form = FORM.format(cols=", ".join(n for n, _ in COLUMNS))
     return PAGE.format(
-        title=TITLE, purpose=PURPOSE, body=note + table + form,
+        title=TITLE, purpose=PURPOSE, body=note + table + form + borrowed_section(),
         schema=SCHEMA, table=TABLE, count=len(rows),
         user=os.environ.get("DATABASE_USER", "-"))
 

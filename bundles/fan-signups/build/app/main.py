@@ -70,8 +70,14 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <title>{title}</title>
 <style>
-  body {{ font: 15px/1.55 system-ui, -apple-system, sans-serif; max-width: 52rem;
-         margin: 3rem auto; padding: 0 1.25rem; color: #16181d; }}
+  body {{ font: 15px/1.55 system-ui, -apple-system, sans-serif; margin: 0;
+         color: #16181d; }}
+  .corp {{ background: #16181d; color: #f4f4f5; font-size: 13px; font-weight: 600;
+          letter-spacing: .02em; padding: .55rem 1.25rem; display: flex; gap: .5rem;
+          align-items: center; }}
+  .corp .sep {{ opacity: .45; font-weight: 400; }}
+  .corp .app {{ font-weight: 400; opacity: .85; }}
+  .wrap {{ max-width: 52rem; margin: 3rem auto; padding: 0 1.25rem; }}
   h1 {{ margin-bottom: .25rem; }}
   .lede {{ color: #555; margin-top: 0; }}
   table {{ border-collapse: collapse; width: 100%; margin: 1.5rem 0; }}
@@ -87,11 +93,14 @@ PAGE = """<!doctype html>
   button {{ font: inherit; padding: .4rem .9rem; border-radius: 6px; border: 1px solid #b9bec7;
            background: #fff; cursor: pointer; }}
 </style>
+<div class="corp"><span>🎵 MusiCorp</span><span class="sep">::</span><span class="app">{title}</span></div>
+<div class="wrap">
 <h1>{title}</h1>
 <p class="lede">{purpose}</p>
 {body}
 <p class="meta">schema <strong>{schema}</strong> &middot; table <strong>{table}</strong>
 &middot; signed in as <strong>{user}</strong> &middot; {count} rows</p>
+</div>
 """
 
 FORM = """

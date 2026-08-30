@@ -30,25 +30,20 @@ locals {
       { name = "DATABASE_NAME", value = var.database.auth.database },
       { name = "DATABASE_USER", value = var.database.auth.username },
       { name = "DATABASE_PASSWORD", value = var.database.auth.password },
-      # The schema this app owns. Everything it creates belongs here, and this is
-      # the only part of the shared database it can write to.
-      { name = "DATABASE_SCHEMA", value = var.database.schema },
-    ] : [],
-    # A second login, issued by whoever owns the database, granting read access to
-    # named tables belonging to other teams. Separate credentials on purpose: this
-    # app cannot reach those tables with its own login, and the split makes that
-    # visible in the environment rather than buried in a grant somewhere.
-    var.borrowed != null ? [
-      { name = "BORROWED_HOST", value = var.borrowed.auth.hostname },
-      { name = "BORROWED_PORT", value = tostring(var.borrowed.auth.port) },
-      { name = "BORROWED_NAME", value = var.borrowed.auth.database },
-      { name = "BORROWED_USER", value = var.borrowed.auth.username },
-      { name = "BORROWED_PASSWORD", value = var.borrowed.auth.password },
-      { name = "BORROWED_READ", value = join(",", var.borrowed.read) },
     ] : [],
   )
 
-  all_env_vars = concat(var.environment_variables, local.connection_env_vars)
+  # pgAdmin's own sign-in, plus the database connection that the startup script
+  # turns into a server list and a passfile.
+  pgadmin_env_vars = [
+    { name = "PGADMIN_DEFAULT_EMAIL", value = var.admin_email },
+    { name = "PGADMIN_DEFAULT_PASSWORD", value = var.admin_password },
+    { name = "PGADMIN_CONFIG_SERVER_MODE", value = "True" },
+    { name = "PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", value = "False" },
+    { name = "MD_DB_LABEL", value = "Shared Database" },
+  ]
+
+  all_env_vars = concat(local.pgadmin_env_vars, local.connection_env_vars)
 }
 
 # A dedicated identity for the running service, separate from the Cloud
@@ -84,9 +79,12 @@ resource "google_cloud_run_v2_service" "app" {
   template {
     service_account = google_service_account.runtime.email
 
+    # Exactly one, and deliberately not a parameter. pgAdmin keeps its session and
+    # its configuration in a SQLite file on local disk: a second instance breaks
+    # sign-in, and scaling to zero throws the session away between visits.
     scaling {
-      min_instance_count = var.min_instances
-      max_instance_count = var.max_instances
+      min_instance_count = 1
+      max_instance_count = 1
     }
 
     containers {

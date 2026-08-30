@@ -338,6 +338,100 @@ Each resource type ships per-source form-fill walkthroughs that render alongside
 > [!NOTE]
 > The bundle `src/*.tf` files use the new `massdriver_resource` (the replacement for the deprecated `massdriver_artifact`, gone in provider v2.0) and `massdriver_instance_alarm` resources from `massdriver-cloud/massdriver ~> 2.0`. Reference these when you wire your real cloud resources up.
 
+## What Is In The Catalog
+
+Three groups of bundles. Who is allowed to place which is set by `repo:pull` grants conditioned on
+`managed_by`, so a citizen project simply does not see the platform-tier ones — adding the
+component fails rather than deploying something nobody meant to deploy.
+
+### Platform tier — `managed_by: platform` only
+
+Placed once per environment by the people who own the infrastructure. Application teams connect to
+what these produce; they never configure them.
+
+| Bundle | What it is | Produces |
+| --- | --- | --- |
+| `gcp-network` | VPC, subnet, Private Service Access range for Cloud SQL, and the serverless connector Cloud Run uses to reach private addresses | `network`, `serverless-connector` |
+| `gcp-artifact-registry` | The repository every application image is built into | `container-registry` |
+| `gcp-cloud-sql-postgres` | The shared PostgreSQL instance. Private address only, unless an operator opts it into direct SQL management | `postgres-database` |
+| `pg-admin` | The real pgAdmin console, connected as the administrator. Internal only, one instance | `cloud-run-service` |
+
+### Data access tier — `platform` and `engineering`
+
+These decide who can reach which data. Citizen projects cannot place them, which is the point:
+a citizen developer cannot issue themselves access to another team's tables.
+
+| Bundle | What it is | Produces |
+| --- | --- | --- |
+| `pg-table-set` | A schema inside the shared database, owned by a login created for one app. The app creates its own tables in it | `postgres-table-set` |
+| `pg-table-access` | A login granted access to a named list of tables that already exist, table by table, never schema-wide | `postgres-table-grants` |
+| `gcp-bigquery-federation` | A BigQuery dataset and a connection to Cloud SQL, so app tables can be queried with `EXTERNAL_QUERY` without copying the data | `analytics-dataset` |
+
+### Application tier — everyone, including citizen projects
+
+| Bundle | What it is |
+| --- | --- |
+| `templates/gcp-cloud-run` | What `mass bundle new` scaffolds a new app from |
+| `artist-portal`, `tour-dates`, `merch-inventory`, `fan-signups` | Four working apps, each owning a schema |
+| `hello-cloud-run` | The smallest thing that proves the build and deploy path works |
+| `gcp-cloud-storage-bucket`, `gcp-firestore` | Object storage and a document database |
+
+## How Applications Authenticate To Anything
+
+No application in this platform holds a credential that a person typed into it. Every one arrives
+as a connection on the canvas, which means it can be traced, revoked, and rotated in one place.
+
+**To Google Cloud.** One service account key, imported once, granted to environments tagged
+`tier: dev`, and set as an environment default. Every component inherits it. Nobody picks a
+credential, and the sandbox key cannot reach a production environment even by mistake.
+
+**To the database.** Never with the shared administrative credential. An app gets its own
+PostgreSQL login, and which one depends on what it needs:
+
+- `pg-table-set` gives it a login that owns one schema. It can do anything inside that schema and
+  nothing outside it.
+- `pg-table-access` gives it a login granted specific tables in other people's schemas, with no
+  schema of its own and no ability to create anything.
+
+An app can hold both, and usually should: one for its own data, one for what it borrows. They are
+separate connections on the canvas, so "what can this app reach?" is a question you answer by
+looking rather than by reading SQL.
+
+**Between projects.** The apps live in different projects from the platform, so the platform's
+outputs are shared with `resource:export` grants conditioned on `tier: dev`, then set as
+environment defaults. A new app in a dev environment binds to the shared registry, connector and
+database on its own.
+
+**pgAdmin is the exception that proves it.** It is the one component holding the administrative
+credential, and it is internal-only, single-instance, and placed in the platform project where no
+citizen developer can put one.
+
+## Which Database Bundle To Use
+
+The answer depends on how the organisation decided to divide its data, and all three ways are
+supported.
+
+| How the data is divided | Bundle | Cross-app sharing |
+| --- | --- | --- |
+| A database per application | `gcp-cloud-sql-postgres` per app | Impossible — PostgreSQL cannot grant across databases |
+| A schema per application, one shared database | `pg-table-set` | Yes, one table at a time |
+| Already loaded, however it got there | `pg-table-access` | That is what it is for |
+
+Data gets in the same way in all three: the application's own migrations at startup, or a bulk load
+by whoever owns the data. None of these bundles create tables — see the note in
+`bundles/pg-table-access/README.md` about why that is partly a choice and partly a constraint of
+the Terraform provider.
+
+The middle two combine, and that combination is what most people mean when they ask how to share a
+database safely. An application owns a schema and writes whatever it likes there, and separately
+holds a second login granting it read access to a few named tables belonging to other teams. The
+live example: `merch-inventory` owns `merch_inventory`, and reads `tour_dates.shows` through a
+login issued from the platform project.
+
+The grant is issued from the platform project on purpose. Placing it beside the application would
+say the citizen developer granted themselves access to another team's data, which is precisely the
+thing this is meant to prevent.
+
 ## The Access Model
 
 Three kinds of people share this platform, and they need different amounts of rope.
