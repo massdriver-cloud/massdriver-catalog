@@ -1,19 +1,12 @@
-# Bundle YAML Spec: https://docs.massdriver.cloud/guides/bundle-yaml-spec
-#
-# This is a Massdriver bundle TEMPLATE. Run `mass bundle new -n my-app -t gcp-cloud-run
-# -o bundles` to scaffold a new, independent app bundle from it. Each scaffolded bundle
-# gets its own copy of the two-step build+deploy pipeline and its own `build/app/`
-# to replace with real application source.
-
-name: "{{ name }}"
-description: "{{ description }}"
-source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/{{ name }}
+name: "fan-signups"
+description: Collects mailing list signups from events.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/fan-signups
 version: 0.0.0
 
 params:
   examples:
     - __name: Development
-      service_name: "{{ name }}"
+      service_name: "fan-signups"
       region: "us-central1"
       size: "small"
       min_instances: 0
@@ -21,7 +14,7 @@ params:
       public_access: false
       environment_variables: []
     - __name: Production
-      service_name: "{{ name }}"
+      service_name: "fan-signups"
       region: "us-central1"
       size: "medium"
       min_instances: 1
@@ -39,7 +32,7 @@ params:
       title: Service Name
       description: What to call this service. Shows up in its URL and in logs. Cannot be changed after creation.
       type: string
-      default: "{{ name }}"
+      default: "hello-cloud-run"
       minLength: 2
       maxLength: 40
       pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
