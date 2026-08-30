@@ -1,6 +1,6 @@
-name: postgres-table-set
+name: postgres-schema
 version: 0.0.0
-label: Postgres Table Set
+label: Postgres Schema
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
 
 ui:
@@ -8,7 +8,7 @@ ui:
   environmentDefaultGroup: databases
 
 schema:
-  title: Postgres Table Set
+  title: Postgres Schema
   description: >-
     A login role in a shared PostgreSQL database, scoped to one schema the app owns plus an
     explicit list of tables it may read or write in other apps' schemas.

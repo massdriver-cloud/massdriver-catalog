@@ -1,4 +1,4 @@
-# pg-table-set runbook
+# pg-schema runbook
 
 ## Deploy fails with `dial tcp ... i/o timeout` or `connect: connection refused`
 
@@ -50,7 +50,7 @@ import {
 ```
 
 ```bash
-mass bundle publish --development --bundle-directory bundles/pg-table-set
+mass bundle publish --development --bundle-directory bundles/pg-schema
 ```
 
 ```bash

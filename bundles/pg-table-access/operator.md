@@ -32,7 +32,7 @@ The `postgres_cluster` connection is wired to a scoped login rather than the clu
 administrative one. Only the table's owner or a superuser can grant on it.
 
 Check what is connected on the canvas — the slot needs the `postgres-database` resource published
-by `gcp-cloud-sql-postgres`, not a `postgres-table-set` from another app.
+by `gcp-cloud-sql-postgres`, not a `postgres-schema` from another app.
 
 ## Deploy fails with `dial tcp <ip>:5432: connect: connection timed out`
 

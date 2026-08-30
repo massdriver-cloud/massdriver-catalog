@@ -97,7 +97,7 @@ ON k.location = s.city;
 Every query through this connection runs as one PostgreSQL login, whoever pressed run. That login
 is deliberately **not** the shared database's admin user.
 
-Instead, this bundle takes a `pg-table-set` — the same component every app uses to get its own
+Instead, this bundle takes a `pg-schema` — the same component every app uses to get its own
 schema and login — and uses the login from that. So the analytics login is created the same way
 as any app's login, its access is a list of `shared_tables` entries on a component on the canvas,
 and adding a table to what analysts can see is a reviewed change with a name and a date on it.
@@ -110,7 +110,7 @@ being used by everyone who queries. Three things follow from that:
   ever add to the analyst list can read every table in every app's schema, and there is nothing
   in between them and it. With the table set, the answer to "what can analytics see?" is a list
   you can read off the canvas.
-- **A rotation is visible.** `pg-table-set` generates a new password whenever it redeploys. That
+- **A rotation is visible.** `pg-schema` generates a new password whenever it redeploys. That
   breaks this connection until this component is redeployed too — which is annoying, and far
   better than an admin password sitting inside a connection that nobody remembers exists.
 - **Nothing here can write.** The table set grants `SELECT` on other apps' tables. Analysts with
@@ -135,7 +135,7 @@ a database in that region, which BigQuery can only do by building a new dataset.
 
 BigQuery reaches Cloud SQL from outside the platform network, so the instance needs a public
 endpoint. The `gcp-cloud-sql-postgres` bundle turns one on as soon as `iac_authorized_networks`
-has an entry in it — which it already does anywhere `pg-table-set` is deployed, since that bundle
+has an entry in it — which it already does anywhere `pg-schema` is deployed, since that bundle
 needs the same thing.
 
 BigQuery does not need an entry of its own on that list. It authenticates as a service account

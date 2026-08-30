@@ -122,7 +122,7 @@ dependencies:
     resource_type: serverless-connector@0.0.0
     required: false
   database:
-    resource_type: postgres-table-set@0.0.0
+    resource_type: postgres-schema@0.0.0
     required: false
 
 resources:

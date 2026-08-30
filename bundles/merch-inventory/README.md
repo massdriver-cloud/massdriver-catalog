@@ -24,7 +24,7 @@ rows, nothing is added — the examples only appear when the table is empty.
 
 ## Why it shares a database instead of having its own
 
-The app connects to the shared PostgreSQL database through a `pg-table-set` component. That gives
+The app connects to the shared PostgreSQL database through a `pg-schema` component. That gives
 it a schema it owns completely, and a login that can reach nothing else in the database.
 
 One shared database is cheaper than five separate ones, gets backed up once, and lets one app read
@@ -33,7 +33,7 @@ dropping another app's tables.
 
 Stock planning depends on where the tour is going, so this app is a natural reader of Tour Dates'
 schedule. Reading it means adding `tour_dates.shows` to `shared_tables` on this app's
-`pg-table-set` component. It then shows up on the canvas as a link between the two apps, so the
+`pg-schema` component. It then shows up on the canvas as a link between the two apps, so the
 team that owns the schedule can see who depends on it before they change it.
 
 ## Adding stock from a spreadsheet

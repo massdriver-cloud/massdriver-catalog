@@ -1,4 +1,4 @@
-# pg-table-set
+# pg-schema
 
 Gives an app its own area inside a shared PostgreSQL database, and a login that reaches
 nothing else.

@@ -118,7 +118,7 @@ params:
       description: >-
         Leave this empty for a database that only your apps talk to. Add addresses here only
         when something has to run SQL against this instance from outside your network — the
-        `pg-table-set` bundle needs this, because creating a schema and granting table access
+        `pg-schema` bundle needs this, because creating a schema and granting table access
         cannot be done through the Google Cloud API. Adding an address here turns on a public
         IP. Every connection is still encrypted, and anything not on this list is refused.
       type: array

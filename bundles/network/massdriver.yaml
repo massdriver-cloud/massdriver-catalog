@@ -1,7 +1,7 @@
 name: network
 description: "Example network bundle that produces a virtual network with subnets, optional flow-log retention, and DNS configuration. Edit ./bundles/network/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/network
-version: 0.1.0
+version: 0.0.0
 
 params:
   examples:
@@ -133,21 +133,12 @@ params:
         message:
           pattern: "Must be an IPv4 address (e.g. 10.0.0.2)."
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required: []
-  properties: {}
+dependencies:
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  required:
-    - network
-  properties:
-    network:
-      $ref: virtual-network
-      title: Virtual Network
+resources:
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
 
 steps:
   - path: src

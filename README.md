@@ -363,7 +363,7 @@ a citizen developer cannot issue themselves access to another team's tables.
 
 | Bundle | What it is | Produces |
 | --- | --- | --- |
-| `pg-table-set` | A schema inside the shared database, owned by a login created for one app. The app creates its own tables in it | `postgres-table-set` |
+| `pg-schema` | A schema inside the shared database, owned by a login created for one app. The app creates its own tables in it | `postgres-schema` |
 | `pg-table-access` | A login granted access to a named list of tables that already exist, table by table, never schema-wide | `postgres-table-grants` |
 | `gcp-bigquery-federation` | A BigQuery dataset and a connection to Cloud SQL, so app tables can be queried with `EXTERNAL_QUERY` without copying the data | `analytics-dataset` |
 
@@ -388,7 +388,7 @@ credential, and the sandbox key cannot reach a production environment even by mi
 **To the database.** Never with the shared administrative credential. An app gets its own
 PostgreSQL login, and which one depends on what it needs:
 
-- `pg-table-set` gives it a login that owns one schema. It can do anything inside that schema and
+- `pg-schema` gives it a login that owns one schema. It can do anything inside that schema and
   nothing outside it.
 - `pg-table-access` gives it a login granted specific tables in other people's schemas, with no
   schema of its own and no ability to create anything.
@@ -414,7 +414,7 @@ supported.
 | How the data is divided | Bundle | Cross-app sharing |
 | --- | --- | --- |
 | A database per application | `gcp-cloud-sql-postgres` per app | Impossible — PostgreSQL cannot grant across databases |
-| A schema per application, one shared database | `pg-table-set` | Yes, one table at a time |
+| A schema per application, one shared database | `pg-schema` | Yes, one table at a time |
 | Already loaded, however it got there | `pg-table-access` | That is what it is for |
 
 Data gets in the same way in all three: the application's own migrations at startup, or a bulk load
@@ -630,7 +630,7 @@ list — pass every existing value along with the new one or you will drop the o
 | `merch` | citizen | merch | Merch Inventory |
 | `fans` | citizen | fans | Fan Signups |
 
-Each citizen project holds two components: a `pg-table-set` for its schema and login, and the
+Each citizen project holds two components: a `pg-schema` for its schema and login, and the
 app itself. They are separate projects rather than four apps in one because the project is the
 visibility boundary — one project would mean any citizen developer who can change one app can
 change all of them.
@@ -790,7 +790,7 @@ Grant `repo:pull` on each bundle repository with a recipient condition on `manag
 | Bundles | Granted to |
 | --- | --- |
 | `gcp-network`, `gcp-artifact-registry`, `gcp-cloud-sql-postgres` | `managed_by: platform` |
-| `pg-table-set`, `gcp-cloud-storage-bucket`, `gcp-firestore`, and the app bundles | `managed_by: platform, engineering, citizen` |
+| `pg-schema`, `gcp-cloud-storage-bucket`, `gcp-firestore`, and the app bundles | `managed_by: platform, engineering, citizen` |
 
 A citizen project cannot place a VPC or a database cluster because it was never granted the
 bundle. Adding the component fails outright rather than deploying something nobody meant to
@@ -828,11 +828,11 @@ environment binds to the shared registry and connector on its own. Nothing to wi
 mass bundle new --name checkout-api --template-name gcp-cloud-run
 ```
 
-The scaffold takes a `postgres-table-set`, so it gets a schema and login of its own rather than
+The scaffold takes a `postgres-schema`, so it gets a schema and login of its own rather than
 the shared cluster's admin credential. Replace `build/app/` with the real application, keeping
 the `PORT` environment variable — Cloud Run sets it and the container has to listen on it.
 
-Then add two components to the project: a `pg-table-set` for the app's data, and the app itself,
+Then add two components to the project: a `pg-schema` for the app's data, and the app itself,
 linking the table set's `table_set` output to the app's `database` input.
 
 > [!NOTE]
@@ -906,7 +906,7 @@ mass environment default artists-dev <resource-id>
 **Blueprints**
 
 ```bash
-mass component add tourdates pg-table-set --id data --name "Tour Dates Data" \
+mass component add tourdates pg-schema --id data --name "Tour Dates Data" \
   -d "This app's own schema and login inside the shared database." \
   -a exposure=internal
 
@@ -958,7 +958,7 @@ Read this before showing anyone the platform, because it is the thing a security
 in the room will spot.
 
 Creating a schema and granting on a table are SQL statements. The Google Cloud API cannot express
-either, so `pg-table-set` opens a real PostgreSQL connection, and the provisioner runs outside
+either, so `pg-schema` opens a real PostgreSQL connection, and the provisioner runs outside
 your network. To let it in, `gcp-cloud-sql-postgres` turns on a public IP whenever
 `iac_authorized_networks` has an entry.
 
@@ -991,21 +991,21 @@ narrow the allowlist. Two ways to get there:
   issue that grant itself at startup, since it owns the object. No provisioner access needed, and
   approval sits with the team whose data it is — which is the better governance answer anyway.
 
-### Before pg-table-set can deploy
+### Before pg-schema can deploy
 
 Creating a schema and granting access to a table are SQL statements. The Google Cloud API cannot
-express either, so `pg-table-set` opens a real PostgreSQL connection, and the instance needs an
+express either, so `pg-schema` opens a real PostgreSQL connection, and the instance needs an
 address the provisioner can reach.
 
 With `iac_authorized_networks` empty, `gcp-cloud-sql-postgres` has no public address at all and
-`pg-table-set` cannot run. Add the egress address of whatever executes your infrastructure code:
+`pg-schema` cannot run. Add the egress address of whatever executes your infrastructure code:
 
 | Name | Address range |
 | --- | --- |
 | Massdriver provisioner egress | *the CIDR your deployments leave from* |
 
 Everything else is still refused, and every connection stays encrypted. If you do not know the
-address, deploy `pg-table-set` once and read the source address of the refused connection in
+address, deploy `pg-schema` once and read the source address of the refused connection in
 Cloud SQL's logs, under `resource.type="cloudsql_database"`.
 
 ## Rebuilding This Organization From Nothing
@@ -1060,7 +1060,7 @@ mass bundle build   --bundle-directory bundles/gcp-network
 mass bundle publish --development --bundle-directory bundles/gcp-network
 ```
 
-Repeat for `gcp-artifact-registry`, `gcp-cloud-sql-postgres`, `pg-admin`, `pg-table-set`,
+Repeat for `gcp-artifact-registry`, `gcp-cloud-sql-postgres`, `pg-admin`, `pg-schema`,
 `pg-table-access`, `gcp-bigquery-federation`, `gcp-cloud-storage-bucket`, `gcp-firestore`,
 `hello-cloud-run`, and the four apps.
 
@@ -1135,7 +1135,7 @@ platform enforces rather than something a document asserts.
 | Repositories | Granted to |
 | --- | --- |
 | `gcp-network`, `gcp-artifact-registry`, `gcp-cloud-sql-postgres`, `pg-admin` | `platform` |
-| `pg-table-set`, `pg-table-access`, `gcp-bigquery-federation` | `platform`, `engineering` |
+| `pg-schema`, `pg-table-access`, `gcp-bigquery-federation` | `platform`, `engineering` |
 | The app bundles, `gcp-cloud-storage-bucket`, `gcp-firestore` | `platform`, `engineering`, `citizen` |
 
 A citizen project cannot place a VPC because the bundle was never granted to it. Adding the
@@ -1196,7 +1196,7 @@ Repeat for `tourdates-dev`, `merch-dev` and `fans-dev`.
 Two components per project — the schema it owns, and the app itself:
 
 ```bash
-mass component add artists pg-table-set  --id data --name "Artist Portal Data" -a exposure=internal
+mass component add artists pg-schema  --id data --name "Artist Portal Data" -a exposure=internal
 mass component add artists artist-portal --id app  --name "Artist Portal"      -a exposure=internal
 
 mass component link artists-data.table_set artists-app.database \

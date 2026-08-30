@@ -4,7 +4,7 @@
 
 `DATABASE_HOST` or `DATABASE_SCHEMA` is not in the container's environment, which means the
 `database` connection is not wired on the canvas. Those variables are only injected when the
-`pg-table-set` component is actually linked to this app.
+`pg-schema` component is actually linked to this app.
 
 Check what the running revision was given:
 
@@ -42,7 +42,7 @@ and relocating it.
 ## The page loads but shows "Could not reach the database: permission denied for schema tour_dates"
 
 The login exists but the grants are gone, or the app is pointed at a schema it does not own. This
-is a `pg-table-set` problem, not a Cloud Run one — redeploying this app will not fix it.
+is a `pg-schema` problem, not a Cloud Run one — redeploying this app will not fix it.
 
 ```bash
 mass instance deploy tourdates-dev-tables -m "reapply schema grants" -f
@@ -122,7 +122,7 @@ psql -h 127.0.0.1 -p 5433 -U tour_dates_app -d shared -W -c "DELETE FROM tour_da
 ## Another app stopped being able to read the schedule
 
 Reading `tour_dates.shows` from another app requires a `shared_tables` entry on that app's
-`pg-table-set` component. If the entry was removed, the grant is revoked on that component's next
+`pg-schema` component. If the entry was removed, the grant is revoked on that component's next
 deploy, and the reading app starts failing the next time it reconnects.
 
 The deployment history on that component shows who removed it and when. Re-add the entry there and

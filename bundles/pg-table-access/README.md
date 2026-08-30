@@ -2,11 +2,11 @@
 
 Issues a login for the shared database that can reach a named list of tables, and nothing else.
 
-## When to use this instead of `pg-table-set`
+## When to use this instead of `pg-schema`
 
 They answer two different questions.
 
-- **`pg-table-set`** — "this app needs somewhere to put its own data." It creates a schema the
+- **`pg-schema`** — "this app needs somewhere to put its own data." It creates a schema the
   app owns, and the app creates its own tables inside it.
 - **`pg-table-access`** — "this app needs to read data that already exists." It creates a login
   and grants it access to tables somebody else already owns. It creates no tables and no schema.
@@ -81,7 +81,7 @@ for line. If it returns more, something granted on a whole schema.
 | How the data is split | Bundle | Cross-app sharing |
 | --- | --- | --- |
 | One database per app | `gcp-cloud-sql-postgres` | Not possible — PostgreSQL cannot grant across databases |
-| One schema per app, one shared database | `pg-table-set` | Yes, table by table |
+| One schema per app, one shared database | `pg-schema` | Yes, table by table |
 | Data already loaded, however it got there | `pg-table-access` | The whole purpose |
 
 The last two combine, and that combination is usually what people actually want: an app owns a

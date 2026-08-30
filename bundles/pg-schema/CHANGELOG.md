@@ -6,4 +6,4 @@ Initial release.
 
 - Login role and owned schema per app in a shared PostgreSQL database
 - Declared `shared_tables` grants, read or read/write, per table
-- Publishes a `postgres-table-set` resource carrying the app's own scoped credential
+- Publishes a `postgres-schema` resource carrying the app's own scoped credential

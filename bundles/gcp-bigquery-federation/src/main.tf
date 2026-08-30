@@ -161,7 +161,7 @@ resource "google_bigquery_connection" "postgres" {
       # database this connection will never open. It fails at query time as a
       # password error, hours later, in somebody else's console.
       condition     = var.analytics_login.auth.hostname == var.postgres_cluster.auth.hostname
-      error_message = "The analytics login and the database are on different instances — the login points at ${var.analytics_login.auth.hostname} and the instance is ${var.postgres_cluster.auth.hostname}. Wire 'analytics_login' to a pg-table-set that sits on the same database as 'postgres_cluster'."
+      error_message = "The analytics login and the database are on different instances — the login points at ${var.analytics_login.auth.hostname} and the instance is ${var.postgres_cluster.auth.hostname}. Wire 'analytics_login' to a pg-schema that sits on the same database as 'postgres_cluster'."
     }
   }
 }

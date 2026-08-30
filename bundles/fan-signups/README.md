@@ -24,7 +24,7 @@ rows, nothing is added — the examples only appear when the table is empty.
 
 ## Why it shares a database instead of having its own
 
-The app connects to the shared PostgreSQL database through a `pg-table-set` component. That gives
+The app connects to the shared PostgreSQL database through a `pg-schema` component. That gives
 it a schema it owns completely, and a login that can reach nothing else in the database.
 
 One shared database is cheaper than five separate ones, gets backed up once, and lets one app read

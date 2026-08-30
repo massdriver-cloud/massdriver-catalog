@@ -1,7 +1,7 @@
 name: bucket
 description: "Example object-storage bucket bundle showing access levels, versioning, lifecycle rules, CORS, and optional object lock. Edit ./bundles/bucket/massdriver.yaml to match your IaC."
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/bucket
-version: 0.1.0
+version: 0.0.0
 
 params:
   examples:
@@ -111,21 +111,12 @@ params:
         message:
           pattern: "Must be a full origin (e.g. https://example.com)."
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required: []
-  properties: {}
+dependencies:
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  required:
-    - bucket
-  properties:
-    bucket:
-      $ref: object-storage
-      title: Object Storage
+resources:
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: true
 
 steps:
   - path: src

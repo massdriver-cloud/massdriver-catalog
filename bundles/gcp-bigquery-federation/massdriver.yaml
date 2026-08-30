@@ -111,7 +111,7 @@ dependencies:
     resource_type: postgres-database@0.0.0
     required: true
   analytics_login:
-    resource_type: postgres-table-set@0.0.0
+    resource_type: postgres-schema@0.0.0
     required: true
 
 resources:

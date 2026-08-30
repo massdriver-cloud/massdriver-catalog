@@ -44,7 +44,7 @@ gcloud run services logs read pg-admin-scp-dev-pgadmin-XXXX \
 ```
 
 Then confirm the `database` slot is wired on the canvas. It takes the `postgres-database` resource
-published by `gcp-cloud-sql-postgres` — the cluster itself, not a `postgres-table-set` belonging to
+published by `gcp-cloud-sql-postgres` — the cluster itself, not a `postgres-schema` belonging to
 an app.
 
 ## The server is listed but connecting times out

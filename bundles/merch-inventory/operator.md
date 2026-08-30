@@ -4,7 +4,7 @@
 
 `DATABASE_HOST` or `DATABASE_SCHEMA` is not in the container's environment, which means the
 `database` connection is not wired on the canvas. Those variables are only injected when the
-`pg-table-set` component is actually linked to this app.
+`pg-schema` component is actually linked to this app.
 
 Check what the running revision was given:
 
@@ -41,7 +41,7 @@ and relocating it.
 ## The page loads but shows "Could not reach the database: permission denied for schema merch_inventory"
 
 The login exists but the grants are gone, or the app is pointed at a schema it does not own. This
-is a `pg-table-set` problem, not a Cloud Run one — redeploying this app will not fix it.
+is a `pg-schema` problem, not a Cloud Run one — redeploying this app will not fix it.
 
 ```bash
 mass instance deploy merch-dev-tables -m "reapply schema grants" -f

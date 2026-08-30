@@ -1,9 +1,9 @@
-name: pg-table-set
+name: pg-schema
 description: >-
   Gives your app its own private area inside the shared PostgreSQL database, plus a login of its
   own. Your app owns everything it creates there. Other apps cannot touch it unless you say so,
   and you cannot touch theirs unless they say so.
-source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/pg-table-set
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/pg-schema
 version: 0.0.0
 
 params:
@@ -79,7 +79,7 @@ dependencies:
 
 resources:
   table_set:
-    resource_type: postgres-table-set@0.0.0
+    resource_type: postgres-schema@0.0.0
     required: true
 
 steps:

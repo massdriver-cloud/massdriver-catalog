@@ -24,7 +24,7 @@ has rows, nothing is added — the examples only appear when the table is empty.
 
 ## Why it shares a database instead of having its own
 
-The app connects to the shared PostgreSQL database through a `pg-table-set` component. That gives
+The app connects to the shared PostgreSQL database through a `pg-schema` component. That gives
 it a schema it owns completely, and a login that can reach nothing else in the database.
 
 One shared database is cheaper than five separate ones, gets backed up once, and lets one app read
@@ -32,7 +32,7 @@ another app's data without copying it around. The schema boundary is what stops 
 dropping another app's tables.
 
 If this app ever needs to read a table that belongs to Tour Dates or Merch Inventory, that gets
-added to `shared_tables` on its `pg-table-set` component. It then shows up on the canvas as a link
+added to `shared_tables` on its `pg-schema` component. It then shows up on the canvas as a link
 between the two apps, so the team that owns the table can see who depends on it before they change
 it.
 

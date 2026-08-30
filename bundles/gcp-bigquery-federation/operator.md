@@ -50,7 +50,7 @@ Invalid table-valued function EXTERNAL_QUERY Failed to connect to PostgreSQL dat
 Error: FATAL: password authentication failed for user "{{resources.dataset.source_database.username}}"
 ```
 
-The connection stores its own copy of that password, and `pg-table-set` generates a fresh one every
+The connection stores its own copy of that password, and `pg-schema` generates a fresh one every
 time it deploys. So a redeploy of the analytics login breaks every federated query until this
 component is deployed again and re-stores it.
 
@@ -99,7 +99,7 @@ working, not a fault.
 
 {{#resources.dataset}}
 Queries read as `{{resources.dataset.source_database.username}}`, which can only see tables that
-are listed in `shared_tables` on the `pg-table-set` component wired into `analytics_login`.
+are listed in `shared_tables` on the `pg-schema` component wired into `analytics_login`.
 {{/resources.dataset}}
 Add the schema and table there, deploy that component, then deploy this one so the connection picks
 up the login again.
@@ -140,7 +140,7 @@ that first — that is what gives the instance a public endpoint. BigQuery does 
 itself; it authenticates as a service account rather than arriving from a fixed address, so the
 list stays as narrow as it already was.
 
-Anywhere `pg-table-set` is deployed this is already true, because that bundle needs the same thing.
+Anywhere `pg-schema` is deployed this is already true, because that bundle needs the same thing.
 
 ## Deploy fails: the analytics login and the database are on different instances
 
@@ -148,7 +148,7 @@ Two components on the canvas are pointing at different databases. The `analytics
 was created against one instance and `postgres_cluster` is another one, so the login in the
 connection does not exist in the database it opens.
 
-Rewire `analytics_login` to a `pg-table-set` that sits on the same database. The message names both
+Rewire `analytics_login` to a `pg-schema` that sits on the same database. The message names both
 addresses, and the one to change is almost always the table set, not the cluster.
 
 ## The plan wants to destroy and recreate the dataset
@@ -214,6 +214,6 @@ Cloud SQL's own logs show which queries arrived and how long they took, under
 Removes the dataset, the connection, and the grants this bundle made. The app data is untouched —
 it lives in PostgreSQL and nothing here ever held a copy of it.
 
-The analytics login survives too: it belongs to the `pg-table-set` component, not to this one. If
+The analytics login survives too: it belongs to the `pg-schema` component, not to this one. If
 the point was to cut analytics access off entirely, decommission that as well, or the login is still
 there for anyone who can reach the database.
