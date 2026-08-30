@@ -1008,6 +1008,250 @@ Everything else is still refused, and every connection stays encrypted. If you d
 address, deploy `pg-table-set` once and read the source address of the refused connection in
 Cloud SQL's logs, under `resource.type="cloudsql_database"`.
 
+## Rebuilding This Organization From Nothing
+
+Every command needed to reproduce the platform described here, in the order it has to happen.
+Attributes, groups, policies and grants have no CLI — those steps say where to do them instead.
+
+Run `mass whoami` first, and again any time you are unsure. Publishing to the wrong organization
+succeeds silently.
+
+### 1. The credential
+
+```bash
+mass repository create gcp-service-account -t resource-type
+mass resource-type publish platforms/gcp/massdriver.yaml
+mass resource create -f ~/Downloads/PROJECT_ID-abc123.json \
+  -t gcp-service-account -n "Massdriver Sandbox"
+mass resource list
+```
+
+Use the CLI rather than the web uploader for GCP keys — the form corrupts the `private_key` PEM
+block and the failure only shows up at deploy time.
+
+### 2. Attributes
+
+**Settings → Custom Attributes.** Declare all four before writing any policy or grant, because a
+condition naming an undeclared key is dropped silently and the policy then applies to everything.
+
+| Key | Scope | Values |
+| --- | --- | --- |
+| `managed_by` | PROJECT | `platform`, `engineering`, `citizen` |
+| `team` | PROJECT | `platform`, `artists`, `tourdates`, `merch`, `fans` |
+| `tier` | ENVIRONMENT | `dev`, `staging`, `production` |
+| `exposure` | COMPONENT | `internal`, `external` |
+
+Create each with `required` off, tag everything that already exists, then mark them required.
+Marking one required first leaves you with resources that cannot be updated until you go back and
+fill it in.
+
+### 3. Resource types and bundles
+
+```bash
+make publish-resource-types
+```
+
+Then each bundle. `mass bundle build` regenerates the Terraform variables from `massdriver.yaml`,
+so it runs before every publish:
+
+```bash
+mass repository create gcp-network -t bundle
+mass bundle build   --bundle-directory bundles/gcp-network
+mass bundle publish --development --bundle-directory bundles/gcp-network
+```
+
+Repeat for `gcp-artifact-registry`, `gcp-cloud-sql-postgres`, `pg-admin`, `pg-table-set`,
+`pg-table-access`, `gcp-bigquery-federation`, `gcp-cloud-storage-bucket`, `gcp-firestore`,
+`hello-cloud-run`, and the four apps.
+
+### 4. Projects and environments
+
+```bash
+mass project create scp --name "Shared Citizen Platform" \
+  -d "The network, the registry, and the shared database." \
+  -a managed_by=platform,team=platform
+mass environment create scp dev --name dev -a tier=dev
+
+mass project create artists --name "Artist Management" -a managed_by=citizen,team=artists
+mass environment create artists dev --name dev -a tier=dev
+
+mass project create tourdates --name "Tour Dates" -a managed_by=citizen,team=tourdates
+mass environment create tourdates dev --name dev -a tier=dev
+
+mass project create merch --name "Merch Inventory" -a managed_by=citizen,team=merch
+mass environment create merch dev --name dev -a tier=dev
+
+mass project create fans --name "Fan Signups" -a managed_by=citizen,team=fans
+mass environment create fans dev --name dev -a tier=dev
+```
+
+Project and environment identifiers allow lowercase letters and digits only, up to 20 characters.
+No hyphens — which is why the project is `tourdates` while its bundle is `tour-dates`.
+
+`-a` replaces the whole attribute set rather than merging, so pass everything you want to keep each
+time.
+
+### 5. Groups and policies
+
+**Settings → Groups.** Seven groups. See [The Access Model](#the-access-model) for the reasoning;
+this is the shape.
+
+| Group | Policies |
+| --- | --- |
+| Platform Ops | `organization:manage`, plus every project, environment, instance, repo and resource action, unconditioned |
+| Developers | View everything; design where `exposure` is internal or external; instance actions where `managed_by: engineering`; propose only at production |
+| Citizen Developers | `project:view` where `managed_by` is `citizen` or `platform`. Read-only. Everybody joins this one |
+| Citizen Developers - Artists | Design, configure and deploy fenced to `team: artists` and `tier: dev`; propose above that |
+| Citizen Developers - Tour Dates | The same, fenced to `tourdates` |
+| Citizen Developers - Merch | The same, fenced to `merch` |
+| Citizen Developers - Fans | The same, fenced to `fans` |
+
+Every policy in a team group carries its own fence. That reads as duplication and is not — drop the
+condition from one row and that action reaches every project the person can see.
+
+### 6. Share the credential
+
+On the credential's sharing settings, grant **`resource:export`** with a recipient condition of
+`tier: dev`. That is what keeps a sandbox key out of a production environment.
+
+Then set it as an environment default on every environment:
+
+```bash
+mass environment default scp-dev       <credential-resource-id>
+mass environment default artists-dev   <credential-resource-id>
+mass environment default tourdates-dev <credential-resource-id>
+mass environment default merch-dev     <credential-resource-id>
+mass environment default fans-dev      <credential-resource-id>
+```
+
+`mass resource list` gives you the id.
+
+### 7. Decide which projects get which bundles
+
+On each repository's sharing settings, grant **`repo:pull`** with a recipient condition on
+`managed_by`. This is where "citizen developers can only ship serverless" becomes something the
+platform enforces rather than something a document asserts.
+
+| Repositories | Granted to |
+| --- | --- |
+| `gcp-network`, `gcp-artifact-registry`, `gcp-cloud-sql-postgres`, `pg-admin` | `platform` |
+| `pg-table-set`, `pg-table-access`, `gcp-bigquery-federation` | `platform`, `engineering` |
+| The app bundles, `gcp-cloud-storage-bucket`, `gcp-firestore` | `platform`, `engineering`, `citizen` |
+
+A citizen project cannot place a VPC because the bundle was never granted to it. Adding the
+component fails outright.
+
+### 8. The platform tier
+
+```bash
+mass component add scp gcp-network            --id network  --name "Platform Network"   -a exposure=internal
+mass component add scp gcp-artifact-registry  --id registry --name "Container Registry" -a exposure=internal
+mass component add scp gcp-cloud-sql-postgres --id db       --name "Shared Database"    -a exposure=internal
+mass component add scp pg-admin               --id pgadmin  --name "Database Console"   -a exposure=internal
+
+mass component link scp-network.network              scp-db.network              --from-version latest+dev --to-version latest+dev
+mass component link scp-db.database                  scp-pgadmin.database        --from-version latest+dev --to-version latest+dev
+mass component link scp-registry.registry            scp-pgadmin.container_registry --from-version latest+dev --to-version latest+dev
+mass component link scp-network.serverless_connector scp-pgadmin.vpc_connector   --from-version latest+dev --to-version latest+dev
+```
+
+Deploy in dependency order. The network takes about four minutes, most of it the connector; the
+database about ten.
+
+```bash
+mass instance deploy scp-dev-network  -m "platform network" -f
+mass instance deploy scp-dev-registry -m "image registry"   -f
+mass instance deploy scp-dev-db       -m "shared database"  -f
+mass instance deploy scp-dev-pgadmin  -m "database console" -f
+```
+
+`--from-version latest+dev` is what tracks the development channel. Without the `+dev` suffix a
+component pins to released versions only and never sees anything published with `--development`.
+
+### 9. Share the platform with the app projects
+
+The apps live in different projects, so the platform's outputs need `resource:export` grants of
+their own, conditioned on `tier: dev`: the registry, the serverless connector, and the database.
+
+Then make them environment defaults, so every app added later binds on its own:
+
+```bash
+mass environment default artists-dev scp-dev-registry.registry
+mass environment default artists-dev scp-dev-network.serverless_connector
+mass environment default artists-dev scp-dev-db.database
+```
+
+Repeat for `tourdates-dev`, `merch-dev` and `fans-dev`.
+
+> [!NOTE]
+> Environment defaults bind at the moment a component is created. A component that already exists
+> keeps whatever it had, so wire those with an explicit override:
+>
+> ```bash
+> mass instance remote-reference set artists-dev-data postgres_cluster scp-dev-db.database
+> ```
+
+### 10. Each app
+
+Two components per project — the schema it owns, and the app itself:
+
+```bash
+mass component add artists pg-table-set  --id data --name "Artist Portal Data" -a exposure=internal
+mass component add artists artist-portal --id app  --name "Artist Portal"      -a exposure=internal
+
+mass component link artists-data.table_set artists-app.database \
+  --from-version latest+dev --to-version latest+dev
+
+mass instance deploy artists-dev-data -m "schema and scoped login" -f
+mass instance deploy artists-dev-app  -m "the app"                 -f
+```
+
+Repeat for `tourdates`/`tour-dates`, `merch`/`merch-inventory`, and `fans`/`fan-signups`.
+
+Deploy the schema before the app. The app reads its connection from what the schema component
+published, so the other order gives you an app with no database.
+
+### 11. One team reading another team's table
+
+The grant is issued from the platform project, not from the project that wants the data. Placing it
+beside the app would say the citizen developer granted themselves access.
+
+```bash
+mass component add scp pg-table-access --id merchreads \
+  --name "Merch reads Tour Dates" -a exposure=internal
+
+mass component link scp-db.database scp-merchreads.postgres_cluster \
+  --from-version latest+dev --to-version latest+dev
+
+mass instance deploy scp-dev-merchreads -m "issue merch a read-only login" -f
+```
+
+Configure it with `login_name: merch_reads_tours` and `read: ["tour_dates.shows"]`.
+
+Then grant the resulting login `resource:export` on `tier: dev`, and point the app at it:
+
+```bash
+mass instance remote-reference set merch-dev-app borrowed scp-dev-merchreads.grants
+mass instance deploy merch-dev-app -m "show the borrowed table" -f
+```
+
+The table has to exist before the grant can be issued, so the owning app must have deployed and run
+its migrations first.
+
+### Useful while you work
+
+```bash
+mass instance list artists-dev
+mass instance deploy <instance> --plan
+mass instance deploy <instance> --propose
+mass instance version <instance>@latest+dev
+mass deployment logs <deployment-id>
+mass deployment approve <deployment-id>
+```
+
+An instance pinned to an older version does not pick up a new publish, and the deploy still
+succeeds — against the old version. `mass instance version` re-pins it.
+
 ## Customizing Your Catalog
 
 ### Prerequisites
