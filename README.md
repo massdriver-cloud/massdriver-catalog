@@ -526,6 +526,235 @@ attribute — `catalog_tier` with values like `platform` and `application` — a
 the push policy. It is listed here rather than fixed because it is a deliberate choice about
 how much you trust your engineers, not an oversight.
 
+## Standing Up the Platform
+
+The order below is the order things have to happen in. Resource types before bundles, because a
+bundle cannot be built until the types it references exist. Attributes before grants and
+policies, because a grant that names an attribute the organization has not declared is dropped
+without a word and shares with everybody.
+
+Placeholders used throughout:
+
+| Placeholder | Meaning |
+| --- | --- |
+| `ORG_ID` | Massdriver organization ID, visible in the app URL |
+| `PROJECT_ID` | GCP project ID — not the display name, not the number |
+
+### 1. Point the CLI at the right organization
+
+The CLI reads `~/.config/massdriver/config.yaml`:
+
+```yaml
+version: 1
+profiles:
+  default:
+    organization_id: ORG_ID
+    api_key: md_your_service_account_key_here
+    templates_path: /absolute/path/to/this/repo/templates
+```
+
+Check what you are actually connected to before anything else:
+
+```bash
+mass whoami
+```
+
+> [!WARNING]
+> Publishing to the wrong organization does not warn you. It succeeds, and the work lands
+> somewhere else. `mass whoami` is the only thing that tells you which organization the next
+> command will change, and an editor or AI plugin can hold a different key than your shell does.
+
+If a publish fails with `You do not have permission to...`, the service account is authenticated
+but belongs to no group. A brand-new organization does not put it in one. Add it under
+**Settings → Groups → Organization Admin → Service Accounts**.
+
+### 2. Create the cloud credential
+
+In the Google Cloud Console, enable the APIs this platform uses. One link does all of them:
+
+```
+https://console.cloud.google.com/flows/enableapi?apiid=run.googleapis.com,artifactregistry.googleapis.com,cloudresourcemanager.googleapis.com,iam.googleapis.com,iamcredentials.googleapis.com,compute.googleapis.com,servicenetworking.googleapis.com,vpcaccess.googleapis.com,sqladmin.googleapis.com,secretmanager.googleapis.com,storage.googleapis.com&project=PROJECT_ID
+```
+
+Then create a service account at
+`https://console.cloud.google.com/iam-admin/serviceaccounts/create?project=PROJECT_ID`, give it
+**Owner**, and create a **JSON** key.
+
+> [!CAUTION]
+> That file is a long-lived credential with owner access to the whole GCP project. Do not commit
+> it. Delete it once it is loaded into Massdriver.
+
+Owner gets you running fastest and grants far more than this platform needs. Once you know which
+bundles you run, narrow it to `roles/run.admin`, `roles/artifactregistry.admin`,
+`roles/cloudsql.admin`, `roles/compute.networkAdmin`, `roles/secretmanager.admin`,
+`roles/iam.serviceAccountAdmin`, `roles/storage.admin`.
+
+### 3. Publish the credential type and load the key
+
+Credentials are resource types, and every resource type lives in a repository that must exist
+first:
+
+```bash
+mass repository create gcp-service-account -t resource-type
+mass resource-type publish platforms/gcp/massdriver.yaml
+mass resource create -f ~/Downloads/PROJECT_ID-abc123.json -t gcp-service-account -n "Massdriver Sandbox"
+```
+
+> [!IMPORTANT]
+> Load GCP keys with the CLI, not the web uploader. The `private_key` field is a PEM block
+> containing literal `\n` escapes, and the form breaks it on the round trip. The credential looks
+> fine and then fails at deploy time with an authentication error. Other platforms are not
+> affected.
+
+### 4. Publish the rest of the catalog
+
+```bash
+make publish-resource-types
+```
+
+Then each bundle. `mass bundle build` regenerates the Terraform variables from
+`massdriver.yaml`, so it runs before every publish:
+
+```bash
+mass bundle build   --bundle-directory bundles/gcp-network
+mass repository create gcp-network -t bundle
+mass bundle publish --development --bundle-directory bundles/gcp-network
+```
+
+`--development` publishes to the development channel. Instances pinned to `@latest+dev` pick the
+new version up on their next deploy, which is what you want while a bundle is still moving.
+
+To check a bundle before publishing it:
+
+```bash
+tofu -chdir=bundles/gcp-network/src init -backend=false
+tofu -chdir=bundles/gcp-network/src validate
+```
+
+### 5. Declare the attributes
+
+Custom attributes, groups, and policies have no CLI commands. Use the web app under
+**Settings**, or the Massdriver MCP server.
+
+Declare all four before writing any policy or grant. See [The Access Model](#the-access-model)
+for what each one decides.
+
+Then tag what already exists:
+
+```bash
+mass project update scp     -a managed_by=platform,team=platform
+mass project update artists -a managed_by=citizen,team=artists
+
+mass environment update scp-dev     -a tier=dev
+mass environment update artists-dev -a tier=dev
+```
+
+`-a` replaces the whole set rather than adding to it, so pass every attribute you want to keep
+each time.
+
+### 6. Share the credential
+
+Importing a credential does not make it usable. Until it is granted, no environment can see it
+and nothing on the canvas has anything to connect to.
+
+Grant `resource:export` on the credential, with a recipient condition of `tier: dev`. That is
+what keeps a sandbox key out of a production environment — not a naming convention, and not
+somebody remembering.
+
+Then set it as an environment default for `scp-dev` and `artists-dev`, so every component
+inherits it and nobody has to pick a credential by hand.
+
+### 7. Decide which bundles each kind of project may use
+
+This is where "citizen developers can only deploy serverless" stops being a policy document.
+
+Grant `repo:pull` on each bundle repository with a recipient condition on `managed_by`:
+
+| Bundles | Granted to |
+| --- | --- |
+| `gcp-network`, `gcp-artifact-registry`, `gcp-cloud-sql-postgres` | `managed_by: platform` |
+| `pg-table-set`, `gcp-cloud-storage-bucket`, `gcp-firestore`, and the app bundles | `managed_by: platform, engineering, citizen` |
+
+A citizen project cannot place a VPC or a database cluster because it was never granted the
+bundle. Adding the component fails outright rather than deploying something nobody meant to
+deploy. Widening the catalog later is one grant.
+
+### 8. Build the platform tier
+
+In `scp`, add and deploy in this order — everything else assumes these exist:
+
+1. **`gcp-network`** — pick a CIDR that will not overlap anything you peer to later. Creates the
+   subnet, the Private Service Access range Cloud SQL needs, and the serverless connector Cloud
+   Run uses to reach private addresses. Takes about four minutes, most of it the connector.
+2. **`gcp-artifact-registry`** — where every app image is built to.
+3. **`gcp-cloud-sql-postgres`** — the shared database. Around ten minutes.
+
+Link `gcp-network`'s `network` output to the database's `network` input before deploying it.
+
+> [!TIP]
+> The connector name comes from the instance name prefix, and GCP caps connector names at 25
+> characters. Long project or environment names push it over. The bundle truncates automatically,
+> so know this if a name-length error appears on a first deploy.
+
+### 9. Share the platform with the app projects
+
+The apps live in a different project from the platform, so the platform's outputs need grants
+too — same mechanism as the credential, `resource:export` with a `tier: dev` condition, on the
+registry and the serverless connector.
+
+Then set both as environment defaults on `artists-dev`. After that, every app added to that
+environment binds to the shared registry and connector on its own. Nothing to wire per app.
+
+### 10. Scaffold an app
+
+```bash
+mass bundle new --name checkout-api --template-name gcp-cloud-run
+```
+
+The scaffold takes a `postgres-table-set`, so it gets a schema and login of its own rather than
+the shared cluster's admin credential. Replace `build/app/` with the real application, keeping
+the `PORT` environment variable — Cloud Run sets it and the container has to listen on it.
+
+Then add two components to the project: a `pg-table-set` for the app's data, and the app itself,
+linking the table set's `table_set` output to the app's `database` input.
+
+> [!NOTE]
+> `mass bundle new` renders the whole template tree, not just `massdriver.yaml`, which blanks the
+> `{{dependencies}}` / `{{resources}}` / `{{params}}` placeholders in `operator.md`. The runbook
+> still looks fine afterwards, so it is easy to miss. Diff it against the template and restore.
+
+### What happens on deploy
+
+The app bundle runs in two steps. The first archives `build/app/`, uploads it, and runs a Cloud
+Build job that pushes an image to Artifact Registry. The second deploys that image to Cloud Run.
+Both derive the same image tag independently from `md_metadata.package.deployment_enqueued_at`,
+so neither depends on the other's output.
+
+Nothing builds on anyone's laptop. No `docker`, no `gcloud`.
+
+> [!NOTE]
+> The first deploy in a brand-new GCP project is the one most likely to fail, and it is almost
+> always IAM propagation rather than a bundle defect. The Cloud Build service account needs
+> `storage.objectViewer` on the staging bucket, and the caller needs `iam.serviceAccountUser` on
+> the build service account. Each bundle's `operator.md` covers its own failure modes.
+
+### Before pg-table-set can deploy
+
+Creating a schema and granting access to a table are SQL statements. The Google Cloud API cannot
+express either, so `pg-table-set` opens a real PostgreSQL connection, and the instance needs an
+address the provisioner can reach.
+
+With `iac_authorized_networks` empty, `gcp-cloud-sql-postgres` has no public address at all and
+`pg-table-set` cannot run. Add the egress address of whatever executes your infrastructure code:
+
+| Name | Address range |
+| --- | --- |
+| Massdriver provisioner egress | *the CIDR your deployments leave from* |
+
+Everything else is still refused, and every connection stays encrypted. If you do not know the
+address, deploy `pg-table-set` once and read the source address of the refused connection in
+Cloud SQL's logs, under `resource.type="cloudsql_database"`.
+
 ## Customizing Your Catalog
 
 ### Prerequisites
