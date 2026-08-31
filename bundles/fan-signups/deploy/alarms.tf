@@ -71,3 +71,38 @@ resource "google_monitoring_alert_policy" "latency" {
 
   alert_strategy { auto_close = "3600s" }
 }
+
+# The alert policies above live in GCP. These are what tell Massdriver the alarms
+# exist, so they show on the instance and an alert lands against the component that
+# raised it rather than in a webhook log nobody reads.
+resource "massdriver_instance_alarm" "errors" {
+  display_name        = "Serving errors"
+  cloud_resource_id   = google_monitoring_alert_policy.errors.name
+  comparison_operator = "greater_than"
+  threshold           = 0
+  period              = 300
+
+  metric {
+    namespace  = "run.googleapis.com"
+    name       = "request_count"
+    statistic  = "sum"
+    region     = var.region
+    dimensions = { response_code_class = "5xx" }
+  }
+}
+
+resource "massdriver_instance_alarm" "latency" {
+  display_name        = "Slow responses"
+  cloud_resource_id   = google_monitoring_alert_policy.latency.name
+  comparison_operator = "greater_than"
+  threshold           = 5000
+  period              = 300
+
+  metric {
+    namespace  = "run.googleapis.com"
+    name       = "request_latencies"
+    statistic  = "p95"
+    region     = var.region
+    dimensions = {}
+  }
+}

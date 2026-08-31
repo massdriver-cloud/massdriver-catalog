@@ -72,3 +72,24 @@ resource "google_monitoring_alert_policy" "db" {
     auto_close = "3600s"
   }
 }
+
+# The alert policy above lives in GCP. This is what tells Massdriver the alarm
+# exists, so it shows on the instance and an alert lands against the component
+# that raised it rather than in a webhook log nobody reads.
+resource "massdriver_instance_alarm" "db" {
+  for_each = local.alarms
+
+  display_name        = each.value.display
+  cloud_resource_id   = google_monitoring_alert_policy.db[each.key].name
+  comparison_operator = "greater_than"
+  threshold           = each.value.threshold
+  period              = 300
+
+  metric {
+    namespace  = "cloudsql.googleapis.com/database"
+    name       = each.value.metric
+    statistic  = "average"
+    region     = var.region
+    dimensions = {}
+  }
+}
