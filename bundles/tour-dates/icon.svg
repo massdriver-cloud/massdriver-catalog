@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Container Registry">
-  <rect width="64" height="64" rx="12" fill="#1a73e8"/>
-  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M32 12 L50 21 L32 30 L14 21 Z"/>
-    <path d="M14 31 L32 40 L50 31"/>
-    <path d="M14 41 L32 50 L50 41"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tour Dates">
+  <rect width="64" height="64" rx="12" fill="#2F6B4F"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="16" width="40" height="36" rx="4"/>
+    <path d="M12 26 L52 26"/>
+    <path d="M22 12 L22 20 M42 12 L42 20"/>
+    <path d="M22 36 L26 36 M30 36 L34 36 M38 36 L42 36 M22 44 L26 44 M30 44 L34 44"/>
   </g>
 </svg>

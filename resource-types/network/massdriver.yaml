@@ -1,7 +1,7 @@
 name: network
 version: 0.0.0
 label: Network
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-network/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/bundles/gcp-network/icon.svg
 
 ui:
   connectionOrientation: link

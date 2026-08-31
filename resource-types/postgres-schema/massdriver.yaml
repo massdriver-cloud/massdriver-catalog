@@ -1,7 +1,7 @@
 name: postgres-schema
 version: 0.0.0
 label: Postgres Schema
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/bundles/pg-schema/icon.svg
 
 ui:
   connectionOrientation: link

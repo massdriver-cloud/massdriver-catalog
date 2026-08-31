@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Postgres Database">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Table Grants">
   <rect width="64" height="64" rx="12" fill="#336791"/>
   <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="32" cy="18" rx="16" ry="6"/>
-    <path d="M16 18 L16 46 C16 49.3 23.2 52 32 52 C40.8 52 48 49.3 48 46 L48 18"/>
-    <path d="M16 32 C16 35.3 23.2 38 32 38 C40.8 38 48 35.3 48 32"/>
+    <rect x="10" y="16" width="30" height="32" rx="4"/>
+    <path d="M10 26 L40 26 M10 37 L40 37 M23 26 L23 48"/>
+    <path d="M46 30 L46 24 A6 6 0 0 1 58 24 L58 30"/>
+    <rect x="44" y="30" width="16" height="14" rx="3"/>
   </g>
 </svg>

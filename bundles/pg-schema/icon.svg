@@ -1,8 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Postgres Database">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Postgres Schema">
   <rect width="64" height="64" rx="12" fill="#336791"/>
   <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="32" cy="18" rx="16" ry="6"/>
-    <path d="M16 18 L16 46 C16 49.3 23.2 52 32 52 C40.8 52 48 49.3 48 46 L48 18"/>
-    <path d="M16 32 C16 35.3 23.2 38 32 38 C40.8 38 48 35.3 48 32"/>
+    <rect x="12" y="14" width="40" height="36" rx="4"/>
+    <path d="M12 24 L52 24"/>
+    <path d="M26 24 L26 50"/>
+    <circle cx="45" cy="40" r="6"/>
+    <path d="M45 36 L45 40"/>
   </g>
 </svg>

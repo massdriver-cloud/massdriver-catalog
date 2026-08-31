@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Container Registry">
-  <rect width="64" height="64" rx="12" fill="#1a73e8"/>
-  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M32 12 L50 21 L32 30 L14 21 Z"/>
-    <path d="M14 31 L32 40 L50 31"/>
-    <path d="M14 41 L32 50 L50 41"/>
+  <rect width="64" height="64" rx="12" fill="#3F4A5A"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22 L32 12 L52 22 L32 32 Z"/>
+    <path d="M12 32 L32 42 L52 32"/>
+    <path d="M12 42 L32 52 L52 42"/>
+    <path d="M12 22 L12 42 M52 22 L52 42"/>
   </g>
 </svg>

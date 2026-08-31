@@ -1,7 +1,7 @@
 name: analytics-dataset
 version: 0.0.0
 label: Analytics Dataset
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-bigquery-federation/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/bundles/gcp-bigquery-federation/icon.svg
 
 ui:
   connectionOrientation: link

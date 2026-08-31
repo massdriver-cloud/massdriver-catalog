@@ -1,7 +1,7 @@
 name: firestore-database
 version: 0.0.0
 label: Firestore Database
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/gcp-firestore/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/bundles/gcp-firestore/icon.svg
 
 ui:
   connectionOrientation: link
