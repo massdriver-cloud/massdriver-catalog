@@ -34,7 +34,7 @@ params:
       title: Service Name
       description: What to call this service. Shows up in its URL and in logs. Cannot be changed after creation.
       type: string
-      default: "hello-cloud-run"
+      default: "artist-showcase"
       minLength: 2
       maxLength: 40
       pattern: ^[a-z][a-z0-9-]*[a-z0-9]$

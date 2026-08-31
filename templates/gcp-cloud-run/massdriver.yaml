@@ -131,12 +131,6 @@ dependencies:
   database:
     resource_type: postgres-schema@0.0.0
     required: false
-  bucket:
-    resource_type: object-storage@0.0.0
-    required: false
-  firestore:
-    resource_type: firestore-database@0.0.0
-    required: false
 
 resources:
   service:

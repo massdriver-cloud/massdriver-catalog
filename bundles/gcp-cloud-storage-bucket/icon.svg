@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Storage Bucket">
-  <rect width="64" height="64" rx="12" fill="#336791"/>
-  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 18 L52 18 L46 50 L18 50 Z"/>
-    <path d="M14 28 L50 28"/>
-  </g>
-</svg>
