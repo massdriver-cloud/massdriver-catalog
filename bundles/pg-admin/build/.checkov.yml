@@ -1,0 +1,5 @@
+skip-check:
+  # This Pub/Sub topic exists only to satisfy google_cloudbuild_trigger's
+  # required event-source field; nothing ever publishes to it, so it never
+  # carries any data (encrypted or otherwise) in any environment.
+  - CKV_GCP_83

@@ -1,7 +1,7 @@
 name: gcp-service-account
 label: GCP Service Account
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/main/platforms/gcp/icon.png
-
+version: 0.0.0
 ui:
   connectionOrientation: environmentDefault
   environmentDefaultGroup: credentials
@@ -28,6 +28,7 @@ schema:
     - project_id
     - token_uri
     - type
+    - universe_domain
   properties:
     type:
       title: Type
@@ -89,3 +90,6 @@ schema:
       pattern: ^https://.*$
       examples:
         - https://www.googleapis.com/robot/v1/metadata/x509/my-service-account%40my-project.iam.gserviceaccount.com
+    universe_domain:
+      title: Universe Domain
+      type: string

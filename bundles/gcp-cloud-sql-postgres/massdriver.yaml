@@ -1,0 +1,183 @@
+name: gcp-cloud-sql-postgres
+description: >-
+  A managed PostgreSQL database for your app, on Google Cloud SQL. Lives on a private address only your platform
+  can reach — no public internet exposure. Connects automatically to your platform's network; you never
+  configure networking yourself.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/gcp-cloud-sql-postgres
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Small project (dev or test)
+      postgres_version: "POSTGRES_16"
+      database_name: "app"
+      username: "app"
+      size: "small"
+      storage_gb: 20
+      region: "us-central1"
+      keep_running_if_a_zone_fails: false
+      keep_backups: true
+      prevent_accidental_deletion: false
+    - __name: Production
+      postgres_version: "POSTGRES_17"
+      database_name: "app"
+      username: "app"
+      size: "medium"
+      storage_gb: 100
+      region: "us-central1"
+      keep_running_if_a_zone_fails: true
+      keep_backups: true
+      prevent_accidental_deletion: true
+  required:
+    - postgres_version
+    - database_name
+    - username
+    - size
+    - storage_gb
+    - region
+  properties:
+    size:
+      title: How much traffic do you expect?
+      description: We pick the underlying machine size for you. You can move up to a bigger size later without losing any data.
+      type: string
+      default: "small"
+      oneOf:
+        - const: "small"
+          title: "Small — a side project, or something still being tested"
+        - const: "medium"
+          title: "Medium — a real app with regular, everyday use"
+        - const: "large"
+          title: "Large — a busy app with a lot of traffic"
+    storage_gb:
+      title: How much data will you store? (GB)
+      description: This is just the starting size — it grows on its own as you add data, so it's fine to start small.
+      type: integer
+      default: 20
+      minimum: 10
+      maximum: 2000
+    region:
+      title: Region
+      description: Where in the world this database runs. Use the same region as the app that will talk to it, so requests stay fast.
+      type: string
+      default: "us-central1"
+    keep_running_if_a_zone_fails:
+      title: Keep the database running if something goes wrong at Google's end?
+      description: >-
+        Runs a live standby copy in a second location that takes over automatically if the first one has a
+        problem. Roughly doubles the cost. Turn this on for anything real people depend on.
+      type: boolean
+      default: true
+    keep_backups:
+      title: Keep daily backups?
+      description: Lets you restore to an earlier point in time if data gets deleted or corrupted by mistake. Strongly recommended for every project.
+      type: boolean
+      default: true
+    prevent_accidental_deletion:
+      title: Prevent accidental deletion?
+      description: Blocks this database from being deleted by mistake, including by this tool. Turn this off only if you plan to tear this down soon, like a short-lived test.
+      type: boolean
+      default: true
+    database_name:
+      title: Database Name
+      description: What to call the database inside the instance that your app will connect to.
+      type: string
+      default: "app"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Start with a letter, then use only lowercase letters, numbers, and underscores."
+      $md.immutable: true
+    username:
+      title: Database Username
+      description: The username your app will use to log in. We generate and store a strong password for you — you don't need to pick one.
+      type: string
+      default: "app"
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Start with a letter, then use only lowercase letters, numbers, and underscores."
+      $md.immutable: true
+      $md.copyable: false
+    postgres_version:
+      title: PostgreSQL Version
+      description: Which version of PostgreSQL to run. If you're not sure, use the recommended one.
+      type: string
+      default: "POSTGRES_17"
+      $md.immutable: true
+      oneOf:
+        - const: "POSTGRES_15"
+          title: "15"
+        - const: "POSTGRES_16"
+          title: "16"
+        - const: "POSTGRES_17"
+          title: "17 (recommended)"
+    iac_authorized_networks:
+      title: Which addresses may manage this database directly?
+      description: >-
+        Leave this empty for a database that only your apps talk to. Add addresses here only
+        when something has to run SQL against this instance from outside your network — the
+        `pg-schema` bundle needs this, because creating a schema and granting table access
+        cannot be done through the Google Cloud API. Adding an address here turns on a public
+        IP. Every connection is still encrypted, and anything not on this list is refused.
+      type: array
+      default: []
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - cidr
+        properties:
+          name:
+            title: What is it?
+            description: A name you will recognise later, so nobody has to guess why this was added.
+            type: string
+            minLength: 1
+            examples:
+              - Massdriver provisioner egress
+          cidr:
+            title: Address range
+            description: A single address or a CIDR range. Never use 0.0.0.0/0.
+            type: string
+            pattern: ^(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?$
+            message:
+              pattern: "An IPv4 address or CIDR range, for example 203.0.113.4/32."
+            examples:
+              - 203.0.113.4/32
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+  network:
+    resource_type: network@0.0.0
+    required: true
+
+resources:
+  database:
+    resource_type: postgres-database@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - size
+    - storage_gb
+    - region
+    - database_name
+    - username
+    - postgres_version
+    - keep_running_if_a_zone_fails
+    - keep_backups
+    - prevent_accidental_deletion
+    - "*"
+  storage_gb:
+    ui:widget: updown

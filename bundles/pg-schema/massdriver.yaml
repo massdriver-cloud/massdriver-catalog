@@ -1,0 +1,93 @@
+name: pg-schema
+description: >-
+  Gives your app its own private area inside the shared PostgreSQL database, plus a login of its
+  own. Your app owns everything it creates there. Other apps cannot touch it unless you say so,
+  and you cannot touch theirs unless they say so.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/pg-schema
+version: 0.0.0
+
+params:
+  examples:
+    - __name: An app that keeps its data to itself
+      app_name: "tour_dates"
+      shared_tables: []
+    - __name: An app that also reads another app's data
+      app_name: "merch_store"
+      shared_tables:
+        - schema: "tour_dates"
+          table: "shows"
+          access: "read"
+  required:
+    - app_name
+  properties:
+    app_name:
+      title: What is this app called?
+      description: >-
+        Used to name your app's private area and its login. Pick something short and
+        recognisable. This cannot be changed later without moving your data by hand.
+      type: string
+      pattern: ^[a-z][a-z0-9_]{1,30}$
+      message:
+        pattern: "Lowercase letters, digits, and underscores. Must start with a letter. 2-31 characters."
+      $md.immutable: true
+      examples:
+        - tour_dates
+        - merch_store
+    shared_tables:
+      title: Which other apps' data do you need?
+      description: >-
+        Leave this empty unless you genuinely need another app's data. Every entry here is a
+        promise the other team has to keep — once you read their table, they cannot change its
+        shape without breaking you.
+      type: array
+      default: []
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema
+          - table
+          - access
+        properties:
+          schema:
+            title: Which app owns it?
+            description: The `app_name` of the app that owns the table.
+            type: string
+            pattern: ^[a-z][a-z0-9_]{1,30}$
+          table:
+            title: Which table?
+            description: The name of the table you need.
+            type: string
+            pattern: ^[a-z][a-z0-9_]{0,62}$
+          access:
+            title: What do you need to do with it?
+            description: >-
+              Ask for read unless you have agreed otherwise with the team that owns the table.
+              Writing to someone else's table is how two apps start corrupting each other.
+            type: string
+            default: read
+            oneOf:
+              - const: read
+                title: "Read only — I just need to look at it"
+              - const: read_write
+                title: "Read and write — the owning team has agreed to this"
+
+dependencies:
+  postgres_cluster:
+    resource_type: postgres-database@0.0.0
+    required: true
+
+resources:
+  table_set:
+    resource_type: postgres-schema@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - app_name
+    - shared_tables
+    - "*"

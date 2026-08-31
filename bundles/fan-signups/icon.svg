@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Fan Signups">
+  <rect width="64" height="64" rx="12" fill="#2F6B4F"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 20 L54 20 L54 46 L10 46 Z"/>
+    <path d="M10 20 L32 36 L54 20"/>
+  </g>
+</svg>

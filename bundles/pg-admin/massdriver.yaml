@@ -1,0 +1,126 @@
+name: "pg-admin"
+description: >-
+  The real pgAdmin console, connected to the shared database as the administrator. Every schema
+  and every table in one place, for the people who own the database rather than the apps in it.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/pg-admin
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Database administration
+      service_name: "pg-admin"
+      admin_email: "dba@musicorp.example"
+      region: "us-central1"
+      size: "medium"
+      public_access: false
+  required:
+    - service_name
+    - admin_email
+    - admin_password
+    - region
+    - size
+  properties:
+    service_name:
+      title: Service Name
+      description: What to call this service. Shows up in its URL and in logs. Cannot be changed after creation.
+      type: string
+      default: "pg-admin"
+      minLength: 2
+      maxLength: 40
+      pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+      message:
+        pattern: "2-40 lowercase letters, digits, or hyphens. Must start with a letter."
+      $md.immutable: true
+    admin_email:
+      title: Who signs in?
+      description: The email address used to sign in to pgAdmin itself. This is not a database user.
+      type: string
+      format: email
+      examples:
+        - dba@musicorp.example
+    admin_password:
+      $md.sensitive: true
+      title: Sign-in password
+      description: >-
+        The password for that sign-in. At least 8 characters. This protects a console with full
+        administrative access to every app's data, so treat it accordingly.
+      type: string
+      minLength: 8
+    region:
+      title: Region
+      description: Where this service runs. Use the same region as the database it manages.
+      type: string
+      default: "us-central1"
+      oneOf:
+        - const: "us-central1"
+          title: "us-central1 - Iowa"
+        - const: "us-east1"
+          title: "us-east1 - South Carolina"
+        - const: "us-east4"
+          title: "us-east4 - Northern Virginia"
+        - const: "us-west1"
+          title: "us-west1 - Oregon"
+        - const: "europe-west1"
+          title: "europe-west1 - Belgium"
+        - const: "europe-west3"
+          title: "europe-west3 - Frankfurt"
+        - const: "asia-southeast1"
+          title: "asia-southeast1 - Singapore"
+    size:
+      title: Size
+      description: pgAdmin needs about a gigabyte to be comfortable. Small will start and then struggle.
+      type: string
+      default: "medium"
+      oneOf:
+        - const: "medium"
+          title: "Medium - 2 CPU, 1 GB (recommended)"
+        - const: "large"
+          title: "Large - 4 CPU, 2 GB"
+    public_access:
+      title: Anyone On The Internet Can Reach This
+      description: >-
+        Leave this off. This console holds administrative access to the database every app shares,
+        and turning it on puts that behind nothing but a password on the open internet.
+      type: boolean
+      default: false
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+  container_registry:
+    resource_type: container-registry@0.0.0
+    required: true
+  vpc_connector:
+    resource_type: serverless-connector@0.0.0
+    required: false
+  database:
+    resource_type: postgres-database@0.0.0
+    required: true
+
+resources:
+  service:
+    resource_type: cloud-run-service@0.0.0
+    required: true
+
+steps:
+  - path: build
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+  - path: deploy
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - service_name
+    - admin_email
+    - admin_password
+    - region
+    - size
+    - public_access
+    - "*"

@@ -1,0 +1,97 @@
+name: postgres-schema
+version: 0.0.0
+label: Postgres Schema
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/bundles/pg-schema/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+
+schema:
+  title: Postgres Schema
+  description: >-
+    A login role in a shared PostgreSQL database, scoped to one schema the app owns plus an
+    explicit list of tables it may read or write in other apps' schemas.
+  type: object
+  additionalProperties: false
+  required:
+    - auth
+    - schema
+    - shared_tables
+  properties:
+    auth:
+      title: Authentication
+      description: Connection parameters for this app's role.
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Host
+          description: Database server hostname or IP address.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: TCP port the database listens on.
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 5432
+        database:
+          title: Database
+          description: Database name to connect to.
+          type: string
+          minLength: 1
+        username:
+          title: Username
+          description: The login role created for this app.
+          type: string
+          minLength: 1
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: Password for the login role. Masked everywhere except in IaC at deploy time.
+          type: string
+    schema:
+      title: Schema
+      description: The schema this app owns. Everything the app creates lives here.
+      type: string
+      minLength: 1
+    shared_tables:
+      title: Shared Tables
+      description: >-
+        Tables owned by other apps that this app was explicitly granted access to. Read-only
+        unless someone approved a write grant.
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema
+          - table
+          - access
+        properties:
+          schema:
+            title: Schema
+            description: Schema of the app that owns the table.
+            type: string
+            minLength: 1
+          table:
+            title: Table
+            description: Table name.
+            type: string
+            minLength: 1
+          access:
+            title: Access
+            description: What this app may do with the table.
+            type: string
+            enum:
+              - read
+              - read_write

@@ -72,26 +72,17 @@ params:
           description: Deployment timeout in minutes
           default: 30
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required:
-    - azure_authentication
+dependencies:
+  azure_authentication:
+    resource_type: azure-service-principal@0.0.0
+    required: true
   {%- for conn in connections %}
-    - {{ conn.name }}
-  {%- endfor %}
-  properties:
-    azure_authentication:
-      $ref: azure-service-principal
-  {%- for conn in connections %}
-    {{ conn.name }}:
-      $ref: {{ conn.artifact_definition }}
+  {{ conn.name }}:
+    resource_type: {{ conn.artifact_definition }}@0.0.0
+    required: true
   {%- endfor %}
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  properties: {}
+resources: {}
 
 ui:
   ui:order:

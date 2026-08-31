@@ -1,0 +1,40 @@
+name: cloud-run-service
+version: 0.0.0
+label: Cloud Run Service
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/demo/0830-gcp-citizen-platform/templates/gcp-cloud-run/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Cloud Run Service
+  description: A deployed Cloud Run service.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - url
+    - region
+  properties:
+    id:
+      title: ID
+      description: Full resource name of the Cloud Run service.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: Service name.
+      type: string
+      minLength: 1
+    url:
+      title: URL
+      description: The service's HTTPS endpoint. Reachable from the internet only if the service was deployed with public access enabled.
+      type: string
+      pattern: ^https://
+      message:
+        pattern: "Must start with https://."
+    region:
+      title: Region
+      description: Region the service runs in.
+      type: string

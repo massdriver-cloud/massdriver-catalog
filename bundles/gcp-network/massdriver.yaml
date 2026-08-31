@@ -1,0 +1,208 @@
+name: gcp-network
+description: >-
+  Platform-owned VPC: subnets with secondary ranges, Private Service Access for Cloud SQL, and a Serverless VPC
+  Access connector so Cloud Run can reach private IPs. Owned by the platform team; application bundles connect
+  to it, they never configure it.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/gcp-network
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Single region (cap-test)
+      cidr: "10.0.0.0/16"
+      subnets:
+        - name: "primary"
+          region: "us-central1"
+          cidr: "10.0.0.0/20"
+          secondary_ranges: []
+      private_service_access_enabled: true
+      private_service_access_prefix_length: 20
+      connector_region: "us-central1"
+      connector_cidr: "10.0.16.0/28"
+      connector_min_instances: 2
+      connector_max_instances: 3
+      connector_machine_type: "e2-micro"
+      enable_flow_logs: true
+    - __name: Two regions
+      cidr: "10.0.0.0/16"
+      subnets:
+        - name: "primary"
+          region: "us-central1"
+          cidr: "10.0.0.0/20"
+          secondary_ranges: []
+        - name: "secondary"
+          region: "us-east1"
+          cidr: "10.0.32.0/20"
+          secondary_ranges: []
+      private_service_access_enabled: true
+      private_service_access_prefix_length: 20
+      connector_region: "us-central1"
+      connector_cidr: "10.0.16.0/28"
+      connector_min_instances: 2
+      connector_max_instances: 3
+      connector_machine_type: "e2-micro"
+      enable_flow_logs: true
+  required:
+    - cidr
+    - subnets
+    - connector_region
+    - connector_cidr
+  properties:
+    cidr:
+      title: Network CIDR
+      description: IPv4 address range for the whole VPC. Cannot be changed after creation.
+      type: string
+      default: "10.0.0.0/16"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, like 10.0.0.0/16."
+      $md.immutable: true
+    subnets:
+      title: Subnets
+      description: Regional subnets carved from the network CIDR. Add more later for additional regions; existing entries should not be resized once workloads are attached.
+      type: array
+      minItems: 1
+      maxItems: 8
+      uniqueItems: true
+      default:
+        - name: "primary"
+          region: "us-central1"
+          cidr: "10.0.0.0/20"
+          secondary_ranges: []
+      items:
+        type: object
+        required:
+          - name
+          - region
+          - cidr
+        properties:
+          name:
+            type: string
+            title: Subnet Name
+            pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+            message:
+              pattern: "Lowercase alphanumerics and hyphens, starting with a letter."
+          region:
+            type: string
+            title: Region
+          cidr:
+            type: string
+            title: Subnet CIDR
+            pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+            message:
+              pattern: "Must be a valid IPv4 CIDR block, and a subset of the network CIDR."
+          secondary_ranges:
+            type: array
+            title: Secondary Ranges
+            description: Named secondary IP ranges for this subnet (e.g. GKE pod/service ranges). Leave empty if nothing needs one yet.
+            default: []
+            items:
+              type: object
+              required:
+                - name
+                - cidr
+              properties:
+                name:
+                  type: string
+                  title: Range Name
+                cidr:
+                  type: string
+                  title: Range CIDR
+                  pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+    private_service_access_enabled:
+      title: Private Service Access
+      description: Reserve a peering range for Google-managed services (Cloud SQL, Memorystore) to get a private IP on this network. Required before any Cloud SQL bundle can use private connectivity.
+      type: boolean
+      default: true
+    private_service_access_prefix_length:
+      title: Private Service Access Range Size (prefix length)
+      description: Size of the reserved peering range, as a CIDR prefix length. /20 covers most orgs; shrink to /24 only if address space is tight.
+      type: integer
+      default: 20
+      minimum: 16
+      maximum: 28
+    connector_region:
+      title: Connector Region
+      description: Region the Serverless VPC Access connector runs in. Cloud Run services must run in this same region to use it.
+      type: string
+      default: "us-central1"
+    connector_cidr:
+      title: Connector CIDR
+      description: A /28 CIDR block, unused elsewhere in this network, dedicated to the connector.
+      type: string
+      default: "10.0.16.0/28"
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/28$
+      message:
+        pattern: "Must be a /28 CIDR block, e.g. 10.0.16.0/28."
+    connector_min_instances:
+      title: Connector Min Instances
+      description: Minimum number of connector instances kept running. Floors cost but keeps latency low on the first request after idle.
+      type: integer
+      default: 2
+      minimum: 2
+      maximum: 9
+    connector_max_instances:
+      title: Connector Max Instances
+      description: Maximum number of connector instances under load. Each instance handles roughly 100 Mbps of throughput.
+      type: integer
+      default: 3
+      minimum: 3
+      maximum: 10
+    connector_machine_type:
+      title: Connector Machine Type
+      description: Instance size backing the connector. e2-micro is enough for most workloads; go to e2-standard-4 only for sustained high-throughput traffic.
+      type: string
+      default: "e2-micro"
+      oneOf:
+        - const: "e2-micro"
+          title: "e2-micro — light traffic"
+        - const: "e2-standard-4"
+          title: "e2-standard-4 — sustained high throughput"
+    enable_flow_logs:
+      title: Enable Flow Logs
+      description: Capture traffic metadata on every subnet for security review and incident response. Adds per-GB logging cost proportional to traffic volume.
+      type: boolean
+      default: true
+
+dependencies:
+  gcp_service_account:
+    resource_type: gcp-service-account@0.0.0
+    required: true
+
+resources:
+  network:
+    resource_type: network@0.0.0
+    required: true
+  serverless_connector:
+    resource_type: serverless-connector@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+    config:
+      checkov:
+        halt_on_failure: '.params.md_metadata.default_tags["md-target"] == "production"'
+
+ui:
+  ui:order:
+    - cidr
+    - subnets
+    - private_service_access_enabled
+    - private_service_access_prefix_length
+    - connector_region
+    - connector_cidr
+    - connector_min_instances
+    - connector_max_instances
+    - connector_machine_type
+    - enable_flow_logs
+    - "*"
+  subnets:
+    ui:options:
+      orderable: true
+      addable: true
+      removable: true
+  connector_min_instances:
+    ui:widget: updown
+  connector_max_instances:
+    ui:widget: updown

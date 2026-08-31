@@ -62,26 +62,17 @@ params:
       description: Kubernetes namespace for deployment
       default: default
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required:
-    - kubernetes_cluster
+dependencies:
+  kubernetes_cluster:
+    resource_type: kubernetes-cluster@0.0.0
+    required: true
   {%- for conn in connections %}
-    - {{ conn.name }}
-  {%- endfor %}
-  properties:
-    kubernetes_cluster:
-      $ref: kubernetes-cluster
-  {%- for conn in connections %}
-    {{ conn.name }}:
-      $ref: {{ conn.artifact_definition }}
+  {{ conn.name }}:
+    resource_type: {{ conn.artifact_definition }}@0.0.0
+    required: true
   {%- endfor %}
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  properties: {}
+resources: {}
 
 ui:
   ui:order:

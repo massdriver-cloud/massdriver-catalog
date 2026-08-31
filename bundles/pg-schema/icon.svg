@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Postgres Schema">
+  <rect width="64" height="64" rx="12" fill="#336791"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="14" width="40" height="36" rx="4"/>
+    <path d="M12 24 L52 24"/>
+    <path d="M26 24 L26 50"/>
+    <circle cx="45" cy="40" r="6"/>
+    <path d="M45 36 L45 40"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Analytics Dataset">
+  <rect width="64" height="64" rx="12" fill="#5B4B8A"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="20" cy="18" rx="10" ry="4"/>
+    <path d="M10 18 L10 40 C10 42.2 14.5 44 20 44 C25.5 44 30 42.2 30 40 L30 18"/>
+    <path d="M34 30 L46 30"/>
+    <path d="M42 25 L48 30 L42 35"/>
+    <rect x="46" y="14" width="12" height="34" rx="3"/>
+    <path d="M46 26 L58 26 M46 38 L58 38"/>
+  </g>
+</svg>
