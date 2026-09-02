@@ -1,0 +1,35 @@
+name: Build and push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to the registry
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        env:
+          REGISTRY: ${{ vars.ECR_REGISTRY }}
+        run: |
+          docker build -t "$REGISTRY:${{ github.sha }}" -t "$REGISTRY:latest" .
+          docker push "$REGISTRY:${{ github.sha }}"
+          docker push "$REGISTRY:latest"
+
+      - name: Say where it went
+        run: |
+          echo "Pushed ${{ vars.ECR_REGISTRY }}:${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "and tagged it latest." >> "$GITHUB_STEP_SUMMARY"

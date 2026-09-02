@@ -1,0 +1,40 @@
+name: source-repository
+version: 0.0.0
+label: Source Repository
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/source-repository/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Source Repository
+  description: A git repository holding an application's source, with its pipeline already wired.
+  type: object
+  additionalProperties: false
+  required:
+    - full_name
+    - url
+    - default_branch
+  properties:
+    full_name:
+      title: Repository
+      description: Owner and name, the way git refers to it.
+      type: string
+      minLength: 1
+      examples:
+        - acme-inc/acme-web
+    url:
+      title: URL
+      description: Where a person opens it in a browser.
+      type: string
+      minLength: 1
+    clone_url:
+      title: Clone URL
+      description: What `git clone` takes.
+      type: string
+    default_branch:
+      title: Default Branch
+      description: The branch a merge deploys from.
+      type: string
+      minLength: 1
+      default: main

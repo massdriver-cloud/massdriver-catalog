@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="GitHub Credentials">
+  <rect width="64" height="64" rx="12" fill="#24292F"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="24" cy="26" r="9"/>
+    <path d="M30 32 L50 52"/>
+    <path d="M44 46 L39 51"/>
+    <path d="M50 52 L45 57"/>
+  </g>
+</svg>

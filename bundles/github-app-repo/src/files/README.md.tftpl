@@ -1,0 +1,35 @@
+# ${name}
+
+## Getting started
+
+Change anything you like. Push to `main` and the pipeline builds a container image and pushes it
+to your registry:
+
+```
+${registry}
+```
+
+Every push produces two tags — the commit SHA, and `latest`.
+
+## What is already set up
+
+- **`Dockerfile`** and **`main.py`** — a working web app you can run and replace.
+- **`.github/workflows/build.yaml`** — the pipeline. It signs in to the registry and pushes.
+- **Repository secrets and variables** — the credentials and registry address the pipeline needs.
+  You do not need to touch these, and the credential can only push to this one registry.
+
+## Running it locally
+
+```bash
+docker build -t ${name} .
+docker run -p 8080:8080 ${name}
+```
+
+Then open <http://localhost:8080>.
+
+## Watching a build
+
+The **Actions** tab. A green run ends with a summary saying exactly which tag it pushed.
+
+If a build fails on the push step, it is almost always the registry credential rather than your
+code — ask whoever set up your project.
