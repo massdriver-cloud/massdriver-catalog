@@ -1,0 +1,89 @@
+name: aws-http-api
+description: >-
+  One public address for an app. Functions attach to it and each one takes a path, so an app can
+  grow from a single endpoint to many without its address ever changing.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-http-api
+version: 0.0.0
+
+params:
+  examples:
+    - __name: An app getting started
+      name: api
+      cors_origins:
+        - "*"
+      throttle_rate: 100
+  required:
+    - name
+  properties:
+    name:
+      title: What should the address be called?
+      description: Usually the app's name. It shows up in the URL and in logs.
+      type: string
+      minLength: 2
+      maxLength: 32
+      pattern: ^[a-z][a-z0-9-]*$
+      message:
+        pattern: "Lowercase letters, digits and hyphens only. Must start with a letter."
+      default: api
+      $md.immutable: true
+    cors_origins:
+      title: Which websites are allowed to call this from a browser?
+      description: >-
+        Leave the default while you are building. Before real people use it, replace it with your
+        own site's address — otherwise any page on the internet can call your API as your users.
+      type: array
+      default:
+        - "*"
+      items:
+        type: string
+      examples:
+        - ["https://example.com"]
+    throttle_rate:
+      title: How many requests per second should it accept?
+      description: >-
+        Anything above this is rejected rather than passed through. It is the difference between
+        a bad afternoon and a surprising bill.
+      type: integer
+      default: 100
+      minimum: 1
+      maximum: 10000
+    log_retention_days:
+      title: How long should request logs be kept?
+      type: integer
+      default: 30
+      oneOf:
+        - const: 7
+          title: A week
+        - const: 30
+          title: A month
+        - const: 90
+          title: Three months
+        - const: 365
+          title: A year
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  landing_zone:
+    resource_type: citizen-landing-zone@0.0.0
+    required: true
+
+resources:
+  api:
+    resource_type: http-api@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - name
+    - cors_origins
+    - throttle_rate
+    - log_retention_days
+    - "*"
+  throttle_rate:
+    ui:widget: updown

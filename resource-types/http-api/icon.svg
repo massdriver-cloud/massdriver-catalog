@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="HTTP API">
+  <rect width="64" height="64" rx="12" fill="#C925D1"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="16" cy="32" r="6"/>
+    <circle cx="48" cy="16" r="5"/>
+    <circle cx="48" cy="32" r="5"/>
+    <circle cx="48" cy="48" r="5"/>
+    <path d="M22 32 L43 32"/>
+    <path d="M21 28 C30 20 34 17 43 16"/>
+    <path d="M21 36 C30 44 34 47 43 48"/>
+  </g>
+</svg>

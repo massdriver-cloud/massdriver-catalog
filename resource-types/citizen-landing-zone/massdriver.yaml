@@ -1,0 +1,113 @@
+name: citizen-landing-zone
+version: 0.0.0
+label: Citizen Landing Zone
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/citizen-landing-zone/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Citizen Landing Zone
+  description: >-
+    Everything one team needs before they write any code: somewhere on the network to run,
+    somewhere to push images, and a repository that already builds. Route this into an app
+    project and the app has all three.
+  type: object
+  additionalProperties: false
+  required:
+    - team
+    - network
+    - registry
+    - repository
+  properties:
+    team:
+      title: Team
+      description: The team this landing zone belongs to. Used to name what gets built inside it.
+      type: string
+      minLength: 1
+    network:
+      title: Network
+      description: The slice of the shared network this team's applications run in.
+      type: object
+      additionalProperties: false
+      required:
+        - vpc_id
+        - region
+        - subnet_ids
+      properties:
+        vpc_id:
+          title: VPC ID
+          type: string
+          minLength: 1
+        region:
+          title: Region
+          type: string
+          minLength: 1
+        cidr:
+          title: Address Range
+          description: The slice carved out for this team.
+          type: string
+        subnet_ids:
+          title: Subnets
+          description: Where this team's applications and databases attach.
+          type: array
+          minItems: 1
+          items:
+            type: string
+        security_group_id:
+          title: Security Group
+          description: The default group applied to anything this team runs.
+          type: string
+    registry:
+      title: Container Registry
+      description: Where this team's builds push images and their applications pull them.
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - url
+        - region
+      properties:
+        name:
+          title: Name
+          type: string
+          minLength: 1
+        url:
+          title: URL
+          type: string
+          minLength: 1
+        arn:
+          title: ARN
+          type: string
+        region:
+          title: Region
+          type: string
+          minLength: 1
+        registry_id:
+          title: Registry ID
+          type: string
+    repository:
+      title: Source Repository
+      description: The team's repository, with a pipeline already pointed at their registry.
+      type: object
+      additionalProperties: false
+      required:
+        - full_name
+        - url
+        - default_branch
+      properties:
+        full_name:
+          title: Repository
+          type: string
+          minLength: 1
+        url:
+          title: URL
+          type: string
+          minLength: 1
+        clone_url:
+          title: Clone URL
+          type: string
+        default_branch:
+          title: Default Branch
+          type: string
+          minLength: 1

@@ -1,0 +1,113 @@
+name: aws-vpc
+description: >-
+  The shared private network everything else is built inside. Ops runs one of these per region;
+  every team gets a slice of it rather than a network of their own.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-vpc
+version: 0.0.0
+
+params:
+  examples:
+    - __name: A network to try things in
+      name: core
+      region: us-east-1
+      cidr: 10.0.0.0/16
+      availability_zone_count: 2
+      internet_access: nat
+    - __name: Something real people use
+      name: core
+      region: us-east-1
+      cidr: 10.0.0.0/16
+      availability_zone_count: 3
+      internet_access: nat_per_zone
+  required:
+    - name
+    - region
+    - cidr
+  properties:
+    name:
+      title: What should the network be called?
+      description: Short and stable. It prefixes everything built inside, and it cannot change later.
+      type: string
+      minLength: 2
+      maxLength: 32
+      pattern: ^[a-z][a-z0-9-]*$
+      message:
+        pattern: "Lowercase letters, digits and hyphens only. Must start with a letter."
+      $md.immutable: true
+      default: core
+    region:
+      title: Region
+      description: Where the network lives. Everything attached to it has to be in this region too.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 — N. Virginia
+        - const: us-east-2
+          title: us-east-2 — Ohio
+        - const: us-west-2
+          title: us-west-2 — Oregon
+        - const: eu-west-1
+          title: eu-west-1 — Ireland
+        - const: eu-central-1
+          title: eu-central-1 — Frankfurt
+    cidr:
+      title: Address range
+      description: >-
+        The block of private addresses this network owns. Make it big — a /16 leaves room for
+        many teams, and it cannot be grown later without rebuilding.
+      type: string
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/(1[6-9]|2[0-4])$
+      message:
+        pattern: "Must be a private range between /16 and /24, for example 10.0.0.0/16."
+      default: 10.0.0.0/16
+      $md.immutable: true
+    availability_zone_count:
+      title: How many zones should it span?
+      description: >-
+        Two is the minimum for anything that has to survive a zone going down. Three costs more
+        and buys more.
+      type: integer
+      default: 2
+      minimum: 1
+      maximum: 3
+    internet_access:
+      title: How should private applications reach the internet?
+      description: >-
+        Applications in private subnets need a way out to call other services. Each gateway
+        costs money whether or not traffic flows through it.
+      type: string
+      default: nat
+      oneOf:
+        - const: none
+          title: No outbound access — cheapest, and applications cannot call anything external
+        - const: nat
+          title: One shared gateway — cheap, but the whole network loses egress if its zone fails
+        - const: nat_per_zone
+          title: One gateway per zone — survives a zone failure, costs one gateway per zone
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  network:
+    resource_type: aws-vpc-network@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - name
+    - region
+    - cidr
+    - availability_zone_count
+    - internet_access
+    - "*"
+  availability_zone_count:
+    ui:widget: updown

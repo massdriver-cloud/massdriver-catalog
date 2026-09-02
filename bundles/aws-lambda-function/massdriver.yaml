@@ -1,0 +1,142 @@
+name: aws-lambda-function
+description: >-
+  One endpoint of an app. Attach it to an API, give it a path, and it answers there. Add another
+  one for the next endpoint — the app's address never changes.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-lambda-function
+version: 0.0.0
+
+params:
+  examples:
+    - __name: A first endpoint, before anything is built
+      name: hello
+      route: GET /hello
+      code_source: starter
+      memory_mb: 512
+      timeout_seconds: 10
+    - __name: Running the team's own image
+      name: orders
+      route: ANY /orders/{proxy+}
+      code_source: registry
+      image_tag: latest
+      memory_mb: 1024
+      timeout_seconds: 30
+      attach_to_network: true
+  required:
+    - name
+    - route
+    - code_source
+  properties:
+    name:
+      title: What should this endpoint be called?
+      description: What it does, in a word. Shows up in logs and metrics.
+      type: string
+      minLength: 2
+      maxLength: 32
+      pattern: ^[a-z][a-z0-9-]*$
+      message:
+        pattern: "Lowercase letters, digits and hyphens only. Must start with a letter."
+      $md.immutable: true
+      examples:
+        - hello
+    route:
+      title: What requests should reach it?
+      description: >-
+        A method and a path. Use `ANY` to take every method, and `{proxy+}` at the end to take
+        everything below a path.
+      type: string
+      pattern: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|ANY) /.*$
+      message:
+        pattern: "A method then a path, for example `GET /hello` or `ANY /orders/{proxy+}`."
+      default: GET /hello
+      examples:
+        - GET /hello
+        - ANY /orders/{proxy+}
+    code_source:
+      title: What should it run?
+      description: >-
+        Start with the built-in example so the endpoint is live before you have written anything.
+        Switch to your own image once your repository has built one.
+      type: string
+      default: starter
+      oneOf:
+        - const: starter
+          title: The built-in example — works immediately, returns a fixed response
+        - const: registry
+          title: My team's image — from the registry in our landing zone
+    image_tag:
+      title: Which image?
+      description: >-
+        `latest` follows every build. Pin a commit instead when you want to know exactly what is
+        running.
+      type: string
+      default: latest
+      examples:
+        - latest
+    memory_mb:
+      title: How much memory?
+      description: >-
+        CPU is handed out in proportion to this, so raising it often makes a slow function
+        cheaper rather than dearer.
+      type: integer
+      default: 512
+      oneOf:
+        - const: 256
+          title: 256 MB — small
+        - const: 512
+          title: 512 MB — the usual starting point
+        - const: 1024
+          title: 1 GB
+        - const: 2048
+          title: 2 GB
+    timeout_seconds:
+      title: How long may one request take?
+      description: Anything slower is cut off. Keep it tight so a stuck request cannot pile up.
+      type: integer
+      default: 10
+      minimum: 1
+      maximum: 900
+    attach_to_network:
+      title: Does it need to reach the team's databases?
+      description: >-
+        Off is faster to start. Turn it on only if this endpoint talks to a database or anything
+        else private, because it makes cold starts slower.
+      type: boolean
+      default: false
+    environment:
+      title: Settings
+      description: >-
+        Values the code reads at startup. Never put passwords here — they are visible to anyone
+        who can view the function.
+      type: object
+      default: {}
+      additionalProperties:
+        type: string
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  landing_zone:
+    resource_type: citizen-landing-zone@0.0.0
+    required: true
+  api:
+    resource_type: http-api@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - name
+    - route
+    - code_source
+    - image_tag
+    - memory_mb
+    - timeout_seconds
+    - attach_to_network
+    - environment
+    - "*"
+  timeout_seconds:
+    ui:widget: updown

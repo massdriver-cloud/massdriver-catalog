@@ -1,0 +1,49 @@
+name: http-api
+version: 0.0.0
+label: HTTP API
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/http-api/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: HTTP API
+  description: >-
+    One public address for an application. Functions attach to it and each takes a path, so an
+    app can grow from one endpoint to many without its address ever changing.
+  type: object
+  additionalProperties: false
+  required:
+    - url
+    - api_id
+    - region
+  properties:
+    url:
+      title: URL
+      description: Where the application answers.
+      type: string
+      minLength: 1
+      examples:
+        - https://api.example.com
+    api_id:
+      title: API ID
+      description: Cloud identifier, used when attaching a new function.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    execution_arn:
+      title: Execution ARN
+      description: What a function grants permission to, so only this API can invoke it.
+      type: string
+    stage:
+      title: Stage
+      description: The deployment stage serving traffic.
+      type: string
+      default: $default
+    custom_domain:
+      title: Custom Domain
+      description: The team's own domain, if they brought one.
+      type: string
