@@ -4,6 +4,7 @@ description: >-
   one for the next endpoint — the app's address never changes.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-lambda-function
 version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-lambda-function/icon.svg
 
 params:
   examples:

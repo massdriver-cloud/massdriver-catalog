@@ -5,6 +5,7 @@ description: >-
   and as latest.
 source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/github-app-repo
 version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/github-app-repo/icon.svg
 
 params:
   examples:

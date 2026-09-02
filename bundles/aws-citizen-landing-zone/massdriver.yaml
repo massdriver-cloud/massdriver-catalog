@@ -4,6 +4,7 @@ description: >-
   app project only ever needs one thing connected to it instead of three.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-citizen-landing-zone
 version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-citizen-landing-zone/icon.svg
 
 params:
   examples:
@@ -36,7 +37,8 @@ params:
       type: string
       $md.immutable: true
       $md.enum:
-        options: network.available_cidr_blocks
+        connection: network
+        options: .available_cidr_blocks[]
 
 dependencies:
   aws_authentication:
