@@ -5,15 +5,14 @@ data "aws_availability_zones" "available" {
 locals {
   azs = slice(data.aws_availability_zones.available.names, 0, var.availability_zone_count)
 
-  # The network is split in half: the lower half is private space handed out to
-  # teams, the upper half holds the small public subnets that only gateways and
-  # load balancers sit in. Keeping them apart means a team's slice can never
-  # collide with routable space.
-  private_prefix = cidrsubnet(var.cidr, 1, 0)
-  public_prefix  = cidrsubnet(var.cidr, 1, 1)
+  # The first sixteenth of the network holds the small public subnets the
+  # gateways sit in. The remaining fifteen are what teams are handed, one each.
+  # Nothing is built in them here — a team's subnets are created when the team
+  # is given a slice, so the network never carves space nobody is using.
+  public_prefix = cidrsubnet(var.cidr, 4, 0)
+  public_cidrs  = [for i, az in local.azs : cidrsubnet(local.public_prefix, 4, i)]
 
-  public_cidrs  = [for i, az in local.azs : cidrsubnet(local.public_prefix, 6, i)]
-  private_cidrs = [for i, az in local.azs : cidrsubnet(local.private_prefix, 3, i)]
+  team_blocks = [for i in range(1, 16) : cidrsubnet(var.cidr, 4, i)]
 
   nat_count = var.internet_access == "none" ? 0 : (
     var.internet_access == "nat" ? 1 : var.availability_zone_count
@@ -45,16 +44,6 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = { Name = "${var.name}-public-${local.azs[count.index]}" }
-}
-
-resource "aws_subnet" "private" {
-  count = var.availability_zone_count
-
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = local.private_cidrs[count.index]
-  availability_zone = local.azs[count.index]
-
-  tags = { Name = "${var.name}-private-${local.azs[count.index]}" }
 }
 
 resource "aws_route_table" "public" {
@@ -89,30 +78,6 @@ resource "aws_nat_gateway" "main" {
   tags          = { Name = "${var.name}-nat-${count.index}" }
 
   depends_on = [aws_internet_gateway.main]
-}
-
-resource "aws_route_table" "private" {
-  count = var.availability_zone_count
-
-  vpc_id = aws_vpc.main.id
-  tags   = { Name = "${var.name}-private-${local.azs[count.index]}" }
-}
-
-# With one shared gateway every zone routes through index 0; with one per zone
-# each routes through its own. Both cases collapse to the same expression.
-resource "aws_route" "private_egress" {
-  count = local.nat_count == 0 ? 0 : var.availability_zone_count
-
-  route_table_id         = aws_route_table.private[count.index].id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main[local.nat_count == 1 ? 0 : count.index].id
-}
-
-resource "aws_route_table_association" "private" {
-  count = var.availability_zone_count
-
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
 }
 
 # The default group AWS creates allows everything using it to talk to everything

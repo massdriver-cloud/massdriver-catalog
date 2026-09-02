@@ -45,21 +45,25 @@ schema:
         type: string
     public_subnet_ids:
       title: Public Subnets
-      description: Subnets that can reach the internet directly. Load balancers go here.
-      type: array
-      items:
-        type: string
-    private_subnet_ids:
-      title: Private Subnets
-      description: Subnets with no direct route in from the internet. Applications go here.
-      type: array
-      items:
-        type: string
-    unused_cidr_blocks:
-      title: Free Address Space
       description: >-
-        Ranges inside the network that nothing has claimed yet. A landing zone takes its slice
-        from here.
+        The small subnets the gateways sit in. Load balancers go here. Applications do not —
+        they get their own subnets when a team is given a slice.
+      type: array
+      items:
+        type: string
+    nat_gateway_ids:
+      title: Outbound Gateways
+      description: >-
+        What a team's subnets route out through, one per zone. Empty when the network was built
+        without outbound access.
+      type: array
+      items:
+        type: string
+    available_cidr_blocks:
+      title: Address Space For Teams
+      description: >-
+        Equal ranges the network can hand out, one per team. Nothing is built in them until a
+        team is given one — this is the list to pick from, not a record of what is taken.
       type: array
       items:
         type: string

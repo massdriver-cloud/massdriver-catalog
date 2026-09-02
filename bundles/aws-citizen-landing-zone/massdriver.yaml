@@ -9,7 +9,7 @@ params:
   examples:
     - __name: A team getting started
       team: acme
-      network_slice: 10.0.32.0/19
+      network_slice: 10.0.16.0/20
   required:
     - team
     - network_slice
@@ -36,7 +36,7 @@ params:
       type: string
       $md.immutable: true
       $md.enum:
-        options: network.unused_cidr_blocks
+        options: network.available_cidr_blocks
 
 dependencies:
   aws_authentication:

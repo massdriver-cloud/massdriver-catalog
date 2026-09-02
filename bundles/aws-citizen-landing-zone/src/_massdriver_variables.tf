@@ -30,13 +30,13 @@ variable "md_metadata" {
 }
 variable "network" {
   type = object({
-    availability_zones = list(string)
-    cidr               = string
-    private_subnet_ids = optional(list(string))
-    public_subnet_ids  = optional(list(string))
-    region             = string
-    unused_cidr_blocks = optional(list(string))
-    vpc_id             = string
+    availability_zones    = list(string)
+    available_cidr_blocks = optional(list(string))
+    cidr                  = string
+    nat_gateway_ids       = optional(list(string))
+    public_subnet_ids     = optional(list(string))
+    region                = string
+    vpc_id                = string
   })
 }
 variable "network_slice" {

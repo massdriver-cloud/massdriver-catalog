@@ -1,24 +1,12 @@
 locals {
   azs = var.network.availability_zones
 
-  # One subnet per zone, carved out of the team's slice. Three bits leaves
-  # eight, so a slice can span up to eight zones without re-planning.
-  subnet_cidrs = [for i, az in local.azs : cidrsubnet(var.network_slice, 3, i)]
-}
+  # One subnet per zone, carved out of the team's own slice. Two bits leaves
+  # four, so a slice spans up to four zones.
+  subnet_cidrs = [for i, az in local.azs : cidrsubnet(var.network_slice, 2, i)]
 
-# The platform's own private subnets are tagged by zone, and each already routes
-# out through whichever NAT the network was built with. Finding them by tag is
-# what lets a team's subnets inherit egress without this bundle knowing or
-# caring how the network chose to provide it.
-data "aws_route_table" "private" {
-  for_each = toset(local.azs)
-
-  vpc_id = var.network.vpc_id
-
-  filter {
-    name   = "tag:Name"
-    values = ["*-private-${each.value}"]
-  }
+  gateways   = var.network.nat_gateway_ids
+  has_egress = length(local.gateways) > 0
 }
 
 resource "aws_subnet" "team" {
@@ -34,11 +22,34 @@ resource "aws_subnet" "team" {
   }
 }
 
+# The team gets its own route table per zone rather than sharing the network's.
+# It means a team's routing can be changed — a proxy, a peering, a route to
+# somewhere private — without touching a table every other team is also using.
+resource "aws_route_table" "team" {
+  count = length(local.azs)
+
+  vpc_id = var.network.vpc_id
+  tags = {
+    Name = "${var.team}-${local.azs[count.index]}"
+    Team = var.team
+  }
+}
+
+# The gateways belong to the network, not the team. With one shared gateway
+# every zone routes through it; with one per zone each routes through its own.
+resource "aws_route" "team_egress" {
+  count = local.has_egress ? length(local.azs) : 0
+
+  route_table_id         = aws_route_table.team[count.index].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = local.gateways[count.index % length(local.gateways)]
+}
+
 resource "aws_route_table_association" "team" {
   count = length(local.azs)
 
   subnet_id      = aws_subnet.team[count.index].id
-  route_table_id = data.aws_route_table.private[local.azs[count.index]].id
+  route_table_id = aws_route_table.team[count.index].id
 }
 
 # One group per team. Members can reach each other, and everything they run can
