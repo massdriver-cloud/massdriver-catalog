@@ -1,4 +1,5 @@
 name: object-storage
+version: 0.0.0
 label: Object Storage
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
 
