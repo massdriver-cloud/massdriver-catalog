@@ -38,7 +38,7 @@ params:
       $md.immutable: true
       $md.enum:
         connection: network
-        options: .available_cidr_blocks[]
+        options: .available_cidr_blocks
 
 dependencies:
   aws_authentication:
