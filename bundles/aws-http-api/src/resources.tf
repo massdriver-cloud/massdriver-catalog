@@ -5,7 +5,7 @@ resource "massdriver_resource" "api" {
   resource = jsonencode({
     url           = aws_apigatewayv2_stage.default.invoke_url
     api_id        = aws_apigatewayv2_api.main.id
-    region        = var.landing_zone.network.region
+    region        = var.region
     execution_arn = aws_apigatewayv2_api.main.execution_arn
     stage         = aws_apigatewayv2_stage.default.name
   })

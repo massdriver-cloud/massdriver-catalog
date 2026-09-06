@@ -7,39 +7,13 @@ variable "aws_authentication" {
     external_id = string
   })
 }
-variable "cors_origins" {
-  type    = list(string)
-  default = ["*"]
+variable "capacity" {
+  type    = string
+  default = "on_demand"
 }
-variable "landing_zone" {
-  type = object({
-    network = object({
-      cidr              = optional(string)
-      region            = string
-      security_group_id = optional(string)
-      subnet_ids        = list(string)
-      vpc_id            = string
-    })
-    registry = object({
-      arn         = optional(string)
-      name        = string
-      region      = string
-      registry_id = optional(string)
-      url         = string
-    })
-    repository = object({
-      clone_url      = optional(string)
-      default_branch = string
-      full_name      = string
-      url            = string
-    })
-    team = string
-  })
-  default = null
-}
-variable "log_retention_days" {
-  type    = number
-  default = 30
+variable "deletion_protection" {
+  type    = bool
+  default = false
 }
 variable "md_metadata" {
   type = object({
@@ -62,13 +36,32 @@ variable "md_metadata" {
     })
   })
 }
-variable "name" {
+variable "partition_key" {
   type = string
+}
+variable "point_in_time_recovery" {
+  type    = bool
+  default = false
+}
+variable "read_capacity" {
+  type    = number
+  default = 5
 }
 variable "region" {
   type = string
 }
-variable "throttle_rate" {
+variable "sort_key" {
+  type    = string
+  default = null
+}
+variable "table_name" {
+  type = string
+}
+variable "ttl_attribute" {
+  type    = string
+  default = null
+}
+variable "write_capacity" {
   type    = number
-  default = 100
+  default = 5
 }

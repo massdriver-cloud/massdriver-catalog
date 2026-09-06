@@ -1,9 +1,19 @@
 locals {
-  full_name = "${var.landing_zone.team}-${var.name}"
+  full_name = var.md_metadata.name_prefix
   use_image = var.code_source == "registry"
 
   method = split(" ", var.route)[0]
   path   = split(" ", var.route)[1]
+
+  # Both of these are optional connections. Absent, the function still runs —
+  # it just runs on the public network and behind an open door.
+  zone       = try(var.landing_zone, null)
+  in_network = local.zone != null && var.attach_to_network
+
+  authorizer_id   = try(var.authorizer.authorizer_id, null)
+  allowed_domains = try(join(",", var.authorizer.allowed_domains), "")
+
+  registry_url = try(var.landing_zone.registry.url, "")
 }
 
 resource "aws_cloudwatch_log_group" "main" {
@@ -41,18 +51,43 @@ resource "aws_iam_role_policy" "logs" {
   })
 }
 
-# Attaching to the network means Lambda creates network interfaces on the
-# team's subnets, and only the service itself can be told which. The actions
-# cannot be narrowed to a resource because the interfaces do not exist yet.
+# Scoped to the one table that was connected. Connecting a different table
+# changes what this function can reach; nothing else in the account is
+# reachable, and nobody wrote a policy to make that true.
+resource "aws_iam_role_policy" "table" {
+  name = "use-table"
+  role = aws_iam_role.main.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+      ]
+      Resource = [
+        var.table.arn,
+        "${var.table.arn}/index/*",
+      ]
+    }]
+  })
+}
+
+# Attaching to the network means Lambda creates interfaces on the team's
+# subnets, and only the service can be told which. The actions cannot be
+# narrowed to a resource because the interfaces do not exist yet.
 resource "aws_iam_role_policy_attachment" "vpc" {
-  count = var.attach_to_network ? 1 : 0
+  count = local.in_network ? 1 : 0
 
   role       = aws_iam_role.main.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# The example runs before the team has built anything, so the endpoint is live
-# and provably reachable on day one rather than after their first green build.
 data "archive_file" "starter" {
   count = local.use_image ? 0 : 1
 
@@ -61,20 +96,7 @@ data "archive_file" "starter" {
 
   source {
     filename = "index.py"
-    content  = <<-PY
-      import json, os
-
-      def handler(event, context):
-          return {
-              "statusCode": 200,
-              "headers": {"content-type": "application/json"},
-              "body": json.dumps({
-                  "message": "Hello from ${local.full_name}",
-                  "team": os.environ.get("TEAM", "unknown"),
-                  "path": event.get("rawPath", "/"),
-              }),
-          }
-    PY
+    content  = file("${path.module}/files/starter.py")
   }
 }
 
@@ -85,7 +107,7 @@ resource "aws_lambda_function" "main" {
   timeout       = var.timeout_seconds
 
   package_type = local.use_image ? "Image" : "Zip"
-  image_uri    = local.use_image ? "${var.landing_zone.registry.url}:${var.image_tag}" : null
+  image_uri    = local.use_image ? "${local.registry_url}:${var.image_tag}" : null
 
   filename         = local.use_image ? null : data.archive_file.starter[0].output_path
   source_code_hash = local.use_image ? null : data.archive_file.starter[0].output_base64sha256
@@ -93,7 +115,7 @@ resource "aws_lambda_function" "main" {
   handler          = local.use_image ? null : "index.handler"
 
   dynamic "vpc_config" {
-    for_each = var.attach_to_network ? [1] : []
+    for_each = local.in_network ? [1] : []
     content {
       subnet_ids         = var.landing_zone.network.subnet_ids
       security_group_ids = [var.landing_zone.network.security_group_id]
@@ -102,7 +124,9 @@ resource "aws_lambda_function" "main" {
 
   environment {
     variables = merge(var.environment, {
-      TEAM = var.landing_zone.team
+      TABLE_NAME      = var.table.name
+      PARTITION_KEY   = var.table.partition_key
+      ALLOWED_DOMAINS = local.allowed_domains
     })
   }
 
@@ -111,7 +135,7 @@ resource "aws_lambda_function" "main" {
   }
 
   # checkov:skip=CKV_AWS_272: signing requires a signing profile the team does not
-  # have. The image digest and the repository's own scan are what stand in here.
+  # have. The image digest and the registry's own scan stand in here.
   # checkov:skip=CKV_AWS_116: a dead letter queue only helps async invocations,
   # and everything behind an API is synchronous — the caller sees the error.
   # checkov:skip=CKV_AWS_173: environment holds settings, not secrets; the schema
@@ -127,14 +151,17 @@ resource "aws_apigatewayv2_integration" "main" {
   payload_format_version = "2.0"
 }
 
+# The route is where a sign-in policy actually takes effect. Connecting an
+# authorizer flips this from open to closed; disconnecting it opens it again.
 resource "aws_apigatewayv2_route" "main" {
   api_id    = var.api.api_id
   route_key = "${local.method} ${local.path}"
   target    = "integrations/${aws_apigatewayv2_integration.main.id}"
+
+  authorization_type = local.authorizer_id == null ? "NONE" : "JWT"
+  authorizer_id      = local.authorizer_id
 }
 
-# Scoped to this API's execution ARN, so no other API — in this account or any
-# other — can invoke the function.
 resource "aws_lambda_permission" "api" {
   statement_id  = "AllowInvokeFromApi"
   action        = "lambda:InvokeFunction"

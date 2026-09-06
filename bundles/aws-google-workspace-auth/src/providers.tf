@@ -9,15 +9,9 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.4"
-    }
   }
 }
 
-# The API is always connected and carries its own region, so this works whether
-# or not the application sits inside a landing zone.
 provider "aws" {
   region = var.api.region
 

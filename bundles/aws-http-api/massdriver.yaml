@@ -15,7 +15,27 @@ params:
       throttle_rate: 100
   required:
     - name
+    - region
   properties:
+    region:
+      title: Region
+      description: >-
+        Where the address lives. Everything attached to it — functions, tables — has to be in
+        the same region.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 — N. Virginia
+        - const: us-east-2
+          title: us-east-2 — Ohio
+        - const: us-west-2
+          title: us-west-2 — Oregon
+        - const: eu-west-1
+          title: eu-west-1 — Ireland
+        - const: eu-central-1
+          title: eu-central-1 — Frankfurt
     name:
       title: What should the address be called?
       description: Usually the app's name. It shows up in the URL and in logs.
@@ -68,7 +88,7 @@ dependencies:
     required: true
   landing_zone:
     resource_type: citizen-landing-zone@0.0.0
-    required: true
+    required: false
 
 resources:
   api:

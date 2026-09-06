@@ -1,7 +1,8 @@
 name: aws-lambda-function
 description: >-
-  One endpoint of an app. Attach it to an API, give it a path, and it answers there. Add another
-  one for the next endpoint — the app's address never changes.
+  A serverless endpoint backed by a table — the most common shape an application takes here.
+  Attach it to an API, give it a path, and it answers there. Add another for the next endpoint;
+  the application's address never changes.
 source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-lambda-function
 version: 0.0.0
 icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-lambda-function/icon.svg
@@ -97,10 +98,11 @@ params:
       minimum: 1
       maximum: 900
     attach_to_network:
-      title: Does it need to reach the team's databases?
+      title: Does it need to reach private services?
       description: >-
-        Off is faster to start. Turn it on only if this endpoint talks to a database or anything
-        else private, because it makes cold starts slower.
+        Off is faster to start, and the table it is connected to works either way. Turn it on
+        only to reach something with a private address, and only when a landing zone is
+        connected — without one there is no network to join.
       type: boolean
       default: false
     environment:
@@ -117,12 +119,18 @@ dependencies:
   aws_authentication:
     resource_type: aws-iam-role@0.0.0
     required: true
-  landing_zone:
-    resource_type: citizen-landing-zone@0.0.0
-    required: true
   api:
     resource_type: http-api@0.0.0
     required: true
+  table:
+    resource_type: document-table@0.0.0
+    required: true
+  authorizer:
+    resource_type: api-authorizer@0.0.0
+    required: false
+  landing_zone:
+    resource_type: citizen-landing-zone@0.0.0
+    required: false
 
 steps:
   - path: src

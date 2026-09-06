@@ -1,0 +1,73 @@
+name: aws-google-workspace-auth
+description: >-
+  Puts a Google sign-in door in front of an API. Connect it to an application and requests
+  without a valid sign-in are turned away before any of that application's code runs.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-google-workspace-auth
+version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-google-workspace-auth/icon.svg
+
+params:
+  examples:
+    - __name: Only our own staff
+      google_client_id: "1234567890-abcdefg.apps.googleusercontent.com"
+      allowed_domains:
+        - example.com
+    - __name: Us and a partner
+      google_client_id: "1234567890-abcdefg.apps.googleusercontent.com"
+      allowed_domains:
+        - example.com
+        - partner.example
+  required:
+    - google_client_id
+    - allowed_domains
+  properties:
+    google_client_id:
+      title: Google client ID
+      description: >-
+        From the OAuth client you created in Google Cloud. It ends in
+        `.apps.googleusercontent.com`, and it is what ties a sign-in to your organization rather
+        than to anyone with a Google account.
+      type: string
+      minLength: 10
+      pattern: \.apps\.googleusercontent\.com$
+      message:
+        pattern: "Should end in .apps.googleusercontent.com — copy it from the OAuth client."
+      examples:
+        - 1234567890-abcdefg.apps.googleusercontent.com
+    allowed_domains:
+      title: Whose accounts are allowed in?
+      description: >-
+        Workspace domains, not email addresses. Someone signing in with a personal Google account
+        is turned away even though their sign-in is perfectly genuine.
+      type: array
+      minItems: 1
+      items:
+        type: string
+        pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+        message:
+          pattern: "A domain, like example.com — no @ and no address."
+      examples:
+        - ["example.com"]
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  api:
+    resource_type: http-api@0.0.0
+    required: true
+
+resources:
+  authorizer:
+    resource_type: api-authorizer@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - google_client_id
+    - allowed_domains
+    - "*"

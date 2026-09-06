@@ -1,5 +1,5 @@
 locals {
-  full_name = "${var.landing_zone.team}-${var.name}"
+  full_name = var.md_metadata.name_prefix
 }
 
 resource "aws_apigatewayv2_api" "main" {
@@ -51,20 +51,7 @@ resource "aws_apigatewayv2_stage" "default" {
   }
 }
 
-# Until a function is attached there are no routes, and a caller would get a
-# bare 404 with no explanation. This answers instead, so a team can see the
-# address working the moment it exists.
-resource "aws_apigatewayv2_route" "placeholder" {
-  api_id    = aws_apigatewayv2_api.main.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.placeholder.id}"
-}
-
-resource "aws_apigatewayv2_integration" "placeholder" {
-  api_id           = aws_apigatewayv2_api.main.id
-  integration_type = "MOCK"
-
-  request_templates = {
-    "application/json" = jsonencode({ statusCode = 404 })
-  }
-}
+# No placeholder route. An HTTP API only accepts proxy integrations, so there is
+# nothing to answer with until a function attaches one — an address with no
+# routes returns 404, which is the honest response to a path that has no
+# endpoint behind it yet.

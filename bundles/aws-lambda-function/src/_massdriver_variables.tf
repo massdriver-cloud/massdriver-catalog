@@ -15,6 +15,16 @@ variable "attach_to_network" {
   type    = bool
   default = false
 }
+variable "authorizer" {
+  type = object({
+    allowed_domains = optional(list(string))
+    api_id          = string
+    authorizer_id   = string
+    provider        = optional(string)
+    region          = string
+  })
+  default = null
+}
 variable "aws_authentication" {
   type = object({
     arn         = string
@@ -56,6 +66,7 @@ variable "landing_zone" {
     })
     team = string
   })
+  default = null
 }
 variable "md_metadata" {
   type = object({
@@ -87,6 +98,16 @@ variable "name" {
 }
 variable "route" {
   type = string
+}
+variable "table" {
+  type = object({
+    arn           = string
+    name          = string
+    partition_key = string
+    region        = string
+    sort_key      = optional(string)
+    stream_arn    = optional(string)
+  })
 }
 variable "timeout_seconds" {
   type    = number
