@@ -19,7 +19,6 @@ params:
       partition_key: customer_id
       sort_key: placed_at
       capacity: on_demand
-      point_in_time_recovery: true
       deletion_protection: true
   required:
     - table_name
@@ -110,10 +109,11 @@ params:
     point_in_time_recovery:
       title: Keep a rolling backup?
       description: >-
-        Lets you restore the table to any second in the last 35 days. Turn it on for anything you
-        would be upset to lose.
+        Lets you restore the table to any second in the last 35 days. On by default because the
+        day you need it is never a day you saw coming. Turning it off saves a little money on a
+        table you would not mind losing entirely.
       type: boolean
-      default: false
+      default: true
     deletion_protection:
       title: Refuse to delete this table?
       description: >-

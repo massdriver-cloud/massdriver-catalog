@@ -18,10 +18,9 @@ locals {
 
 resource "aws_cloudwatch_log_group" "main" {
   name              = "/aws/lambda/${local.full_name}"
-  retention_in_days = 30
+  retention_in_days = var.log_retention_days
 
-  # checkov:skip=CKV_AWS_158: what an application chooses to log is the team's
-  # call, and a per-function key would be a key per endpoint to rotate.
+  # See .checkov.yaml for why this is not encrypted with a key of our own.
 }
 
 resource "aws_iam_role" "main" {
@@ -106,6 +105,10 @@ resource "aws_lambda_function" "main" {
   memory_size   = var.memory_mb
   timeout       = var.timeout_seconds
 
+  # A ceiling rather than a reservation of the whole pool: one runaway endpoint
+  # cannot starve every other function in the account.
+  reserved_concurrent_executions = var.max_concurrent_executions
+
   package_type = local.use_image ? "Image" : "Zip"
   image_uri    = local.use_image ? "${local.registry_url}:${var.image_tag}" : null
 
@@ -134,12 +137,8 @@ resource "aws_lambda_function" "main" {
     mode = "Active"
   }
 
-  # checkov:skip=CKV_AWS_272: signing requires a signing profile the team does not
-  # have. The image digest and the registry's own scan stand in here.
-  # checkov:skip=CKV_AWS_116: a dead letter queue only helps async invocations,
-  # and everything behind an API is synchronous — the caller sees the error.
-  # checkov:skip=CKV_AWS_173: environment holds settings, not secrets; the schema
-  # says so, and anything sensitive belongs in a secret store instead.
+  # Code signing, dead letter queues and environment encryption are all
+  # deliberately absent. See .checkov.yaml.
 
   depends_on = [aws_cloudwatch_log_group.main]
 }

@@ -50,10 +50,8 @@ resource "aws_dynamodb_table" "main" {
     enabled = var.point_in_time_recovery
   }
 
-  # AWS-owned keys encrypt at rest at no cost. A customer managed key is worth
-  # it when you need to revoke access to the data independently of the table,
-  # which is a decision for whoever owns the data, not a bundle default.
-  # checkov:skip=CKV_AWS_119: see above
+  # Encrypted at rest with a key AWS owns. See .checkov.yaml for why this is not
+  # a customer managed key.
   server_side_encryption {
     enabled = false
   }

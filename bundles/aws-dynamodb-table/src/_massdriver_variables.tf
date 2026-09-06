@@ -41,7 +41,7 @@ variable "partition_key" {
 }
 variable "point_in_time_recovery" {
   type    = bool
-  default = false
+  default = true
 }
 variable "read_capacity" {
   type    = number

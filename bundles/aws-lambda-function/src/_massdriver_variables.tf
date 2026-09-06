@@ -68,6 +68,14 @@ variable "landing_zone" {
   })
   default = null
 }
+variable "log_retention_days" {
+  type    = number
+  default = 365
+}
+variable "max_concurrent_executions" {
+  type    = number
+  default = 25
+}
 variable "md_metadata" {
   type = object({
     default_tags = map(string)

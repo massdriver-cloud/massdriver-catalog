@@ -97,6 +97,33 @@ params:
       default: 10
       minimum: 1
       maximum: 900
+    max_concurrent_executions:
+      title: How many requests may it handle at once?
+      description: >-
+        A ceiling, so one endpoint in a runaway loop cannot consume the whole account's capacity
+        and take every other application down with it. Requests above this are refused rather
+        than queued, so raise it if you expect real traffic.
+      type: integer
+      default: 25
+      minimum: 1
+      maximum: 900
+    log_retention_days:
+      title: How long should logs be kept?
+      description: >-
+        A year by default, because that is what most audits ask for and storing text is cheap.
+        A shorter window in production is flagged as a compliance finding, so make it a decision
+        rather than an accident.
+      type: integer
+      default: 365
+      oneOf:
+        - const: 7
+          title: A week — throwaway environments
+        - const: 30
+          title: A month
+        - const: 90
+          title: Three months
+        - const: 365
+          title: A year — the usual answer
     attach_to_network:
       title: Does it need to reach private services?
       description: >-
@@ -144,8 +171,12 @@ ui:
     - image_tag
     - memory_mb
     - timeout_seconds
+    - max_concurrent_executions
+    - log_retention_days
     - attach_to_network
     - environment
     - "*"
   timeout_seconds:
+    ui:widget: updown
+  max_concurrent_executions:
     ui:widget: updown

@@ -18,8 +18,8 @@ resource "aws_cloudwatch_log_group" "access" {
   name              = "/aws/apigateway/${local.full_name}"
   retention_in_days = var.log_retention_days
 
-  # checkov:skip=CKV_AWS_158: request metadata only. A customer managed key adds
-  # a key to rotate without protecting anything that isn't already public.
+  # Request metadata only, never bodies. See .checkov.yaml for why this is not
+  # encrypted with a key of our own.
 }
 
 # $default auto-deploys, so attaching a new function publishes it without a

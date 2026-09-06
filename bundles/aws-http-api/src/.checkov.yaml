@@ -1,0 +1,14 @@
+# Checks this bundle deliberately does not satisfy, and why.
+# Every entry here is a check that cannot be met without making the bundle
+# worse. Anything a person could reasonably want either way is a parameter
+# instead, so the check passes on the default and failing it is a choice
+# somebody made on purpose.
+
+skip-check:
+  # CKV_AWS_158: encrypt the log group with a customer managed key.
+  # These logs record who called which path and what status came back. They
+  # hold no request bodies and no credentials, so a key of our own protects
+  # nothing that is not already inferable from the outside — and adds a key
+  # that has to be rotated, paid for, and kept available or the logs stop
+  # being written at all.
+  - CKV_AWS_158

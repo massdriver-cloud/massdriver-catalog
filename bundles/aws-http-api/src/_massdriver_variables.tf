@@ -39,7 +39,7 @@ variable "landing_zone" {
 }
 variable "log_retention_days" {
   type    = number
-  default = 30
+  default = 365
 }
 variable "md_metadata" {
   type = object({
