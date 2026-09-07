@@ -8,12 +8,26 @@ icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs
 
 params:
   examples:
-    - __name: An app getting started
+    - __name: Development
       name: api
+      region: us-east-1
       cors_origins:
         - "*"
       throttle_rate: 100
       log_retention_days: 7
+    - __name: Production
+      name: api
+      region: us-east-1
+      cors_origins:
+        - https://example.com
+      throttle_rate: 500
+      log_retention_days: 365
+    - __name: Service-to-service
+      name: api
+      region: us-east-1
+      cors_origins: []
+      throttle_rate: 2000
+      log_retention_days: 365
   required:
     - name
     - region

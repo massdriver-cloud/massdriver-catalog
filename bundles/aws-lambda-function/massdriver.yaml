@@ -9,19 +9,44 @@ icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs
 
 params:
   examples:
-    - __name: A first endpoint, before anything is built
+    - __name: Development
       name: hello
-      route: GET /hello
+      route: ANY /hello
       code_source: starter
       memory_mb: 512
       timeout_seconds: 10
-    - __name: Running the team's own image
+      max_concurrent_executions: 25
+      log_retention_days: 365
+      attach_to_network: false
+    - __name: Production
       name: orders
       route: ANY /orders/{proxy+}
       code_source: registry
       image_tag: latest
       memory_mb: 1024
       timeout_seconds: 30
+      max_concurrent_executions: 50
+      log_retention_days: 365
+      attach_to_network: false
+    - __name: Long-running
+      name: reports
+      route: POST /reports
+      code_source: registry
+      image_tag: latest
+      memory_mb: 2048
+      timeout_seconds: 120
+      max_concurrent_executions: 10
+      log_retention_days: 365
+      attach_to_network: false
+    - __name: Private network
+      name: sync
+      route: ANY /sync
+      code_source: registry
+      image_tag: latest
+      memory_mb: 1024
+      timeout_seconds: 30
+      max_concurrent_executions: 25
+      log_retention_days: 365
       attach_to_network: true
   required:
     - name

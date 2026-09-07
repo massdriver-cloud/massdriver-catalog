@@ -8,11 +8,11 @@ icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs
 
 params:
   examples:
-    - __name: Only our own staff
+    - __name: Single domain
       google_client_id: "1234567890-abcdefg.apps.googleusercontent.com"
       allowed_domains:
         - example.com
-    - __name: Us and a partner
+    - __name: Partner access
       google_client_id: "1234567890-abcdefg.apps.googleusercontent.com"
       allowed_domains:
         - example.com

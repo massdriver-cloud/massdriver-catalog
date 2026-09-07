@@ -8,17 +8,37 @@ icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs
 
 params:
   examples:
-    - __name: A table to get started with
+    - __name: Key-value lookup
       table_name: items
       region: us-east-1
       partition_key: id
       capacity: on_demand
-    - __name: Something real people use
+      point_in_time_recovery: true
+      deletion_protection: false
+    - __name: Append-only log
+      table_name: events
+      region: us-east-1
+      partition_key: stream_id
+      sort_key: occurred_at
+      capacity: on_demand
+      point_in_time_recovery: true
+      deletion_protection: false
+      ttl_attribute: expires_at
+    - __name: Session store
+      table_name: sessions
+      region: us-east-1
+      partition_key: session_id
+      capacity: on_demand
+      point_in_time_recovery: false
+      deletion_protection: false
+      ttl_attribute: expires_at
+    - __name: Production
       table_name: orders
       region: us-east-1
       partition_key: customer_id
       sort_key: placed_at
       capacity: on_demand
+      point_in_time_recovery: true
       deletion_protection: true
   required:
     - table_name
