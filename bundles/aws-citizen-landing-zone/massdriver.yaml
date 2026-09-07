@@ -1,0 +1,70 @@
+name: aws-citizen-landing-zone
+description: >-
+  Takes a slice of the shared network and pairs it with a team's registry and repository, so an
+  app project only ever needs one thing connected to it instead of three.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-citizen-landing-zone
+version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-citizen-landing-zone/icon.svg
+
+params:
+  examples:
+    - __name: A team getting started
+      team: acme
+      network_slice: 10.0.16.0/20
+  required:
+    - team
+    - network_slice
+  properties:
+    team:
+      title: Which team is this for?
+      description: >-
+        Short and lowercase. It names everything built inside the slice, so it cannot be changed
+        later without rebuilding.
+      type: string
+      minLength: 2
+      maxLength: 24
+      pattern: ^[a-z][a-z0-9-]*$
+      message:
+        pattern: "Lowercase letters, digits and hyphens only. Must start with a letter."
+      $md.immutable: true
+      examples:
+        - acme
+    network_slice:
+      title: Which slice of the network should they get?
+      description: >-
+        Pick a range nothing else is using. Two teams on the same range will collide, and the
+        range cannot be changed once anything is running in it.
+      type: string
+      $md.immutable: true
+      $md.enum:
+        connection: network
+        options: .available_cidr_blocks
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc-network@0.0.0
+    required: true
+  registry:
+    resource_type: container-registry@0.0.0
+    required: true
+  repository:
+    resource_type: source-repository@0.0.0
+    required: true
+
+resources:
+  landing_zone:
+    resource_type: citizen-landing-zone@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - team
+    - network_slice
+    - "*"

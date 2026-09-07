@@ -1,0 +1,52 @@
+name: api-authorizer
+version: 0.0.0
+label: API Authorizer
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/api-authorizer/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: API Authorizer
+  description: >-
+    A sign-in policy an API can enforce. Connect one to an application and unauthenticated
+    requests stop at the door, before any of the application's code runs.
+  type: object
+  additionalProperties: false
+  required:
+    - authorizer_id
+    - api_id
+    - region
+  properties:
+    authorizer_id:
+      title: Authorizer ID
+      description: Cloud identifier, referenced by each route that requires sign-in.
+      type: string
+      minLength: 1
+    api_id:
+      title: API ID
+      description: >-
+        The API this belongs to. An authorizer only works on the API it was created against, so
+        applications on a different API cannot use it.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    provider:
+      title: Provider
+      description: Who is being trusted to say a person is who they claim to be.
+      type: string
+      examples:
+        - Google Workspace
+    allowed_domains:
+      title: Allowed Domains
+      description: >-
+        The domains a person's account has to belong to. The door checks that the token is
+        genuine; this is the list that decides whose genuine tokens count.
+      type: array
+      items:
+        type: string
+      examples:
+        - ["example.com"]

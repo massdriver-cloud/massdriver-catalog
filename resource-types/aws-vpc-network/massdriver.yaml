@@ -1,0 +1,69 @@
+name: aws-vpc-network
+version: 0.0.0
+label: AWS VPC Network
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/aws-vpc-network/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS VPC Network
+  description: A private network in AWS that applications and databases run inside of.
+  type: object
+  additionalProperties: false
+  required:
+    - vpc_id
+    - region
+    - cidr
+    - availability_zones
+  properties:
+    vpc_id:
+      title: VPC ID
+      description: Cloud identifier for the network.
+      type: string
+      minLength: 1
+      examples:
+        - vpc-0a1b2c3d4e5f67890
+    region:
+      title: Region
+      description: Region the network lives in. Everything attached to it must be in this region.
+      type: string
+      minLength: 1
+    cidr:
+      title: Address Range
+      description: The full range of private addresses this network owns.
+      type: string
+      minLength: 1
+      examples:
+        - 10.0.0.0/16
+    availability_zones:
+      title: Availability Zones
+      description: The zones the network spans. Anything highly available needs at least two.
+      type: array
+      minItems: 1
+      items:
+        type: string
+    public_subnet_ids:
+      title: Public Subnets
+      description: >-
+        The small subnets the gateways sit in. Load balancers go here. Applications do not —
+        they get their own subnets when a team is given a slice.
+      type: array
+      items:
+        type: string
+    nat_gateway_ids:
+      title: Outbound Gateways
+      description: >-
+        What a team's subnets route out through, one per zone. Empty when the network was built
+        without outbound access.
+      type: array
+      items:
+        type: string
+    available_cidr_blocks:
+      title: Address Space For Teams
+      description: >-
+        Equal ranges the network can hand out, one per team. Nothing is built in them until a
+        team is given one — this is the list to pick from, not a record of what is taken.
+      type: array
+      items:
+        type: string

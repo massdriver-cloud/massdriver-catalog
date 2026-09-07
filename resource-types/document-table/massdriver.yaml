@@ -1,0 +1,50 @@
+name: document-table
+version: 0.0.0
+label: Document Table
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/document-table/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Document Table
+  description: >-
+    A table that stores records looked up by key. Connect one to an application and the
+    application is granted access to that table and no other.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - arn
+    - region
+    - partition_key
+  properties:
+    name:
+      title: Name
+      description: What the application passes when it reads or writes.
+      type: string
+      minLength: 1
+    arn:
+      title: ARN
+      description: >-
+        Cloud identifier for the table. Applications scope their permissions to this, which is
+        what keeps one application out of another's data.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    partition_key:
+      title: Partition Key
+      description: The attribute records are grouped and looked up by.
+      type: string
+      minLength: 1
+    sort_key:
+      title: Sort Key
+      description: The attribute records are ordered by within a partition, if the table has one.
+      type: string
+    stream_arn:
+      title: Stream ARN
+      description: Present when the table publishes its changes for something else to react to.
+      type: string

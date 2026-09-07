@@ -1,0 +1,58 @@
+name: github-credentials
+version: 0.0.0
+label: GitHub Credentials
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/platforms/github/icon.svg
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: GitHub App
+      path: ./instructions/GitHub App.md
+    - label: Personal Access Token
+      path: ./instructions/Personal Access Token.md
+
+exports: []
+
+schema:
+  title: GitHub Credentials
+  description: >-
+    Lets the platform create repositories, write files into them, and set Actions secrets on
+    behalf of your organization.
+  type: object
+  additionalProperties: false
+  required:
+    - owner
+  properties:
+    owner:
+      title: Organization
+      description: The GitHub organization that repositories are created in.
+      type: string
+      minLength: 1
+      examples:
+        - acme-inc
+    token:
+      $md.sensitive: true
+      $md.copyable: false
+      title: Personal Access Token
+      description: >-
+        A classic token with `repo` and `admin:org`. Quicker to set up than an App, and the right
+        choice only while you are trying this out — it carries one person's access and does not
+        expire on its own.
+      type: string
+    app_id:
+      title: App ID
+      description: The numeric ID of the GitHub App, if you are using one instead of a token.
+      type: string
+    app_installation_id:
+      title: Installation ID
+      description: Which installation of that App to act as. It is in the installation's URL.
+      type: string
+    app_private_key:
+      $md.sensitive: true
+      $md.copyable: false
+      title: App Private Key
+      description: >-
+        The PEM the App issued. Load this with the CLI rather than the web form — the form breaks
+        PEM line endings, and the failure only shows up at deploy time.
+      type: string

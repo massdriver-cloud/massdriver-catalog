@@ -1,0 +1,43 @@
+name: container-registry
+version: 0.0.0
+label: Container Registry
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/resource-types/container-registry/icon.svg
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Container Registry
+  description: A registry that container images are pushed to and pulled from.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - url
+    - region
+  properties:
+    name:
+      title: Name
+      description: The repository name inside the registry.
+      type: string
+      minLength: 1
+    url:
+      title: URL
+      description: The full path images are pushed to, without a tag.
+      type: string
+      minLength: 1
+      examples:
+        - 123456789012.dkr.ecr.us-east-1.amazonaws.com/acme-web
+    arn:
+      title: ARN
+      description: Cloud identifier for the repository.
+      type: string
+    region:
+      title: Region
+      description: Region the registry lives in.
+      type: string
+      minLength: 1
+    registry_id:
+      title: Registry ID
+      description: The account that owns the registry. Needed to log in before pushing.
+      type: string

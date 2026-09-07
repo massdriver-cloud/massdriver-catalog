@@ -1,0 +1,106 @@
+name: aws-ecr-repo
+description: >-
+  A private container registry for one team. Their build pushes images here and their app pulls
+  from here. Nobody else's team can write to it.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/aws-ecr-repo
+version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-ecr-repo/icon.svg
+
+params:
+  examples:
+    - __name: A team getting started
+      repository_name: "acme-web"
+      region: "us-east-1"
+      keep_last_images: 20
+      scan_on_push: true
+      immutable_tags: false
+    - __name: Something real people use
+      repository_name: "acme-web"
+      region: "us-east-1"
+      keep_last_images: 100
+      scan_on_push: true
+      immutable_tags: true
+  required:
+    - repository_name
+    - region
+  properties:
+    region:
+      title: Region
+      description: Where the registry lives. Use the same region as the app that pulls from it.
+      type: string
+      default: "us-east-1"
+      $md.immutable: true
+      oneOf:
+        - const: "us-east-1"
+          title: "us-east-1 — N. Virginia"
+        - const: "us-east-2"
+          title: "us-east-2 — Ohio"
+        - const: "us-west-2"
+          title: "us-west-2 — Oregon"
+        - const: "eu-west-1"
+          title: "eu-west-1 — Ireland"
+        - const: "eu-central-1"
+          title: "eu-central-1 — Frankfurt"
+    repository_name:
+      title: What should the registry be called?
+      description: >-
+        Usually the app's name. This becomes the last part of the image path, and it cannot be
+        changed later — renaming means a new registry and re-pushing.
+      type: string
+      minLength: 2
+      maxLength: 200
+      pattern: ^[a-z0-9][a-z0-9._/-]*$
+      message:
+        pattern: "Lowercase letters, digits, and . _ / - only. Must start with a letter or digit."
+      $md.immutable: true
+      examples:
+        - acme-web
+    keep_last_images:
+      title: How many images should it keep?
+      description: >-
+        Older ones are deleted automatically so storage does not grow forever. Keep enough to roll
+        back to something known good.
+      type: integer
+      default: 20
+      minimum: 1
+      maximum: 1000
+    scan_on_push:
+      title: Scan images for known vulnerabilities when they are pushed?
+      description: >-
+        Leave this on. It costs nothing, and finding out at push time is much cheaper than finding
+        out later.
+      type: boolean
+      default: true
+    immutable_tags:
+      title: Stop tags being moved once pushed?
+      description: >-
+        On means `:latest` can never point at different bytes than it did yesterday, so what is
+        running is always what was built. Turn it on for anything real; leave it off while a team
+        is still pushing `:latest` over and over.
+      type: boolean
+      default: false
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  registry:
+    resource_type: container-registry@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - repository_name
+    - region
+    - keep_last_images
+    - scan_on_push
+    - immutable_tags
+    - "*"
+  keep_last_images:
+    ui:widget: updown

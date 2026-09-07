@@ -1,0 +1,87 @@
+name: github-app-repo
+description: >-
+  Creates a team's GitHub repository with its build pipeline already written. A push to the
+  default branch builds a container image and pushes it to their registry, tagged with the commit
+  and as latest.
+source_url: https://github.com/YOUR_ORG/massdriver-catalog/tree/main/bundles/github-app-repo
+version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/github-app-repo/icon.svg
+
+params:
+  examples:
+    - __name: A new team's app
+      repository_name: "acme-web"
+      description: "Acme's web app"
+      visibility: "private"
+      seed_starter_files: true
+  required:
+    - repository_name
+    - visibility
+  properties:
+    repository_name:
+      title: What should the repository be called?
+      description: >-
+        Becomes the repository name on GitHub and the folder people clone. This cannot be changed
+        later without moving the repository by hand.
+      type: string
+      minLength: 2
+      maxLength: 90
+      pattern: ^[a-z0-9][a-z0-9._-]*$
+      message:
+        pattern: "Lowercase letters, digits, and . _ - only. Must start with a letter or digit."
+      $md.immutable: true
+      examples:
+        - acme-web
+    description:
+      title: What is it for?
+      description: Shown on the repository page. One line is plenty.
+      type: string
+      default: ""
+    visibility:
+      title: Who can see it?
+      description: >-
+        Private unless there is a reason. A repository created public cannot be un-seen — anything
+        committed before someone notices is on the internet permanently.
+      type: string
+      default: "private"
+      oneOf:
+        - const: "private"
+          title: "Private — only your organization"
+        - const: "public"
+          title: "Public — anyone on the internet"
+    seed_starter_files:
+      title: Put a working starting point in it?
+      description: >-
+        Writes a Dockerfile and a tiny web app that builds and runs as-is, so the first push proves
+        the pipeline before anyone writes real code. Turn this off if you are importing something
+        that already exists.
+      type: boolean
+      default: true
+
+dependencies:
+  github:
+    resource_type: github-credentials@0.0.0
+    required: true
+  registry:
+    resource_type: container-registry@0.0.0
+    required: true
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  repository:
+    resource_type: source-repository@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - repository_name
+    - description
+    - visibility
+    - seed_starter_files
+    - "*"

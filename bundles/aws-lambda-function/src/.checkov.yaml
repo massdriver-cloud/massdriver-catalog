@@ -1,0 +1,50 @@
+# Checks this bundle deliberately does not satisfy, and why.
+# Every entry here is a check that cannot be met without making the bundle
+# worse. Anything a person could reasonably want either way is a parameter
+# instead, so the check passes on the default and failing it is a choice
+# somebody made on purpose.
+
+skip-check:
+  # CKV_AWS_272: verify the code was signed before running it.
+  # Signing needs a signing profile and a key somebody has to own, rotate and
+  # keep available — miss any of that and the function stops running entirely.
+  # What signing protects against is a registry being tampered with; the image
+  # digest and the registry's own scan already cover that here, and the registry
+  # only accepts pushes from one team's credentials.
+  - CKV_AWS_272
+
+  # CKV_AWS_116: send failed invocations to a dead letter queue.
+  # A dead letter queue catches failures nobody is waiting on. Everything here
+  # is invoked by an API with a caller on the other end, so a failure already
+  # goes back to that caller as an error. Adding a queue would collect messages
+  # nobody reads while the person who saw the error is already gone.
+  - CKV_AWS_116
+
+  # CKV_AWS_173: encrypt environment variables with a customer managed key.
+  # These variables hold the table name, its key attribute and the allowed
+  # sign-in domains — settings, all of them discoverable from the graph. The
+  # schema says so, and anything genuinely secret belongs in a secret store the
+  # function reads at runtime, not in its configuration.
+  - CKV_AWS_173
+
+  # CKV_AWS_117: run the function inside a VPC.
+  # This is the one entry here that is arguably a parameter rather than a skip,
+  # and it is a deliberate call. `attach_to_network` does exactly what the check
+  # asks, and connecting a landing zone with it switched on makes this pass on
+  # its own.
+  # It is skipped because the default shape of this bundle gains nothing from
+  # it. The function is invoked by the gateway, not by network traffic, and its
+  # one dependency — the table — is reached over the AWS network whether or not
+  # a VPC is involved. Attaching anyway costs a network interface before the
+  # first request can be served, and forces a landing zone on applications that
+  # otherwise need no network at all.
+  # Left as a finding it would halt every simple endpoint in production for a
+  # setting that protects nothing, which is how compliance gates get switched
+  # off entirely.
+  - CKV_AWS_117
+
+  # CKV_AWS_158: encrypt the log group with a customer managed key.
+  # What an application writes to its logs is the team's call, and a key per
+  # endpoint is a key per endpoint to rotate and pay for. If a team logs
+  # something that needs protecting, the fix is to stop logging it.
+  - CKV_AWS_158

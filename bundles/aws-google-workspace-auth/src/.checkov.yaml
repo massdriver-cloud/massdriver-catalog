@@ -1,0 +1,8 @@
+# Nothing is skipped. This bundle creates one API Gateway authorizer and
+# publishes it; every check that applies to it passes.
+#
+# Kept as a file so the answer to "what does this bundle skip and why" is in
+# the same place for every bundle, including the ones where the answer is
+# nothing.
+
+skip-check: []

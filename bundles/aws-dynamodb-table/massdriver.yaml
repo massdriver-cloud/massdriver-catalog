@@ -1,0 +1,183 @@
+name: aws-dynamodb-table
+description: >-
+  A table for an application's records. It scales itself, it costs nothing when nothing is using
+  it, and an application connected to it can reach this table and no other.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/main/bundles/aws-dynamodb-table
+version: 0.0.0
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/refs/heads/aws-citizen-developer-catalog/bundles/aws-dynamodb-table/icon.svg
+
+params:
+  examples:
+    - __name: Key-value lookup
+      table_name: items
+      region: us-east-1
+      partition_key: id
+      capacity: on_demand
+      point_in_time_recovery: true
+      deletion_protection: false
+    - __name: Append-only log
+      table_name: events
+      region: us-east-1
+      partition_key: stream_id
+      sort_key: occurred_at
+      capacity: on_demand
+      point_in_time_recovery: true
+      deletion_protection: false
+      ttl_attribute: expires_at
+    - __name: Session store
+      table_name: sessions
+      region: us-east-1
+      partition_key: session_id
+      capacity: on_demand
+      point_in_time_recovery: false
+      deletion_protection: false
+      ttl_attribute: expires_at
+    - __name: Production
+      table_name: orders
+      region: us-east-1
+      partition_key: customer_id
+      sort_key: placed_at
+      capacity: on_demand
+      point_in_time_recovery: true
+      deletion_protection: true
+  required:
+    - table_name
+    - region
+    - partition_key
+  properties:
+    table_name:
+      title: What should the table be called?
+      description: >-
+        Usually what it holds, plural. It cannot be renamed later — a new name means a new,
+        empty table.
+      type: string
+      minLength: 2
+      maxLength: 64
+      pattern: ^[a-zA-Z0-9_.-]+$
+      message:
+        pattern: "Letters, digits, and . _ - only."
+      $md.immutable: true
+      examples:
+        - items
+    region:
+      title: Region
+      description: Put it in the same region as the application that reads it.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 — N. Virginia
+        - const: us-east-2
+          title: us-east-2 — Ohio
+        - const: us-west-2
+          title: us-west-2 — Oregon
+        - const: eu-west-1
+          title: eu-west-1 — Ireland
+        - const: eu-central-1
+          title: eu-central-1 — Frankfurt
+    partition_key:
+      title: What identifies a record?
+      description: >-
+        The attribute every record is looked up by. Choose something with many different values
+        — an ID rather than a status — so records spread evenly instead of piling up. It cannot
+        be changed later.
+      type: string
+      minLength: 1
+      maxLength: 255
+      default: id
+      $md.immutable: true
+      examples:
+        - id
+        - customer_id
+    sort_key:
+      title: Should records be ordered within a group? (optional)
+      description: >-
+        Add this when you want a range of records back in order — everything for one customer,
+        most recent first. Leave it blank for simple lookups by ID.
+      type: string
+      maxLength: 255
+      $md.immutable: true
+      examples:
+        - created_at
+    capacity:
+      title: How should it be billed?
+      description: >-
+        On demand costs nothing when idle and absorbs spikes without warning. Provisioned is
+        cheaper at steady, predictable, high volume.
+      type: string
+      default: on_demand
+      oneOf:
+        - const: on_demand
+          title: On demand — pay per request, nothing when idle
+        - const: provisioned
+          title: Provisioned — cheaper at steady high volume
+    read_capacity:
+      title: Reads per second
+      description: Only used when billed as provisioned.
+      type: integer
+      default: 5
+      minimum: 1
+      maximum: 4000
+    write_capacity:
+      title: Writes per second
+      description: Only used when billed as provisioned.
+      type: integer
+      default: 5
+      minimum: 1
+      maximum: 4000
+    point_in_time_recovery:
+      title: Keep a rolling backup?
+      description: >-
+        Lets you restore the table to any second in the last 35 days. On by default because the
+        day you need it is never a day you saw coming. Turning it off saves a little money on a
+        table you would not mind losing entirely.
+      type: boolean
+      default: true
+    deletion_protection:
+      title: Refuse to delete this table?
+      description: >-
+        Turn it on and the table cannot be destroyed until someone turns it back off. Cheap
+        insurance for anything holding real data.
+      type: boolean
+      default: false
+    ttl_attribute:
+      title: Which attribute expires records? (optional)
+      description: >-
+        Name an attribute holding a Unix timestamp and records are deleted for free once it
+        passes. Useful for sessions and caches.
+      type: string
+      examples:
+        - expires_at
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  table:
+    resource_type: document-table@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - table_name
+    - region
+    - partition_key
+    - sort_key
+    - capacity
+    - read_capacity
+    - write_capacity
+    - point_in_time_recovery
+    - deletion_protection
+    - ttl_attribute
+    - "*"
+  read_capacity:
+    ui:widget: updown
+  write_capacity:
+    ui:widget: updown

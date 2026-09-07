@@ -1,0 +1,15 @@
+# Checks this bundle deliberately does not satisfy, and why.
+# Every entry here is a check that cannot be met without making the bundle
+# worse. Anything a person could reasonably want either way is a parameter
+# instead, so the check passes on the default and failing it is a choice
+# somebody made on purpose.
+
+skip-check:
+  # CKV_AWS_119: encrypt with a customer managed key.
+  # Records are already encrypted at rest with a key AWS owns and rotates. A
+  # customer managed key buys one thing on top of that: the ability to revoke
+  # access to the data without touching the table. That is worth having when
+  # somebody other than the table's owner controls the key, and it is a key to
+  # rotate and pay for when they do not — which makes it a decision for whoever
+  # owns the data rather than a default every table inherits.
+  - CKV_AWS_119
