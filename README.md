@@ -10,8 +10,6 @@ A bootstrap catalog for self-hosted Massdriver instances containing resource typ
 > - `packages` → **instances**
 > - `artifact definitions` → **resource types**
 > - `artifacts` → **resources**
->
-> The `massdriver.yaml` keys followed: `connections:` → **`dependencies:`** and `artifacts:` → **`resources:`**. The legacy keys are still accepted but the Mass CLI prints a deprecation warning for them and they cannot reference versioned resource types, so every bundle and template in this repo uses the new keys.
 
 **tl;dr:** [Jump to Quick Start](#customizing-your-catalog)
 
