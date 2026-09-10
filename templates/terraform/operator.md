@@ -21,7 +21,7 @@ When `enable_monitoring` is enabled, metrics are collected and available in your
 ### Deployment Failures
 
 1. Check the deployment logs in Massdriver
-2. Verify all required connections are properly configured
+2. Verify all required dependencies are properly configured
 3. Ensure parameter values meet validation requirements
 
 ### Performance Issues
