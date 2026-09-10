@@ -65,33 +65,25 @@ params:
           description: Number of retries on failure
           default: 3
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
+# dependencies: the resources this bundle consumes from other bundles.
+# Each entry names a resource type and an optional version range
+# (e.g. virtual-network@~1). Docs: https://docs.massdriver.cloud/bundle-development/bundle-yaml-spec
+dependencies:
 {%- if connections.size > 0 %}
-  required:
   {%- for conn in connections %}
-    - {{ conn.name }}
+  {{ conn.name }}:
+    resource_type: {{ conn.resourceType }}
+    required: true
   {%- endfor %}
-  properties:
-  {%- for conn in connections %}
-    {{ conn.name }}:
-      $ref: {{ conn.artifact_definition }}
-  {%- endfor %}
-{%- else %}
-  required: []
-  properties: {}
+{%- else %} {}
 {%- endif %}
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  properties: {}
-  # required:
-  #   - my_resource
-  # properties:
-  #   my_resource:
-  #     $ref: your-resource-type
+# resources: what this bundle produces for other bundles to consume.
+# Pin the exact resource type version the bundle emits (e.g. my-type@1.0.0).
+resources: {}
+  # my_resource:
+  #   resource_type: your-resource-type@1.0.0
+  #   required: true
 
 ui:
   ui:order:

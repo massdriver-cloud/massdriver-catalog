@@ -9,8 +9,8 @@
 //   advanced           - object
 //   md_metadata        - Massdriver metadata
 //
-// Connection parameters (if configured):
-//   <connection_name>  - artifact data from connected bundles
+// Dependency parameters (if configured):
+//   <dependency_name>  - resource data from connected bundles
 
 @description('Resource name')
 param resource_name string

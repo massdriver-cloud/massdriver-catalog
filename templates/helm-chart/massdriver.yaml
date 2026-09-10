@@ -62,26 +62,25 @@ params:
       description: Kubernetes namespace for deployment
       default: default
 
-# v2: shown in the product as "dependencies". The key in massdriver.yaml stays
-# `connections:` until a backward-compatible rename ships.
-connections:
-  required:
-    - kubernetes_cluster
+# dependencies: the resources this bundle consumes from other bundles.
+# Each entry names a resource type and an optional version range
+# (e.g. virtual-network@~1). Docs: https://docs.massdriver.cloud/bundle-development/bundle-yaml-spec
+dependencies:
+  kubernetes_cluster:
+    resource_type: kubernetes-cluster
+    required: true
   {%- for conn in connections %}
-    - {{ conn.name }}
-  {%- endfor %}
-  properties:
-    kubernetes_cluster:
-      $ref: kubernetes-cluster
-  {%- for conn in connections %}
-    {{ conn.name }}:
-      $ref: {{ conn.artifact_definition }}
+  {{ conn.name }}:
+    resource_type: {{ conn.resourceType }}
+    required: true
   {%- endfor %}
 
-# v2: shown in the product as "resources". The key in massdriver.yaml stays
-# `artifacts:` until a backward-compatible rename ships.
-artifacts:
-  properties: {}
+# resources: what this bundle produces for other bundles to consume.
+# Pin the exact resource type version the bundle emits (e.g. my-type@1.0.0).
+resources: {}
+  # my_resource:
+  #   resource_type: your-resource-type@1.0.0
+  #   required: true
 
 ui:
   ui:order:

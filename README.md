@@ -10,8 +10,6 @@ A bootstrap catalog for self-hosted Massdriver instances containing resource typ
 > - `packages` → **instances**
 > - `artifact definitions` → **resource types**
 > - `artifacts` → **resources**
->
-> The keys `connections:` and `artifacts:` inside `massdriver.yaml` are **unchanged** — backward-compatible renames to `dependencies:` and `resources:` are coming in a future release. Until then this repo continues to use `connections:` and `artifacts:` in every `massdriver.yaml`, with a comment pointing to the new names.
 
 **tl;dr:** [Jump to Quick Start](#customizing-your-catalog)
 
@@ -21,7 +19,7 @@ This catalog is yours to customize and extend. Here's the recommended workflow:
 
 1. **Clone this repository** to your organization (keep it private—it will contain your infrastructure code)
 2. **Configure GitHub Secrets** (see [Quick Start](#quick-start)) to enable automatic publishing on push to `main`
-3. **Start experimenting** with bundles in your editor—edit schemas, add parameters, define connections
+3. **Start experimenting** with bundles in your editor—edit schemas, add parameters, define dependencies
 4. **Watch the developer experience get built** in real-time in Massdriver as you iterate on your abstractions
 
 The beauty of this approach: you can refine the entire developer experience—what parameters developers see, how bundles connect, what resources are produced—all before writing a single line of infrastructure code.
@@ -38,7 +36,7 @@ If you're new to Massdriver, here are the core concepts you'll encounter:
 
 - **Parameters (params)**: User-configurable inputs for a bundle, like instance sizes, database names, or feature flags. These define what developers can customize when deploying infrastructure.
 
-- **Connections** (the `connections:` key in `massdriver.yaml`, surfaced in the product as **dependencies**): Inputs a bundle needs from other bundles. When a bundle declares it needs a connection to a `virtual-network` resource, you must link it to a bundle that produces a virtual-network resource.
+- **Dependency** (the `dependencies:` key in `massdriver.yaml`): Inputs a bundle needs from other bundles. When a bundle declares a dependency on a `virtual-network` resource, you must link it to a bundle that produces a virtual-network resource.
 
 - **Project**: A logical grouping of related infrastructure, like "ecommerce-platform" or "data-pipeline". Projects contain one or more environments.
 
@@ -102,13 +100,10 @@ Each bundle includes:
 
 - ✅ Complete `massdriver.yaml` configuration
 - ✅ **Parameter schemas** - Define your IaC variables (tfvars, Helm values) and customize the UI form for user configuration (instance sizes, database names, etc.)
-- ✅ **Connection schemas** (the `connections:` key — the product surfaces these as **dependencies**) - Define resources from other bundles this one needs, enabling secure access to their details during automation.
-- ✅ **Artifact schemas** (the `artifacts:` key — the product surfaces these as **resources**) - Define what infrastructure this bundle produces for others to consume.
+- ✅ **Dependencies** (the `dependencies:` key) - Declare the resources from other bundles this one needs, enabling secure access to their details during automation.
+- ✅ **Resources** (the `resources:` key) - Declare what infrastructure this bundle produces for others to consume.
 - ✅ **UI schemas** - Control how the configuration form looks and behaves
 - 🚧 Placeholder OpenTofu/Terraform code (replace with yours)
-
-> [!NOTE]
-> The `connections:` and `artifacts:` keys keep their v1 names inside `massdriver.yaml`. Backward-compatible renames to `dependencies:` and `resources:` are coming — until then, prefer the v1 keys here.
 
 These bundles let you model first, implement later. Use the schemas to plan your architecture and test the developer experience in the Massdriver UI, then fill in the actual infrastructure code when you're ready.
 
@@ -138,7 +133,7 @@ mass bundle new --name my-bundle --template-name opentofu
 ```
 
 Each template includes:
-- `massdriver.yaml` - Pre-configured with example params, connections, and artifacts
+- `massdriver.yaml` - Pre-configured with example params, dependencies, and resources
 - `operator.md` - Runbook template for operational guidance
 - `icon.svg` - Placeholder icon
 - `src/` or `chart/` - IaC boilerplate for the specific provisioner
@@ -274,7 +269,7 @@ See the [Preview Environments workflow guide](https://docs.massdriver.cloud/work
 The bundles and resource types ship pre-wired with realistic shapes so you can poke at the UX on the canvas before writing any IaC. Below is a quick map of what's in each one and which `massdriver.yaml` features it showcases — useful when you want to find a working example of `$md.enum`, the `app:` block, conditional `dependencies`, etc.
 
 > [!TIP]
-> The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + connections on every `mass bundle build`, so you can change the schema and your variables stay in sync.
+> The IaC under each `bundles/*/src/` is `random_pet`-based stub code so the canvas works end-to-end. **Swap it for your real OpenTofu / Terraform once you've got the schema shape you want** — the `_massdriver_variables.tf` file regenerates from your params + dependencies on every `mass bundle build`, so you can change the schema and your variables stay in sync.
 
 ### `network/` bundle ↔ `virtual-network` resource type
 
@@ -415,7 +410,7 @@ In your Massdriver instance, grant the service account the role(s) that include 
 
 #### Publish order on first run
 
-`mass bundle build` resolves every `$ref:` in `connections:` / `artifacts:` against your Massdriver server, so resource types must already be published before any bundle that references them will build. The default GitHub Actions workflows are split by file path — pushing only `bundles/**` will not trigger the resource-types workflow. On a fresh catalog, run `make publish-resource-types` (or push a change under `resource-types/`) once before publishing bundles, or run `make all` locally to do both in order.
+`mass bundle build` resolves every `resource_type:` in `dependencies:` / `resources:` against your Massdriver server, so resource types must already be published before any bundle that references them will build. The default GitHub Actions workflows are split by file path — pushing only `bundles/**` will not trigger the resource-types workflow. On a fresh catalog, run `make publish-resource-types` (or push a change under `resource-types/`) once before publishing bundles, or run `make all` locally to do both in order.
 
 4. **Set up pre-commit hooks (optional but recommended)**
 
@@ -510,7 +505,7 @@ This catalog is designed for a three-phase approach: model your architecture, im
 
 **Goal**: Fill in the infrastructure code that matches your architectural model.
 
-**Key benefit**: Because you already validated the architecture and developer experience in Phase 1, you're implementing against a proven design. You know what parameters developers need, what connections make sense, and what resources to produce.
+**Key benefit**: Because you already validated the architecture and developer experience in Phase 1, you're implementing against a proven design. You know what parameters developers need, what dependencies make sense, and what resources to produce.
 
 ### Phase 3: Continuous Improvement
 
@@ -578,17 +573,14 @@ Each bundle's `massdriver.yaml` defines the complete contract for that infrastru
 
 - **params**: Input parameters that users configure when deploying (instance sizes, database names, feature flags, etc.). These become variables in your IaC code. They provide extra UI controls and validations not available in most IaC tools.
 
-- **connections** (the v1 key, surfaced in the v2 product as **dependencies**): Input resources that this bundle depends on. For example, a database bundle might require a connection to a virtual-network resource. Connections securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible resources can be connected.
+- **dependencies**: Input resources that this bundle depends on, each naming a resource type and the version range it accepts. For example, a database bundle might depend on a virtual-network resource. Dependencies securely pass data (credentials, IAM policies, endpoints) from one bundle to another during provisioning. These become variables in your IaC code, and Massdriver validates that only compatible resources can be connected.
 
-- **artifacts** (the v1 key, surfaced in the v2 product as **resources**): Output resources that this bundle produces for other bundles to consume. For example, a database bundle produces a database resource containing connection details. You populate these in your IaC code's outputs.
+- **resources**: Output resources that this bundle produces for other bundles to consume, each pinned to the resource type version it emits. For example, a database bundle produces a database resource containing connection details. You populate these from your IaC code with `massdriver_resource`.
 
 - **ui**: UI schema that controls how the configuration form is rendered—field ordering, help text, conditional visibility, custom widgets, etc. This follows the React JSON Schema Form specification.
 
-> [!NOTE]
-> The keys `connections:` and `artifacts:` keep their v1 names inside `massdriver.yaml`. Backward-compatible renames to `dependencies:` and `resources:` are coming in a future release; for now, every bundle and template in this repo uses the v1 keys.
-
 > [!WARNING]
-> Params and connections share the same namespace in your IaC code. If you have a param named "database" and a connection named "database", they will conflict as the same variable (e.g., `variable "database"` in Terraform). Use distinct names to avoid collisions.
+> Params and dependencies share the same namespace in your IaC code. If you have a param named "database" and a dependency named "database", they will conflict as the same variable (e.g., `variable "database"` in Terraform). Use distinct names to avoid collisions.
 
 Customize these schemas to match your desired developer experience. The schemas define the self-service interface your developers will use, so invest time in making them clear, well-documented, and user-friendly.
 
@@ -596,7 +588,7 @@ Customize these schemas to match your desired developer experience. The schemas 
 
 When you're ready to implement the actual infrastructure provisioning, replace the placeholder OpenTofu/Terraform code in `bundles/*/src/`.
 
-**How it works**: Massdriver bundles combine policy as code, IaC, and pipelines into a single deployable unit. They define the interface (inputs/outputs), dependencies (connections), and workflow steps—bringing compliance and security scanning into the bundle itself, instead of maintaining snowflake pipelines scattered across hundreds of repos. Massdriver automatically generates input variables from your params and connections schemas, then executes your IaC code with those values.
+**How it works**: Massdriver bundles combine policy as code, IaC, and pipelines into a single deployable unit. They define the interface (inputs/outputs), dependencies, and workflow steps—bringing compliance and security scanning into the bundle itself, instead of maintaining snowflake pipelines scattered across hundreds of repos. Massdriver automatically generates input variables from your params and dependencies, then executes your IaC code with those values.
 
 To implement a bundle:
 
@@ -605,9 +597,9 @@ To implement a bundle:
 3. **Add** additional `.tf` files as needed (variables.tf, outputs.tf, etc.)
 4. **Use** Massdriver-provided variables:
    - [`var.md_metadata`](https://docs.massdriver.cloud/getting-started/using-bundle-metadata#md_metadata-structure) - Massdriver metadata (name prefix, instance ID, environment, default tags, etc.)
-5. **Output** resource data that matches your `artifacts:` schema (connection details, resource IDs, etc.)
+5. **Output** resource data that matches your `resources:` declaration (connection details, resource IDs, etc.)
 
-**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `connections:` schema requires a `virtual-network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
+**Example**: If your params schema defines a `database_name` parameter, access it in Terraform as `var.database_name`. If your `dependencies:` block requires a `virtual-network` resource named `net`, access its VPC ID as `var.net.data.infrastructure.vpc_id`.
 
 ## What's Next?
 
@@ -617,7 +609,7 @@ Once you've modeled your architecture and started implementing bundles, dive dee
 
 - 📚 **[Getting Started Guide](https://docs.massdriver.cloud/getting-started/overview)** - Step-by-step tutorials covering:
   - Publishing and deploying bundles
-  - Connecting bundles with artifacts
+  - Connecting bundles with resources
   - Creating bundles from existing OpenTofu/Terraform modules
   - Using bundle deployment metadata for tagging and naming
 

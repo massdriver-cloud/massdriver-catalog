@@ -8,8 +8,8 @@
 #   var.advanced           - object({ timeout_seconds, retry_count })
 #   var.md_metadata        - Massdriver metadata (name_prefix, default_tags, etc.)
 #
-# Connection variables (if configured):
-#   var.<connection_name>  - artifact data from connected bundles
+# Dependency variables (if configured):
+#   var.<dependency_name>  - resource data from connected bundles
 
 locals {
   name_prefix = var.md_metadata.name_prefix
