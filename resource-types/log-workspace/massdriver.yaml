@@ -1,0 +1,39 @@
+name: log-workspace
+version: 0.0.0
+label: Log Workspace
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-landing-zone-baseline/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: observability
+  instructions:
+    - label: Azure Log Analytics
+      path: ./instructions/Azure Log Analytics.md
+
+schema:
+  title: Log Workspace
+  description: A central place for logs and metrics. A bundle sends its diagnostic data to it.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the workspace in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: The name of the workspace.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: The cloud region that holds the workspace.
+      type: string
+    retention_days:
+      title: Retention (days)
+      description: The number of days that the workspace keeps a log entry.
+      type: integer
