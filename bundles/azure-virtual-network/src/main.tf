@@ -4,9 +4,11 @@ locals {
   # Azure delegates a subnet to one service only. The keys match the
   # `delegation` enum in massdriver.yaml.
   delegations = {
+    # Azure rewrites the Container Apps action to `join/action` on read. Declare
+    # the value that Azure returns, or every deployment shows the same change.
     containerapps = {
       name    = "Microsoft.App/environments"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
     }
     appservice = {
       name    = "Microsoft.Web/serverFarms"
