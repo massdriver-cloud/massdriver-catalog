@@ -1,0 +1,53 @@
+name: workload
+version: 0.0.0
+label: Workload
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-container-app/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: applications
+  instructions:
+    - label: External Service
+      path: ./instructions/External Service.md
+
+schema:
+  title: Workload
+  description: A running application. Other systems read its address and its health check from this contract.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - service_url
+  properties:
+    name:
+      title: Name
+      description: The name of the workload.
+      type: string
+      minLength: 1
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+      message:
+        pattern: "Must be lowercase letters, digits, and hyphens. It must start and end with a letter or a digit."
+    service_url:
+      title: Service URL
+      description: The address where a client reaches the workload.
+      type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
+    health_check_url:
+      title: Health Check URL
+      description: The address that a monitor calls to test the workload.
+      type: string
+      pattern: ^https?://
+      message:
+        pattern: "Must start with http:// or https://."
+    deployment_id:
+      title: Deployment ID
+      description: The identifier of the running release, such as a commit or a revision name.
+      type: string
+    tags:
+      title: Tags
+      description: The labels of the workload, such as the team and the tier.
+      type: object
+      additionalProperties:
+        type: string

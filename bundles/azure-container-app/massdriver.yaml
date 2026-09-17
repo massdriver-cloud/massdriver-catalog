@@ -1,0 +1,221 @@
+name: azure-container-app
+description: A container application on Azure Container Apps, inside the delegated subnet of the connected network. It reads its database and storage values from its connections.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-container-app
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      image: "mcr.microsoft.com/k8se/quickstart:latest"
+      port: 80
+      min_replicas: 1
+      max_replicas: 1
+      cpu: "0.5"
+      memory: 1Gi
+      log_level: debug
+      health_check_path: /
+      public_ingress: true
+    - __name: Staging
+      image: "mcr.microsoft.com/k8se/quickstart:latest"
+      port: 80
+      min_replicas: 1
+      max_replicas: 3
+      cpu: "0.5"
+      memory: 1Gi
+      log_level: info
+      health_check_path: /
+      public_ingress: true
+    - __name: Production
+      image: "mcr.microsoft.com/k8se/quickstart:latest"
+      port: 80
+      min_replicas: 3
+      max_replicas: 10
+      cpu: "1.0"
+      memory: 2Gi
+      log_level: warn
+      health_check_path: /
+      public_ingress: true
+  required:
+    - image
+    - port
+    - min_replicas
+    - max_replicas
+    - cpu
+    - memory
+  properties:
+    image:
+      type: string
+      title: Container Image
+      description: The image and the tag. Do not use the tag `latest` outside of development, because a rollback cannot find the old image.
+      default: "mcr.microsoft.com/k8se/quickstart:latest"
+      minLength: 1
+      pattern: "^[^[:space:]]+:[^[:space:]]+$"
+      message:
+        pattern: "Must be image:tag or image@digest, and it must hold no space."
+      examples:
+        - "myregistry.azurecr.io/api:1.4.0"
+    port:
+      type: integer
+      title: Container Port
+      description: The port that the container listens on.
+      default: 8080
+      minimum: 1
+      maximum: 65535
+    min_replicas:
+      type: integer
+      title: Minimum Replicas
+      description: The number of copies that always run. A value of 0 lets the application scale to zero, and the first request then waits for a cold start.
+      default: 1
+      minimum: 0
+      maximum: 30
+    max_replicas:
+      type: integer
+      title: Maximum Replicas
+      description: The largest number of copies that Azure starts under load.
+      default: 3
+      minimum: 1
+      maximum: 30
+    cpu:
+      type: string
+      title: CPU
+      description: The processor share of one copy.
+      default: "0.5"
+      oneOf:
+        - const: "0.25"
+          title: "0.25 vCPU"
+        - const: "0.5"
+          title: "0.5 vCPU"
+        - const: "1.0"
+          title: "1 vCPU"
+        - const: "2.0"
+          title: "2 vCPU"
+    memory:
+      type: string
+      title: Memory
+      description: The memory of one copy. Azure pairs each processor share with a fixed memory size.
+      default: 1Gi
+      oneOf:
+        - const: 0.5Gi
+          title: "0.5 GiB (with 0.25 vCPU)"
+        - const: 1Gi
+          title: "1 GiB (with 0.5 vCPU)"
+        - const: 2Gi
+          title: "2 GiB (with 1 vCPU)"
+        - const: 4Gi
+          title: "4 GiB (with 2 vCPU)"
+    public_ingress:
+      type: boolean
+      title: Accept Public Traffic
+      description: Azure gives the application a public name. Turn this off to accept traffic from inside the network only.
+      default: true
+    health_check_path:
+      type: string
+      title: Health Check Path
+      description: The path that Azure calls to test one copy.
+      default: /
+      pattern: ^/[^\s]*$
+      message:
+        pattern: "Must start with / and must hold no space."
+    log_level:
+      type: string
+      title: Log Level
+      description: The amount of detail in the logs of the application.
+      default: info
+      oneOf:
+        - const: debug
+          title: "debug — every event (development only)"
+        - const: info
+          title: "info — normal"
+        - const: warn
+          title: "warn — abnormal events only"
+        - const: error
+          title: "error — failures only"
+    database_policy:
+      type: string
+      title: Database Access
+      description: The access level of the application on the database. The list comes from the connected database.
+      $md.enum:
+        connection: database
+        options: .policies
+        value: .id
+    bucket_policy:
+      type: string
+      title: Storage Access
+      description: The access level of the application on the storage container. The list comes from the connected storage.
+      $md.enum:
+        connection: bucket
+        options: .policies
+        value: .id
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+  database:
+    resource_type: postgres-database@0.0.0
+    required: false
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: false
+
+resources:
+  application:
+    resource_type: workload@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+app:
+  envs:
+    LOG_LEVEL: .params.log_level
+    PORT: .params.port | tostring
+    HEALTH_CHECK_PATH: .params.health_check_path
+    DATABASE_HOST: .connections.database.auth.hostname // ""
+    DATABASE_PORT: (.connections.database.auth.port // 5432) | tostring
+    DATABASE_NAME: .connections.database.auth.database // ""
+    DATABASE_USER: .connections.database.auth.username // ""
+    STORAGE_ACCOUNT: .connections.bucket.name // ""
+    STORAGE_CONTAINER: .connections.bucket.container // ""
+    STORAGE_ENDPOINT: .connections.bucket.endpoint // ""
+    DATABASE_POLICY: .params.database_policy // ""
+    STORAGE_POLICY: .params.bucket_policy // ""
+  secrets:
+    SESSION_SECRET:
+      title: Session Secret
+      description: The key that signs a session cookie. Create one with `openssl rand -base64 48`.
+      required: false
+    SENTRY_DSN:
+      title: Sentry DSN
+      description: The address that receives error reports. Leave it empty when you do not use Sentry.
+      required: false
+
+ui:
+  ui:order:
+    - image
+    - port
+    - min_replicas
+    - max_replicas
+    - cpu
+    - memory
+    - public_ingress
+    - health_check_path
+    - log_level
+    - database_policy
+    - bucket_policy
+    - "*"
+  image:
+    ui:help: "Pin a tag or a digest. The tag `latest` makes a rollback ambiguous."
+  min_replicas:
+    ui:widget: updown
+    ui:help: "A value of 0 costs nothing while the application is idle. The first request then waits about 10 seconds."
+  max_replicas:
+    ui:widget: updown
+  memory:
+    ui:help: "Azure accepts one memory size per processor share. A wrong pair fails the deployment."
+  public_ingress:
+    ui:help: "Turn this off for an internal service. Only a workload inside the network can then reach it."

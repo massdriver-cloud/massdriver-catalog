@@ -10,7 +10,7 @@ params:
       cidr: "10.10.0.0/16"
       subnets:
         - name: app
-          cidr: "10.10.1.0/24"
+          cidr: "10.10.0.0/23"
           delegation: containerapps
         - name: data
           cidr: "10.10.2.0/24"
@@ -23,7 +23,7 @@ params:
       cidr: "10.20.0.0/16"
       subnets:
         - name: app
-          cidr: "10.20.1.0/24"
+          cidr: "10.20.0.0/23"
           delegation: containerapps
         - name: web
           cidr: "10.20.2.0/24"
@@ -39,7 +39,7 @@ params:
       cidr: "10.30.0.0/16"
       subnets:
         - name: app
-          cidr: "10.30.1.0/23"
+          cidr: "10.30.0.0/23"
           delegation: containerapps
         - name: web
           cidr: "10.30.4.0/23"
@@ -126,7 +126,7 @@ params:
           cidr:
             type: string
             title: Subnet CIDR
-            description: The address range of the subnet. It must sit inside the network CIDR.
+            description: The address range of the subnet. It must sit inside the network CIDR. A Container Apps subnet needs /23 or larger.
             pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/(1[6-9]|2[0-9])$
             message:
               pattern: "Must be an IPv4 CIDR block between /16 and /29, for example 10.0.1.0/24."
@@ -189,6 +189,7 @@ ui:
       orderable: true
       addable: true
       removable: true
+    ui:help: "A Container Apps subnet needs /23 or larger. Azure rejects a smaller range."
     items:
       ui:order:
         - name
