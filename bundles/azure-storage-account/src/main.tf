@@ -32,6 +32,8 @@ resource "azurerm_storage_account" "main" {
   public_network_access_enabled     = true
   infrastructure_encryption_enabled = true
   shared_access_key_enabled         = false
+  local_user_enabled                = false
+  sftp_enabled                      = false
 
   identity {
     type = "SystemAssigned"

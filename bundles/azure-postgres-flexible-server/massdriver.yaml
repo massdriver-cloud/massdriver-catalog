@@ -1,0 +1,169 @@
+name: azure-postgres-flexible-server
+description: An Azure Database for PostgreSQL flexible server inside the delegated subnet of the connected network. The server has no public endpoint.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-postgres-flexible-server
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      db_version: "16"
+      database_name: appdev
+      username: appdev
+      instance_size: B_Standard_B1ms
+      storage_gb: 32
+      backup_retention_days: 7
+      high_availability: false
+    - __name: Staging
+      db_version: "16"
+      database_name: appstg
+      username: appstg
+      instance_size: GP_Standard_D2s_v3
+      storage_gb: 128
+      backup_retention_days: 14
+      high_availability: false
+    - __name: Production
+      db_version: "16"
+      database_name: appprd
+      username: appprd
+      instance_size: GP_Standard_D4s_v3
+      storage_gb: 512
+      backup_retention_days: 35
+      high_availability: true
+      geo_redundant_backup: true
+  required:
+    - db_version
+    - database_name
+    - username
+    - instance_size
+    - storage_gb
+  properties:
+    db_version:
+      type: string
+      title: PostgreSQL Version
+      description: The major version of PostgreSQL. A major version upgrade needs a maintenance window, so Azure blocks it here.
+      default: "16"
+      $md.immutable: true
+      oneOf:
+        - const: "14"
+          title: "14 (community support ends in 2026)"
+        - const: "15"
+          title: "15"
+        - const: "16"
+          title: "16 (current)"
+        - const: "17"
+          title: "17 (newest)"
+    database_name:
+      type: string
+      title: Database Name
+      description: The name of the database that the bundle creates on the first deployment.
+      default: app
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a lowercase letter. It can hold lowercase letters, digits, and underscores."
+      $md.immutable: true
+    username:
+      type: string
+      title: Administrator Username
+      description: The name of the administrator user. The bundle creates the password and rotates it on request.
+      default: dbadmin
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a lowercase letter. It can hold lowercase letters, digits, and underscores."
+      $md.immutable: true
+    instance_size:
+      type: string
+      title: Instance Size
+      description: The processor and the memory of the server.
+      default: B_Standard_B1ms
+      oneOf:
+        - const: B_Standard_B1ms
+          title: Burstable — 1 vCPU, 2 GiB (development)
+        - const: B_Standard_B2s
+          title: Burstable — 2 vCPU, 4 GiB
+        - const: GP_Standard_D2s_v3
+          title: General purpose — 2 vCPU, 8 GiB
+        - const: GP_Standard_D4s_v3
+          title: General purpose — 4 vCPU, 16 GiB
+        - const: GP_Standard_D8s_v3
+          title: General purpose — 8 vCPU, 32 GiB
+    storage_gb:
+      type: integer
+      title: Storage (GiB)
+      description: The size of the data disk. Azure can grow this disk, and it cannot shrink it.
+      default: 32
+      oneOf:
+        - const: 32
+          title: 32 GiB
+        - const: 64
+          title: 64 GiB
+        - const: 128
+          title: 128 GiB
+        - const: 256
+          title: 256 GiB
+        - const: 512
+          title: 512 GiB
+        - const: 1024
+          title: 1024 GiB
+    backup_retention_days:
+      type: integer
+      title: Backup Retention (days)
+      description: The number of days that Azure keeps a backup.
+      default: 7
+      minimum: 7
+      maximum: 35
+    geo_redundant_backup:
+      type: boolean
+      title: Copy Backups to a Second Region
+      description: Azure copies each backup to the paired region. You cannot change this setting after the first deployment.
+      default: false
+      $md.immutable: true
+    high_availability:
+      type: boolean
+      title: High Availability
+      description: Azure runs a standby server in a second zone and fails over to it.
+      default: false
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+
+resources:
+  database:
+    resource_type: postgres-database@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - db_version
+    - instance_size
+    - storage_gb
+    - database_name
+    - username
+    - high_availability
+    - backup_retention_days
+    - geo_redundant_backup
+    - "*"
+  db_version:
+    ui:help: "A major version upgrade needs a maintenance window. Massdriver locks this field after the first deployment."
+  instance_size:
+    ui:help: "A burstable size costs the least, and it slows down under a constant load. Use a general purpose size for production."
+  storage_gb:
+    ui:help: "Azure can grow the disk without downtime. Azure cannot shrink it, so a copy and a restore is the only way back."
+  backup_retention_days:
+    ui:help: "Development: 7 days. Production: 35 days."
+  high_availability:
+    ui:help: "Doubles the cost of the server. Failover takes about 60 seconds. Production needs it."
+  geo_redundant_backup:
+    ui:help: "Protects against the loss of a whole region. You cannot turn it on later."

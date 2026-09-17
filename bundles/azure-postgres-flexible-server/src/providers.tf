@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
       version = "~> 2.0"
@@ -14,11 +18,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-
-  # The storage account turns off the shared access key. Without this flag the
-  # provider polls the blob endpoint with key authentication and gets a 403.
-  storage_use_azuread = true
-
   client_id       = var.azure_service_principal.client_id
   tenant_id       = var.azure_service_principal.tenant_id
   client_secret   = var.azure_service_principal.client_secret
