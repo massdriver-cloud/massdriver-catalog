@@ -1,0 +1,76 @@
+name: object-storage
+version: 0.0.0
+label: Object Storage
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-storage-account/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: storage
+  instructions:
+    - label: Azure Blob Storage
+      path: ./instructions/Azure Blob Storage.md
+
+schema:
+  title: Object Storage
+  description: A container for files. An application reads and writes objects in it.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - container
+    - endpoint
+    - policies
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the storage account in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Account Name
+      description: The name of the storage account.
+      type: string
+      minLength: 1
+    container:
+      title: Container
+      description: The name of the container that holds the objects.
+      type: string
+      minLength: 1
+    endpoint:
+      title: Endpoint
+      description: The base URL of the container.
+      type: string
+      pattern: ^https://
+      message:
+        pattern: "Must start with https://."
+    region:
+      title: Region
+      description: The cloud region that holds the storage account.
+      type: string
+    account_id:
+      title: Account ID
+      description: The subscription, project, or account that holds the storage account.
+      type: string
+    policies:
+      title: Access Policies
+      description: The access levels that a consumer can select.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: The identifier of the policy. A bundle maps it to a cloud role.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: The name that a developer reads in the form.
+            type: string
+            minLength: 1

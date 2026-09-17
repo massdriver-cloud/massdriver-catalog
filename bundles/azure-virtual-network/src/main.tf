@@ -52,6 +52,10 @@ resource "azurerm_subnet" "main" {
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = [each.value.cidr]
 
+  # A storage account or a key vault accepts traffic from a subnet only when
+  # the subnet carries the matching service endpoint.
+  service_endpoints = ["Microsoft.Storage", "Microsoft.KeyVault"]
+
   dynamic "delegation" {
     for_each = try([local.delegations[each.value.delegation]], [])
 
