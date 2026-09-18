@@ -1,0 +1,93 @@
+name: mssql-database
+version: 0.0.0
+label: SQL Server Database
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-sql-database/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: Azure SQL Database
+      path: ./instructions/Azure SQL Database.md
+
+schema:
+  title: SQL Server Database
+  description: A Microsoft SQL Server database, with the values that an application needs to connect to it.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - auth
+    - policies
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the database in the cloud provider.
+      type: string
+      minLength: 1
+    auth:
+      title: Connection
+      description: The values that an application needs to open a connection.
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - port
+        - database
+        - username
+        - password
+      properties:
+        hostname:
+          title: Host
+          description: The name of the database server.
+          type: string
+          minLength: 1
+        port:
+          title: Port
+          description: The TCP port of the database server.
+          type: integer
+          default: 1433
+          minimum: 1
+          maximum: 65535
+        database:
+          title: Database
+          description: The name of the database.
+          type: string
+          minLength: 1
+        username:
+          title: Username
+          description: The name of the administrator user.
+          type: string
+          minLength: 1
+        password:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Password
+          description: The password of the administrator user.
+          type: string
+    tier:
+      title: Tier
+      description: The service level of the database.
+      type: string
+    policies:
+      title: Access Policies
+      description: The access levels that a consumer can select.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+        properties:
+          id:
+            title: ID
+            description: The identifier of the policy. A bundle maps it to a database role.
+            type: string
+            minLength: 1
+          name:
+            title: Name
+            description: The name that a developer reads in the form.
+            type: string
+            minLength: 1

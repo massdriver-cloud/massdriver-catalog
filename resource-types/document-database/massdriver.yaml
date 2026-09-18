@@ -1,0 +1,72 @@
+name: document-database
+version: 0.0.0
+label: Document Database
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-cosmos-account/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: databases
+  instructions:
+    - label: Azure Cosmos DB
+      path: ./instructions/Azure Cosmos DB.md
+
+schema:
+  title: Document Database
+  description: A database that holds documents. An application reads and writes them through an endpoint and a key.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - auth
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the account in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: The name of the account.
+      type: string
+      minLength: 1
+    database:
+      title: Database
+      description: The name of the database inside the account.
+      type: string
+    api:
+      title: API
+      description: The wire protocol of the account. An application picks its driver from this value.
+      type: string
+    consistency:
+      title: Consistency
+      description: The rule that decides what a read returns after a write.
+      type: string
+    auth:
+      title: Connection
+      description: The values that an application needs to open a connection.
+      type: object
+      additionalProperties: false
+      required:
+        - endpoint
+        - primary_key
+      properties:
+        endpoint:
+          title: Endpoint
+          description: The address of the account.
+          type: string
+          pattern: ^https://
+          message:
+            pattern: "Must start with https://."
+        primary_key:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Primary Key
+          description: The key that opens a connection with full rights.
+          type: string
+        read_only_key:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Read Only Key
+          description: The key that opens a connection that cannot write.
+          type: string

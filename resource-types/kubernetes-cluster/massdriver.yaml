@@ -1,0 +1,72 @@
+name: kubernetes-cluster
+version: 0.0.0
+label: Kubernetes Cluster
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-kubernetes-service/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: clusters
+  instructions:
+    - label: Azure Kubernetes Service
+      path: ./instructions/Azure Kubernetes Service.md
+
+schema:
+  title: Kubernetes Cluster
+  description: A Kubernetes cluster. A chart bundle deploys onto it.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - authentication
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the cluster in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: The name of the cluster.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: The cloud region that holds the cluster.
+      type: string
+    version:
+      title: Version
+      description: The Kubernetes version of the control plane.
+      type: string
+    authentication:
+      title: Authentication
+      description: The values that a client needs to reach the API server.
+      type: object
+      additionalProperties: false
+      required:
+        - host
+        - cluster_ca_certificate
+      properties:
+        host:
+          title: API Server
+          description: The address of the API server.
+          type: string
+          pattern: ^https://
+          message:
+            pattern: "Must start with https://."
+        cluster_ca_certificate:
+          $md.sensitive: true
+          title: Cluster CA Certificate
+          description: The certificate authority of the cluster, in base 64.
+          type: string
+        client_certificate:
+          $md.sensitive: true
+          title: Client Certificate
+          description: The client certificate, in base 64.
+          type: string
+        client_key:
+          $md.sensitive: true
+          $md.copyable: false
+          title: Client Key
+          description: The client key, in base 64.
+          type: string
