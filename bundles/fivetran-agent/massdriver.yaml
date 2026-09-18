@@ -1,0 +1,142 @@
+name: fivetran-agent
+description: The Fivetran hybrid deployment agent on a Kubernetes cluster. It reads a source inside the network and sends the data to Fivetran.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/fivetran-agent
+version: 0.0.0
+
+steps:
+  - path: chart
+    provisioner: helm
+    config:
+      chart:
+        repo: .params.chart.repository
+        name: .params.chart.name
+        version: .params.chart.version
+      namespace: .params.namespace
+      release_name: .md.package.name
+
+params:
+  examples:
+    - __name: Development
+      chart:
+        repository: https://fivetran.github.io/helm-charts
+        name: hybrid-deployment-agent
+        version: "0.7.0"
+      namespace: fivetran
+      replicas: 1
+      cpu_limit: "1"
+      memory_limit: 2Gi
+    - __name: Production
+      chart:
+        repository: https://fivetran.github.io/helm-charts
+        name: hybrid-deployment-agent
+        version: "0.7.0"
+      namespace: fivetran
+      replicas: 2
+      cpu_limit: "2"
+      memory_limit: 4Gi
+  required:
+    - chart
+    - namespace
+    - replicas
+  properties:
+    chart:
+      type: object
+      title: Helm Chart
+      description: The chart that holds the agent. Confirm the repository and the version with your Fivetran account team.
+      required:
+        - repository
+        - name
+      properties:
+        repository:
+          type: string
+          title: Repository URL
+          description: The address of the chart repository.
+          default: https://fivetran.github.io/helm-charts
+        name:
+          type: string
+          title: Chart Name
+          description: The name of the chart in the repository.
+          default: hybrid-deployment-agent
+        version:
+          type: string
+          title: Chart Version
+          description: The version of the chart. Leave it empty to take the newest one.
+          default: ""
+    namespace:
+      type: string
+      title: Namespace
+      description: The Kubernetes namespace that holds the agent.
+      default: fivetran
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+      message:
+        pattern: "Must be lowercase letters, digits, and hyphens. It must start and end with a letter or a digit."
+    replicas:
+      type: integer
+      title: Replicas
+      description: The number of copies of the agent.
+      default: 1
+      minimum: 1
+      maximum: 10
+    cpu_limit:
+      type: string
+      title: CPU Limit
+      description: The processor limit of one copy.
+      default: "1"
+      oneOf:
+        - const: "0.5"
+          title: "0.5 vCPU"
+        - const: "1"
+          title: "1 vCPU"
+        - const: "2"
+          title: "2 vCPU"
+        - const: "4"
+          title: "4 vCPU"
+    memory_limit:
+      type: string
+      title: Memory Limit
+      description: The memory limit of one copy.
+      default: 2Gi
+      oneOf:
+        - const: 1Gi
+          title: "1 GiB"
+        - const: 2Gi
+          title: "2 GiB"
+        - const: 4Gi
+          title: "4 GiB"
+        - const: 8Gi
+          title: "8 GiB"
+
+dependencies:
+  kubernetes_cluster:
+    resource_type: kubernetes-cluster@0.0.0
+    required: true
+  database:
+    resource_type: postgres-database@0.0.0
+    required: false
+
+resources: {}
+
+app:
+  secrets:
+    FIVETRAN_AGENT_TOKEN:
+      title: Agent Token
+      description: The token that Fivetran gives when you create the agent in its dashboard. Required.
+      required: true
+
+ui:
+  ui:order:
+    - chart
+    - namespace
+    - replicas
+    - cpu_limit
+    - memory_limit
+    - "*"
+  chart:
+    ui:order:
+      - repository
+      - name
+      - version
+    ui:help: "Confirm the repository, the name, and the version with your Fivetran account team before the first deployment."
+  replicas:
+    ui:widget: updown
+    ui:help: "One copy handles most sources. Add a second copy for a large or a constant load."
