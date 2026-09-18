@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "server_errors" {
   display_name        = "Server errors in five minutes"
-  cloud_resource_id   = azurerm_linux_web_app.main.id
+  cloud_resource_id   = "${azurerm_linux_web_app.main.id}|server_errors"
   threshold           = 5
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -17,7 +17,7 @@ resource "massdriver_instance_alarm" "server_errors" {
 
 resource "massdriver_instance_alarm" "response_time" {
   display_name        = "Response time above three seconds"
-  cloud_resource_id   = azurerm_linux_web_app.main.id
+  cloud_resource_id   = "${azurerm_linux_web_app.main.id}|response_time"
   threshold           = 3
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -32,7 +32,7 @@ resource "massdriver_instance_alarm" "response_time" {
 
 resource "massdriver_instance_alarm" "health_check" {
   display_name        = "Health check below 100 percent"
-  cloud_resource_id   = azurerm_linux_web_app.main.id
+  cloud_resource_id   = "${azurerm_linux_web_app.main.id}|health_check"
   threshold           = 100
   period              = 300
   comparison_operator = "LessThanThreshold"

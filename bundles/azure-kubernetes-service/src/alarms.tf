@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "node_not_ready" {
   display_name        = "A node is not ready"
-  cloud_resource_id   = azurerm_kubernetes_cluster.main.id
+  cloud_resource_id   = "${azurerm_kubernetes_cluster.main.id}|node_not_ready"
   threshold           = 0
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -22,7 +22,7 @@ resource "massdriver_instance_alarm" "node_not_ready" {
 
 resource "massdriver_instance_alarm" "cpu" {
   display_name        = "Node processor above 85 percent"
-  cloud_resource_id   = azurerm_kubernetes_cluster.main.id
+  cloud_resource_id   = "${azurerm_kubernetes_cluster.main.id}|cpu"
   threshold           = 85
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -37,7 +37,7 @@ resource "massdriver_instance_alarm" "cpu" {
 
 resource "massdriver_instance_alarm" "memory" {
   display_name        = "Node memory above 90 percent"
-  cloud_resource_id   = azurerm_kubernetes_cluster.main.id
+  cloud_resource_id   = "${azurerm_kubernetes_cluster.main.id}|memory"
   threshold           = 90
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -52,7 +52,7 @@ resource "massdriver_instance_alarm" "memory" {
 
 resource "massdriver_instance_alarm" "pods_not_running" {
   display_name        = "Pods not in the running phase"
-  cloud_resource_id   = azurerm_kubernetes_cluster.main.id
+  cloud_resource_id   = "${azurerm_kubernetes_cluster.main.id}|pods_not_running"
   threshold           = 3
   period              = 600
   comparison_operator = "GreaterThanThreshold"

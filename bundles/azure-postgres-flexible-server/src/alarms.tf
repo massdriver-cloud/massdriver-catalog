@@ -3,7 +3,7 @@
 
 resource "massdriver_instance_alarm" "cpu" {
   display_name        = "CPU above 80 percent"
-  cloud_resource_id   = azurerm_postgresql_flexible_server.main.id
+  cloud_resource_id   = "${azurerm_postgresql_flexible_server.main.id}|cpu"
   threshold           = 80
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -18,7 +18,7 @@ resource "massdriver_instance_alarm" "cpu" {
 
 resource "massdriver_instance_alarm" "storage" {
   display_name        = "Disk above 85 percent"
-  cloud_resource_id   = azurerm_postgresql_flexible_server.main.id
+  cloud_resource_id   = "${azurerm_postgresql_flexible_server.main.id}|storage"
   threshold           = 85
   period              = 600
   comparison_operator = "GreaterThanThreshold"
@@ -33,7 +33,7 @@ resource "massdriver_instance_alarm" "storage" {
 
 resource "massdriver_instance_alarm" "connections" {
   display_name        = "Connections above 80 percent of the limit"
-  cloud_resource_id   = azurerm_postgresql_flexible_server.main.id
+  cloud_resource_id   = "${azurerm_postgresql_flexible_server.main.id}|connections"
   threshold           = 80
   period              = 300
   comparison_operator = "GreaterThanThreshold"

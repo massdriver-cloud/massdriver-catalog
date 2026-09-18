@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "availability" {
   display_name        = "Availability below 99.99 percent"
-  cloud_resource_id   = azurerm_cosmosdb_account.main.id
+  cloud_resource_id   = "${azurerm_cosmosdb_account.main.id}|availability"
   threshold           = 99.99
   period              = 300
   comparison_operator = "LessThanThreshold"
@@ -17,7 +17,7 @@ resource "massdriver_instance_alarm" "availability" {
 
 resource "massdriver_instance_alarm" "throttled" {
   display_name        = "Throttled requests"
-  cloud_resource_id   = azurerm_cosmosdb_account.main.id
+  cloud_resource_id   = "${azurerm_cosmosdb_account.main.id}|throttled"
   threshold           = 10
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -36,7 +36,7 @@ resource "massdriver_instance_alarm" "throttled" {
 
 resource "massdriver_instance_alarm" "request_units" {
   display_name        = "Request rate above 80 percent of the reserve"
-  cloud_resource_id   = azurerm_cosmosdb_account.main.id
+  cloud_resource_id   = "${azurerm_cosmosdb_account.main.id}|request_units"
   threshold           = 80
   period              = 300
   comparison_operator = "GreaterThanThreshold"

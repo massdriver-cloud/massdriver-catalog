@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "availability" {
   display_name        = "Availability below 99 percent"
-  cloud_resource_id   = azurerm_storage_account.main.id
+  cloud_resource_id   = "${azurerm_storage_account.main.id}|availability"
   threshold           = 99
   period              = 300
   comparison_operator = "LessThanThreshold"
@@ -17,7 +17,7 @@ resource "massdriver_instance_alarm" "availability" {
 
 resource "massdriver_instance_alarm" "server_errors" {
   display_name        = "Server errors in five minutes"
-  cloud_resource_id   = azurerm_storage_account.main.id
+  cloud_resource_id   = "${azurerm_storage_account.main.id}|server_errors"
   threshold           = 5
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -36,7 +36,7 @@ resource "massdriver_instance_alarm" "server_errors" {
 
 resource "massdriver_instance_alarm" "latency" {
   display_name        = "Write latency above one second"
-  cloud_resource_id   = azurerm_storage_account.main.id
+  cloud_resource_id   = "${azurerm_storage_account.main.id}|latency"
   threshold           = 1000
   period              = 300
   comparison_operator = "GreaterThanThreshold"

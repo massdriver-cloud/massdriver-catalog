@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "restarts" {
   display_name        = "Container restarts"
-  cloud_resource_id   = azurerm_container_app.main.id
+  cloud_resource_id   = "${azurerm_container_app.main.id}|restarts"
   threshold           = 3
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -17,7 +17,7 @@ resource "massdriver_instance_alarm" "restarts" {
 
 resource "massdriver_instance_alarm" "replicas" {
   display_name        = "No running replica"
-  cloud_resource_id   = azurerm_container_app.main.id
+  cloud_resource_id   = "${azurerm_container_app.main.id}|replicas"
   threshold           = 1
   period              = 300
   comparison_operator = "LessThanThreshold"
@@ -32,7 +32,7 @@ resource "massdriver_instance_alarm" "replicas" {
 
 resource "massdriver_instance_alarm" "memory" {
   display_name        = "Memory above 90 percent of the limit"
-  cloud_resource_id   = azurerm_container_app.main.id
+  cloud_resource_id   = "${azurerm_container_app.main.id}|memory"
   threshold           = 90
   period              = 300
   comparison_operator = "GreaterThanThreshold"

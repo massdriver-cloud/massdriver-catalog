@@ -2,7 +2,7 @@
 
 resource "massdriver_instance_alarm" "storage" {
   display_name        = "Storage above 85 percent"
-  cloud_resource_id   = azurerm_mssql_database.main.id
+  cloud_resource_id   = "${azurerm_mssql_database.main.id}|storage"
   threshold           = 85
   period              = 600
   comparison_operator = "GreaterThanThreshold"
@@ -17,7 +17,7 @@ resource "massdriver_instance_alarm" "storage" {
 
 resource "massdriver_instance_alarm" "cpu" {
   display_name        = "Processor above 80 percent"
-  cloud_resource_id   = azurerm_mssql_database.main.id
+  cloud_resource_id   = "${azurerm_mssql_database.main.id}|cpu"
   threshold           = 80
   period              = 300
   comparison_operator = "GreaterThanThreshold"
@@ -32,7 +32,7 @@ resource "massdriver_instance_alarm" "cpu" {
 
 resource "massdriver_instance_alarm" "failed_connections" {
   display_name        = "Failed connections"
-  cloud_resource_id   = azurerm_mssql_database.main.id
+  cloud_resource_id   = "${azurerm_mssql_database.main.id}|failed_connections"
   threshold           = 10
   period              = 300
   comparison_operator = "GreaterThanThreshold"
