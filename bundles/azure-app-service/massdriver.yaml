@@ -1,0 +1,167 @@
+name: azure-app-service
+description: A Linux web application on an App Service plan, joined to the delegated subnet of the connected network.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-app-service
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      image: "mcr.microsoft.com/appsvc/staticsite:latest"
+      port: 80
+      plan_sku: B1
+      instance_count: 1
+      always_on: false
+      log_level: debug
+      health_check_path: /
+    - __name: Staging
+      image: "mcr.microsoft.com/appsvc/staticsite:latest"
+      port: 80
+      plan_sku: P0v3
+      instance_count: 1
+      always_on: true
+      log_level: info
+      health_check_path: /
+    - __name: Production
+      image: "mcr.microsoft.com/appsvc/staticsite:latest"
+      port: 80
+      plan_sku: P1v3
+      instance_count: 3
+      always_on: true
+      log_level: warn
+      health_check_path: /
+  required:
+    - image
+    - port
+    - plan_sku
+    - instance_count
+  properties:
+    image:
+      type: string
+      title: Container Image
+      description: The image and the tag that the plan runs.
+      default: "mcr.microsoft.com/appsvc/staticsite:latest"
+      minLength: 1
+      pattern: "^[^[:space:]]+:[^[:space:]]+$"
+      message:
+        pattern: "Must be image:tag or image@digest, and it must hold no space."
+    port:
+      type: integer
+      title: Container Port
+      description: The port that the container listens on.
+      default: 8080
+      minimum: 1
+      maximum: 65535
+    plan_sku:
+      type: string
+      title: Plan Size
+      description: The processor, the memory, and the features of the plan.
+      default: B1
+      oneOf:
+        - const: B1
+          title: Basic B1 — 1 vCPU, 1.75 GiB (development)
+        - const: B2
+          title: Basic B2 — 2 vCPU, 3.5 GiB
+        - const: P0v3
+          title: Premium P0v3 — 1 vCPU, 4 GiB
+        - const: P1v3
+          title: Premium P1v3 — 2 vCPU, 8 GiB
+        - const: P2v3
+          title: Premium P2v3 — 4 vCPU, 16 GiB
+    instance_count:
+      type: integer
+      title: Instance Count
+      description: The number of copies that the plan runs.
+      default: 1
+      minimum: 1
+      maximum: 30
+    always_on:
+      type: boolean
+      title: Always On
+      description: Azure keeps the application loaded. Turn this off in development to cut the cost, and the first request then waits.
+      default: true
+    health_check_path:
+      type: string
+      title: Health Check Path
+      description: The path that Azure calls to test one copy.
+      default: /
+      pattern: ^/[^\s]*$
+      message:
+        pattern: "Must start with / and must hold no space."
+    log_level:
+      type: string
+      title: Log Level
+      description: The amount of detail in the logs of the application.
+      default: info
+      oneOf:
+        - const: debug
+          title: "debug — every event (development only)"
+        - const: info
+          title: "info — normal"
+        - const: warn
+          title: "warn — abnormal events only"
+        - const: error
+          title: "error — failures only"
+    bucket_policy:
+      type: string
+      title: Storage Access
+      description: The access level of the application on the storage container. The list comes from the connected storage.
+      $md.enum:
+        connection: bucket
+        options: .policies
+        value: .id
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+  database:
+    resource_type: postgres-database@0.0.0
+    required: false
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: false
+
+resources:
+  application:
+    resource_type: workload@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+app:
+  envs:
+    LOG_LEVEL: .params.log_level
+    PORT: .params.port | tostring
+    DATABASE_HOST: .connections.database.auth.hostname // ""
+    DATABASE_NAME: .connections.database.auth.database // ""
+    DATABASE_USER: .connections.database.auth.username // ""
+    STORAGE_ACCOUNT: .connections.bucket.name // ""
+    STORAGE_CONTAINER: .connections.bucket.container // ""
+  secrets:
+    SESSION_SECRET:
+      title: Session Secret
+      description: The key that signs a session cookie. Create one with `openssl rand -base64 48`.
+      required: false
+
+ui:
+  ui:order:
+    - image
+    - port
+    - plan_sku
+    - instance_count
+    - always_on
+    - health_check_path
+    - log_level
+    - bucket_policy
+    - "*"
+  plan_sku:
+    ui:help: "A Basic plan has no staging slot and no autoscale. A Premium plan adds both, and it costs about four times more."
+  always_on:
+    ui:help: "Turn this off in development only. Azure unloads an idle application, and the next request then waits about 20 seconds."
+  instance_count:
+    ui:widget: updown

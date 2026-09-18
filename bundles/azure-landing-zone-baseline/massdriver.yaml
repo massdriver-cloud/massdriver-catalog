@@ -1,0 +1,109 @@
+name: azure-landing-zone-baseline
+description: The governance floor of a landing zone. It creates a log workspace, sends the activity log of the subscription to it, and sets the Defender for Cloud plan.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-landing-zone-baseline
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      region: eastus
+      retention_days: 30
+      defender_plan: Free
+      activity_log_enabled: true
+    - __name: Staging
+      region: eastus
+      retention_days: 90
+      defender_plan: Free
+      activity_log_enabled: true
+    - __name: Production
+      region: eastus2
+      retention_days: 365
+      defender_plan: Standard
+      activity_log_enabled: true
+      security_contact_email: security@example.com
+  required:
+    - region
+    - retention_days
+    - defender_plan
+  properties:
+    region:
+      type: string
+      title: Region
+      description: The Azure region that holds the log workspace.
+      default: eastus
+      $md.immutable: true
+      oneOf:
+        - const: eastus
+          title: East US (Virginia)
+        - const: eastus2
+          title: East US 2 (Virginia)
+        - const: centralus
+          title: Central US (Iowa)
+        - const: westus2
+          title: West US 2 (Washington)
+        - const: westus3
+          title: West US 3 (Arizona)
+        - const: northeurope
+          title: North Europe (Ireland)
+        - const: westeurope
+          title: West Europe (Netherlands)
+    retention_days:
+      type: integer
+      title: Log Retention (days)
+      description: The number of days that the workspace keeps a log entry. Azure charges for the storage.
+      default: 30
+      minimum: 30
+      maximum: 730
+    defender_plan:
+      type: string
+      title: Defender for Cloud Plan
+      description: The level of the security service on the subscription.
+      default: Free
+      oneOf:
+        - const: Free
+          title: Free — recommendations and a secure score, no charge
+        - const: Standard
+          title: Standard — threat detection, charged per resource per month
+    activity_log_enabled:
+      type: boolean
+      title: Collect the Activity Log
+      description: Send every control plane action on the subscription to the workspace. An auditor asks for this record.
+      default: true
+    security_contact_email:
+      type: string
+      title: Security Contact
+      description: The address that Azure alerts when it finds a threat. Leave it empty to set no contact.
+      default: ""
+      pattern: ^$|^[^@\s]+@[^@\s]+\.[^@\s]+$
+      message:
+        pattern: "Must be an email address, or empty."
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+
+resources:
+  logs:
+    resource_type: log-workspace@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - retention_days
+    - defender_plan
+    - activity_log_enabled
+    - security_contact_email
+    - "*"
+  retention_days:
+    ui:widget: updown
+    ui:help: "Development: 30 days. Production: 365 days. Azure charges per gigabyte per month."
+  defender_plan:
+    ui:help: "Warning: the Standard plan charges per resource per month. Read the price list before you select it."
+  activity_log_enabled:
+    ui:help: "SOC 2 and NIST both ask for a record of every change. Leave this on."

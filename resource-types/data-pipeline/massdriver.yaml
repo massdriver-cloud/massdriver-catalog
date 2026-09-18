@@ -1,0 +1,43 @@
+name: data-pipeline
+version: 0.0.0
+label: Data Pipeline
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-data-factory/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: data
+  instructions:
+    - label: Azure Data Factory
+      path: ./instructions/Azure Data Factory.md
+
+schema:
+  title: Data Pipeline
+  description: A service that moves and transforms data on a schedule.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+  properties:
+    id:
+      title: ID
+      description: The full identifier of the service in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: The name of the service.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      description: The cloud region that holds the service.
+      type: string
+    studio_url:
+      title: Studio URL
+      description: The address where an engineer edits the pipelines.
+      type: string
+    principal_id:
+      title: Principal ID
+      description: The identity of the service. Give this identity access to a source and a target.
+      type: string

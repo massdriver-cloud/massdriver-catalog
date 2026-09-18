@@ -1,0 +1,42 @@
+name: fivetran-account
+version: 0.0.0
+label: Fivetran Account
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/fivetran-agent/icon.svg
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Fivetran Dashboard
+      path: ./instructions/Fivetran Dashboard.md
+
+schema:
+  title: Fivetran Account
+  description: The credentials of a Fivetran account. An agent uses them to join the account.
+  type: object
+  additionalProperties: false
+  required:
+    - agent_token
+  properties:
+    agent_token:
+      $md.sensitive: true
+      $md.copyable: false
+      title: Agent Token
+      description: The token that Fivetran shows once, when you create the agent.
+      type: string
+      minLength: 1
+    group_id:
+      title: Group ID
+      description: The destination group that receives the data.
+      type: string
+    api_key:
+      $md.sensitive: true
+      title: API Key
+      description: The key of the Fivetran REST API. A bundle that manages connectors needs it.
+      type: string
+    api_secret:
+      $md.sensitive: true
+      $md.copyable: false
+      title: API Secret
+      description: The secret that belongs to the API key.
+      type: string

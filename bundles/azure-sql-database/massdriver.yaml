@@ -1,0 +1,130 @@
+name: azure-sql-database
+description: An Azure SQL server and one database. The server accepts traffic from the connected network only.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-sql-database
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      database_name: appdev
+      username: sqladmin
+      sku: Basic
+      max_size_gb: 2
+      backup_redundancy: Local
+      zone_redundant: false
+    - __name: Staging
+      database_name: appstg
+      username: sqladmin
+      sku: S1
+      max_size_gb: 50
+      backup_redundancy: Local
+      zone_redundant: false
+    - __name: Production
+      database_name: appprd
+      username: sqladmin
+      sku: GP_Gen5_2
+      max_size_gb: 250
+      backup_redundancy: Geo
+      zone_redundant: true
+  required:
+    - database_name
+    - username
+    - sku
+    - max_size_gb
+  properties:
+    database_name:
+      type: string
+      title: Database Name
+      description: The name of the database.
+      default: app
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
+      message:
+        pattern: "Must start with a letter. It can hold letters, digits, underscores, and hyphens."
+      $md.immutable: true
+    username:
+      type: string
+      title: Administrator Username
+      description: The name of the administrator user. The bundle creates the password.
+      default: sqladmin
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9_]*$
+      message:
+        pattern: "Must start with a lowercase letter. It can hold lowercase letters, digits, and underscores."
+      $md.immutable: true
+    sku:
+      type: string
+      title: Service Level
+      description: The processor, the memory, and the features of the database.
+      default: Basic
+      oneOf:
+        - const: Basic
+          title: Basic — 5 DTU, 2 GiB limit (development)
+        - const: S0
+          title: Standard S0 — 10 DTU
+        - const: S1
+          title: Standard S1 — 20 DTU
+        - const: GP_Gen5_2
+          title: General purpose — 2 vCore
+        - const: GP_Gen5_4
+          title: General purpose — 4 vCore
+    max_size_gb:
+      type: integer
+      title: Maximum Size (GiB)
+      description: The size limit of the database. The Basic level accepts 2 GiB at most.
+      default: 2
+      minimum: 1
+      maximum: 4096
+    backup_redundancy:
+      type: string
+      title: Backup Redundancy
+      description: The place where Azure keeps a backup.
+      default: Local
+      oneOf:
+        - const: Local
+          title: Local — one data center
+        - const: Zone
+          title: Zone — three zones of the region
+        - const: Geo
+          title: Geographic — a second region, at the highest cost
+    zone_redundant:
+      type: boolean
+      title: Zone Redundant
+      description: Azure keeps a copy in a second zone. The General purpose level supports it.
+      default: false
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+
+resources:
+  database:
+    resource_type: mssql-database@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - database_name
+    - username
+    - sku
+    - max_size_gb
+    - backup_redundancy
+    - zone_redundant
+    - "*"
+  sku:
+    ui:help: "The Basic level costs about 5 dollars per month, and it holds 2 GiB. A vCore level costs much more and scales without downtime."
+  max_size_gb:
+    ui:widget: updown
+    ui:help: "Warning: the Basic level rejects a value above 2. The deployment then fails."
+  backup_redundancy:
+    ui:help: "Geographic redundancy protects against the loss of a region, and it raises the backup cost."

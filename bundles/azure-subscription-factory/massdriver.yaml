@@ -1,0 +1,121 @@
+name: azure-subscription-factory
+description: Vends an Azure subscription under a billing account, places it in a management group, and records its landing zone class.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-subscription-factory
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Corporate landing zone
+      subscription_name: workload-dev
+      landing_zone_class: corporate
+      management_group_id: mg-corp
+      workload_type: DevTest
+      budget_amount: 500
+    - __name: Restricted landing zone
+      subscription_name: restricted-prod
+      landing_zone_class: restricted
+      management_group_id: mg-restricted
+      workload_type: Production
+      budget_amount: 5000
+  required:
+    - subscription_name
+    - landing_zone_class
+    - management_group_id
+    - billing_scope
+    - workload_type
+  properties:
+    subscription_name:
+      type: string
+      title: Subscription Name
+      description: The display name of the new subscription. Azure cannot rename it later.
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+      message:
+        pattern: "Must be lowercase letters, digits, and hyphens. It must start and end with a letter or a digit."
+      $md.immutable: true
+    landing_zone_class:
+      type: string
+      title: Landing Zone Class
+      description: The rule set of the subscription. A restricted zone accepts a short list of services only.
+      default: corporate
+      $md.immutable: true
+      oneOf:
+        - const: corporate
+          title: Corporate — the standard service list
+        - const: restricted
+          title: Restricted — only the services that Customer Lockbox supports
+    management_group_id:
+      type: string
+      title: Management Group
+      description: The group that holds the subscription. The group carries the policy set.
+      minLength: 1
+      $md.immutable: true
+    billing_scope:
+      type: string
+      title: Billing Scope
+      description: The billing account, the enrollment account, or the agreement that pays for the subscription.
+      minLength: 1
+      $md.immutable: true
+      examples:
+        - "/providers/Microsoft.Billing/billingAccounts/1234567/enrollmentAccounts/7654321"
+    workload_type:
+      type: string
+      title: Workload Type
+      description: The price band of the subscription. Azure sets this value at creation only.
+      default: Production
+      $md.immutable: true
+      oneOf:
+        - const: Production
+          title: Production
+        - const: DevTest
+          title: Development and test — a lower price on some services
+    budget_amount:
+      type: integer
+      title: Monthly Budget
+      description: The monthly spend that triggers an alert, in the currency of the billing account. A value of 0 sets no budget.
+      default: 0
+      minimum: 0
+      maximum: 1000000
+    budget_contact_email:
+      type: string
+      title: Budget Contact
+      description: The address that receives the budget alert. Leave it empty to send no alert.
+      default: ""
+      pattern: ^$|^[^@\s]+@[^@\s]+\.[^@\s]+$
+      message:
+        pattern: "Must be an email address, or empty."
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+
+resources:
+  account:
+    resource_type: cloud-account@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - subscription_name
+    - landing_zone_class
+    - management_group_id
+    - billing_scope
+    - workload_type
+    - budget_amount
+    - budget_contact_email
+    - "*"
+  landing_zone_class:
+    ui:help: "Warning: the class decides which bundles the projects in this subscription can use. Azure cannot change it after the first deployment."
+  billing_scope:
+    ui:help: "Find it with: az billing account list --query \"[].id\"."
+  workload_type:
+    ui:help: "Azure sets the price band at creation. A change needs a new subscription."
+  budget_amount:
+    ui:widget: updown
+    ui:help: "A value of 0 sets no budget. The alert fires at 80 percent and at 100 percent of the amount."

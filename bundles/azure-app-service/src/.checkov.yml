@@ -1,0 +1,16 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # App Service Authentication needs an app registration per environment, and
+  # the applications on this plan carry their own sign-in.
+  - CKV_AZURE_13
+  # Client certificates need mutual TLS. No client of these applications holds
+  # a certificate.
+  - CKV_AZURE_17
+  # The web application serves public traffic. That is its purpose. Outbound
+  # traffic still enters the network, and the database stays private.
+  - CKV_AZURE_222
+  # A zone redundant plan needs a Premium level. The plan size is a parameter,
+  # so a production instance can select one.
+  - CKV_AZURE_225
+  # The applications hold no state on disk, so they mount no file share.
+  - CKV_AZURE_88

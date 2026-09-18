@@ -1,0 +1,131 @@
+name: azure-cosmos-account
+description: An Azure Cosmos DB account and one database. It accepts traffic from the connected network only.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-cosmos-account
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      database_name: appdev
+      api: sql
+      capacity_mode: Serverless
+      consistency: Session
+      zone_redundant: false
+      backup_interval_minutes: 240
+    - __name: Production
+      database_name: appprd
+      api: sql
+      capacity_mode: Provisioned
+      throughput: 4000
+      consistency: BoundedStaleness
+      zone_redundant: true
+      backup_interval_minutes: 60
+  required:
+    - database_name
+    - api
+    - capacity_mode
+    - consistency
+  properties:
+    database_name:
+      type: string
+      title: Database Name
+      description: The name of the database inside the account.
+      default: app
+      minLength: 1
+      maxLength: 63
+      pattern: ^[a-z][a-z0-9-]*$
+      message:
+        pattern: "Must start with a lowercase letter. It can hold lowercase letters, digits, and hyphens."
+      $md.immutable: true
+    api:
+      type: string
+      title: API
+      description: The wire protocol of the account. Azure sets it at creation, and an application picks its driver from it.
+      default: sql
+      $md.immutable: true
+      oneOf:
+        - const: sql
+          title: NoSQL (Core) — the default
+        - const: mongo
+          title: MongoDB — for an application that already speaks MongoDB
+    capacity_mode:
+      type: string
+      title: Capacity Mode
+      description: The way that Azure charges for the account.
+      default: Serverless
+      $md.immutable: true
+      oneOf:
+        - const: Serverless
+          title: Serverless — a charge per request, best for a small or uneven load
+        - const: Provisioned
+          title: Provisioned — a reserved rate, best for a steady load
+    throughput:
+      type: integer
+      title: Throughput (RU/s)
+      description: The reserved request rate. It applies to the provisioned mode only.
+      default: 400
+      minimum: 400
+      maximum: 100000
+    consistency:
+      type: string
+      title: Consistency
+      description: The rule that decides what a read returns after a write.
+      default: Session
+      oneOf:
+        - const: Session
+          title: Session — a client reads its own writes
+        - const: Strong
+          title: Strong — every read returns the newest write, at a higher cost
+        - const: BoundedStaleness
+          title: Bounded staleness — a read lags by a known amount
+        - const: Eventual
+          title: Eventual — the lowest cost, and a read can return an old value
+    zone_redundant:
+      type: boolean
+      title: Zone Redundant
+      description: Azure keeps a copy in a second zone of the region.
+      default: false
+    backup_interval_minutes:
+      type: integer
+      title: Backup Interval (minutes)
+      description: The time between two periodic backups.
+      default: 240
+      minimum: 60
+      maximum: 1440
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+
+resources:
+  database:
+    resource_type: document-database@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - database_name
+    - api
+    - capacity_mode
+    - throughput
+    - consistency
+    - zone_redundant
+    - backup_interval_minutes
+    - "*"
+  api:
+    ui:help: "Azure cannot change the protocol. A change needs a new account and a data migration."
+  capacity_mode:
+    ui:help: "Serverless costs nothing while the database is idle. Provisioned costs less under a steady load above about 1000 RU/s."
+  throughput:
+    ui:widget: updown
+    ui:help: "The provisioned mode only. Azure ignores this value in the serverless mode."
+  consistency:
+    ui:help: "Strong consistency doubles the request cost of a read. Session covers most applications."

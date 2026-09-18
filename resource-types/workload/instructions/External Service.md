@@ -1,56 +1,19 @@
-# Register an external service as a Workload resource
+# Register a Workload That Massdriver Does Not Deploy
 
-Use this form to register a workload that lives **outside** Massdriver — a SaaS endpoint, a service deployed by another tool, or anything you want other bundles in the environment to be aware of (and link to).
+Use these steps to put an existing service on the canvas. Other bundles then
+read its address.
 
-You only need a name plus the URLs that identify and probe the service.
+## Values
 
----
+| Field | What to enter |
+|---|---|
+| `name` | A short name, in lowercase letters and hyphens. |
+| `service_url` | The address that a client calls. |
+| `health_check_url` | The address that a monitor calls. |
+| `deployment_id` | The release that runs now. Leave it empty when you do not track releases. |
+| `tags` | Labels such as `team` and `tier`. |
 
-### **Name**
+## Warning
 
-A short, lowercase, kebab-cased name. Shows up in dependency graphs and observability dashboards.
-
-Pick something that maps to how the rest of your platform refers to this service. Example: `payments-api`.
-
-Paste it into **Name**.
-
----
-
-### **Service URL** *(optional)*
-
-The base URL where consumers reach the application:
-
-```
-https://payments-api.example.com
-```
-
-Paste it into **Service URL**. Massdriver doesn't probe this URL — it's metadata for downstream bundles that need to know "where does this app live".
-
----
-
-### **Health Check URL** *(optional)*
-
-A full URL to a liveness or health endpoint. Massdriver doesn't poll it directly, but synthetic-check bundles and monitoring resource types pick it up:
-
-```
-https://payments-api.example.com/health
-```
-
-Paste it into **Health Check URL**.
-
----
-
-### **Deployment ID** *(optional)*
-
-Whatever identifier your release pipeline already uses — a commit SHA, an image digest, or a build number. Leave it blank if you're registering a service that doesn't roll out through Massdriver. Example: `sha:7a2f3e9b`.
-
----
-
-### **Tags** *(optional)*
-
-Free-form key/value labels. Common keys:
-
-- `team` — owning team (`payments`)
-- `tier` — `critical` / `important` / `experimental`
-- `owner` — Slack channel or email
-- `runbook` — URL to the on-call runbook
+Massdriver does not deploy this workload, and it does not watch it. The record
+goes stale when the service moves. Update the record after each move.

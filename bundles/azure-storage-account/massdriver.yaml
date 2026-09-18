@@ -1,0 +1,111 @@
+name: azure-storage-account
+description: An Azure storage account with one blob container. The network rules accept traffic from the connected virtual network only.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-storage-account
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      container_name: app
+      redundancy: Standard_LRS
+      access_tier: Hot
+      versioning_enabled: false
+      retention_days: 7
+    - __name: Staging
+      container_name: app
+      redundancy: Standard_ZRS
+      access_tier: Hot
+      versioning_enabled: true
+      retention_days: 14
+    - __name: Production
+      container_name: app
+      redundancy: Standard_GZRS
+      access_tier: Hot
+      versioning_enabled: true
+      retention_days: 35
+  required:
+    - container_name
+    - redundancy
+  properties:
+    container_name:
+      type: string
+      title: Container Name
+      description: The name of the blob container. Azure cannot rename a container.
+      default: app
+      minLength: 3
+      maxLength: 63
+      pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+      message:
+        pattern: "Must be lowercase letters, digits, and hyphens. It must start and end with a letter or a digit."
+      $md.immutable: true
+    redundancy:
+      type: string
+      title: Redundancy
+      description: The number of copies that Azure keeps, and their locations.
+      default: Standard_LRS
+      oneOf:
+        - const: Standard_LRS
+          title: Local (3 copies, one data center) — lowest cost
+        - const: Standard_ZRS
+          title: Zone (3 copies, three zones) — survives a zone failure
+        - const: Standard_GRS
+          title: Geographic (6 copies, two regions) — survives a region failure
+        - const: Standard_GZRS
+          title: Zone and geographic (6 copies) — highest cost
+    access_tier:
+      type: string
+      title: Access Tier
+      description: The price of storage against the price of a read.
+      default: Hot
+      oneOf:
+        - const: Hot
+          title: Hot — frequent reads
+        - const: Cool
+          title: Cool — reads less than once a month
+    versioning_enabled:
+      type: boolean
+      title: Keep Object Versions
+      description: Azure keeps a copy of an object each time the application overwrites it.
+      default: true
+    retention_days:
+      type: integer
+      title: Delete Retention (days)
+      description: The number of days that Azure keeps a deleted object before it removes the object.
+      default: 7
+      minimum: 1
+      maximum: 365
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+  logs:
+    resource_type: log-workspace@0.0.0
+    required: false
+
+resources:
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - container_name
+    - redundancy
+    - access_tier
+    - versioning_enabled
+    - retention_days
+    - "*"
+  redundancy:
+    ui:help: "Local costs the least. Zone survives the loss of one data center. Geographic doubles the storage cost."
+  access_tier:
+    ui:help: "Cool cuts the storage price by about half, and it raises the price of every read."
+  retention_days:
+    ui:help: "Development: 7 days. Production: 35 days. A longer period costs more, because Azure keeps the deleted data."

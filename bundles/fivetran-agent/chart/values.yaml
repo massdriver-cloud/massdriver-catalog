@@ -1,0 +1,16 @@
+# These values override the defaults of the remote chart.
+# The provisioner merges this file with the values of the chart.
+#
+# The file chart/values.jq maps the Massdriver parameters and connections onto
+# these keys. Read the key names of the real chart before the first deployment,
+# because a wrong key is silently ignored by Helm.
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 2Gi
+  requests:
+    cpu: "250m"
+    memory: 512Mi

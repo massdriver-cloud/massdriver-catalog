@@ -1,32 +1,33 @@
 name: postgres-database
 version: 0.0.0
 label: PostgreSQL Database
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/postgres/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-postgres-flexible-server/icon.svg
 
 ui:
   connectionOrientation: link
   environmentDefaultGroup: databases
   instructions:
-    - label: AWS RDS PostgreSQL
-      path: ./instructions/AWS RDS PostgreSQL.md
-    - label: GCP Cloud SQL PostgreSQL
-      path: ./instructions/GCP Cloud SQL PostgreSQL.md
-    - label: Self-Hosted PostgreSQL
-      path: ./instructions/Self-Hosted PostgreSQL.md
+    - label: Azure Database for PostgreSQL
+      path: ./instructions/Azure Database for PostgreSQL.md
 
 schema:
   title: PostgreSQL Database
-  description: PostgreSQL database instance with connection details and access policies.
+  description: A PostgreSQL database, with the values that an application needs to connect to it.
   type: object
   additionalProperties: false
   required:
-    - auth
     - id
+    - auth
     - policies
   properties:
+    id:
+      title: ID
+      description: The full identifier of the database server in the cloud provider.
+      type: string
+      minLength: 1
     auth:
-      title: Authentication
-      description: Database connection parameters.
+      title: Connection
+      description: The values that an application needs to open a connection.
       type: object
       additionalProperties: false
       required:
@@ -38,50 +39,43 @@ schema:
       properties:
         hostname:
           title: Host
-          description: Database server hostname or IP address.
+          description: The name of the database server.
           type: string
           minLength: 1
         port:
           title: Port
-          description: TCP port the database listens on.
+          description: The TCP port of the database server.
           type: integer
           minimum: 1
           maximum: 65535
           default: 5432
         database:
           title: Database
-          description: Default database name to connect to.
+          description: The name of the database.
           type: string
-          pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
-          message:
-            pattern: "Must start with a letter or underscore, then letters, digits, or underscores."
+          minLength: 1
         username:
           title: Username
-          description: Authentication username.
+          description: The name of the application user.
           type: string
           minLength: 1
         password:
           $md.sensitive: true
           $md.copyable: false
           title: Password
-          description: Authentication password. Masked everywhere except in IaC at deploy time.
+          description: The password of the application user. Massdriver masks it everywhere except in the code at deployment time.
           type: string
-    id:
-      title: ID
-      description: Unique database instance identifier from the cloud provider.
-      type: string
-      minLength: 1
     version:
       title: Version
-      description: PostgreSQL major version (e.g. 16).
+      description: The major version of PostgreSQL.
       type: string
     high_availability:
       title: High Availability
-      description: Whether the instance is deployed in a multi-AZ / replicated configuration.
+      description: True when a standby server in a second zone takes over after a failure.
       type: boolean
     policies:
       title: Access Policies
-      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      description: The access levels that a consumer can select.
       type: array
       minItems: 1
       items:
@@ -93,11 +87,11 @@ schema:
         properties:
           id:
             title: ID
-            description: Policy identifier.
+            description: The identifier of the policy. A bundle maps it to a set of grants.
             type: string
             minLength: 1
           name:
             title: Name
-            description: Human-readable policy name.
+            description: The name that a developer reads in the form.
             type: string
             minLength: 1

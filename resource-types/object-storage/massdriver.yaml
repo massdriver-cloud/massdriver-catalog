@@ -1,57 +1,60 @@
 name: object-storage
 version: 0.0.0
 label: Object Storage
-icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/main/bundles/bucket/icon.svg
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-storage-account/icon.svg
 
 ui:
   connectionOrientation: link
   environmentDefaultGroup: storage
   instructions:
-    - label: AWS S3
-      path: ./instructions/AWS S3.md
     - label: Azure Blob Storage
       path: ./instructions/Azure Blob Storage.md
-    - label: GCP Cloud Storage
-      path: ./instructions/GCP Cloud Storage.md
 
 schema:
   title: Object Storage
-  description: Object storage (bucket/container) with access policies.
+  description: A container for files. An application reads and writes objects in it.
   type: object
   additionalProperties: false
   required:
     - id
     - name
+    - container
+    - endpoint
     - policies
   properties:
     id:
       title: ID
-      description: Unique resource identifier from the cloud provider (e.g. an ARN or selfLink).
+      description: The full identifier of the storage account in the cloud provider.
       type: string
       minLength: 1
     name:
-      title: Name
-      description: Storage bucket name (S3 bucket name, container name, etc.). Must be globally or account-unique depending on the provider.
+      title: Account Name
+      description: The name of the storage account.
       type: string
-      minLength: 3
-      maxLength: 63
-      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
-      message:
-        pattern: "Must be 3–63 lowercase characters, digits, dots, or hyphens, and start/end with a letter or digit."
+      minLength: 1
+    container:
+      title: Container
+      description: The name of the container that holds the objects.
+      type: string
+      minLength: 1
     endpoint:
       title: Endpoint
-      description: Storage API endpoint URL or virtual-hosted-style URL for the bucket.
+      description: The base URL of the container.
       type: string
-      pattern: ^https?://
+      pattern: ^https://
       message:
-        pattern: "Must start with http:// or https://."
+        pattern: "Must start with https://."
     region:
       title: Region
-      description: Cloud region the bucket lives in.
+      description: The cloud region that holds the storage account.
+      type: string
+    account_id:
+      title: Account ID
+      description: The subscription, project, or account that holds the storage account.
       type: string
     policies:
       title: Access Policies
-      description: IAM-style access policies the producing bundle exposes for consumers to pick from.
+      description: The access levels that a consumer can select.
       type: array
       minItems: 1
       items:
@@ -63,11 +66,11 @@ schema:
         properties:
           id:
             title: ID
-            description: Policy identifier.
+            description: The identifier of the policy. A bundle maps it to a cloud role.
             type: string
             minLength: 1
           name:
             title: Name
-            description: Human-readable policy name.
+            description: The name that a developer reads in the form.
             type: string
             minLength: 1

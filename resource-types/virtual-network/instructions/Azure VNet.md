@@ -1,79 +1,40 @@
-# Register an existing Azure VNet as a Virtual Network resource
+# Import an Azure Virtual Network
 
-Use this form to bring an already-provisioned Azure Virtual Network into Massdriver so other bundles in the environment can attach to it.
+Use these steps to register a VNet that you created outside of Massdriver.
 
-You will need the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) signed in to the subscription that owns the VNet:
+## Find the values
 
-```bash
-az login
-az account set --subscription "<your-subscription-id>"
-```
-
----
-
-### **ID**
-
-Find your VNet's resource ID:
-
-```bash
-az network vnet list -o table
-az network vnet show \
-  --resource-group <your-rg> \
-  --name <your-vnet> \
-  --query id -o tsv
-```
-
-Paste the full ARM ID (starts with `/subscriptions/...`) into the **ID** field.
-
----
-
-### **CIDR**
-
-Read the address space from the same VNet:
+Run this command. Replace the resource group and the network name.
 
 ```bash
 az network vnet show \
-  --resource-group <your-rg> \
-  --name <your-vnet> \
-  --query 'addressSpace.addressPrefixes[0]' -o tsv
+  --resource-group <RESOURCE_GROUP> \
+  --name <VNET_NAME> \
+  --query "{id:id, name:name, cidr:addressSpace.addressPrefixes[0], region:location, resource_group:resourceGroup}"
 ```
 
-Paste the result (for example `10.0.0.0/16`) into the **CIDR** field.
-
----
-
-### **Region** *(optional)*
-
-```bash
-az network vnet show \
-  --resource-group <your-rg> \
-  --name <your-vnet> \
-  --query location -o tsv
-```
-
-Paste the location (for example `eastus2`) into the **Region** field.
-
----
-
-### **Subnets**
-
-List every subnet in the VNet:
+Run this command to list the subnets.
 
 ```bash
 az network vnet subnet list \
-  --resource-group <your-rg> \
-  --vnet-name <your-vnet> \
-  --query '[].{id:id, name:name, cidr:addressPrefix}' \
-  -o table
+  --resource-group <RESOURCE_GROUP> \
+  --vnet-name <VNET_NAME> \
+  --query "[].{id:id, name:name, cidr:addressPrefix}"
 ```
 
-For each row, click **Add Subnet** and fill in:
+## Map the values
 
-- **ID** → the full ARM `id` (or the short name — pick one convention and stick with it across all your environments)
-- **CIDR** → `cidr`
-- **Type** → `public` if the subnet has an Internet route via a public load balancer or NAT gateway; otherwise `private`. The default is `private`.
-- **Availability Zone** → Azure subnets aren't bound to a single AZ; leave blank, or set it to match the AZ your downstream resources will live in if you're modeling that explicitly.
+| Field | Source |
+|---|---|
+| `id` | The `id` field of the VNet. |
+| `name` | The `name` field of the VNet. |
+| `cidr` | The first address prefix of the VNet. |
+| `region` | The `location` field of the VNet. |
+| `account_id` | The subscription ID that holds the VNet. |
+| `resource_group` | The resource group that holds the VNet. |
+| `subnets` | One entry per subnet. |
 
----
+## Warning
 
-> Tip: if you maintain VNets via Terraform, get the same values from `terraform show -json` and pluck them out with `jq` — no Azure CLI needed.
+Do not import a network that a Massdriver bundle already manages. Two owners of
+one network cause a deployment conflict.

@@ -1,0 +1,20 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # A vulnerability assessment writes its reports to a storage account. Connect
+  # one to this bundle before you turn the assessment on.
+  - CKV2_AZURE_2
+  # Entra ID authentication needs the object identifier of an administrator
+  # group, and that value differs per environment.
+  - CKV2_AZURE_27
+  # A private endpoint needs a private DNS zone bundle. The catalog holds none
+  # yet. The network rules already refuse every source outside the network.
+  - CKV2_AZURE_45
+  # Azure ignores a virtual network rule when public network access is off, so
+  # the two settings cannot both apply. The rules deny every other source.
+  - CKV_AZURE_113
+  # The ledger feature suits a table that needs cryptographic proof of its
+  # history. The reporting tables do not.
+  - CKV_AZURE_224
+  # Zone redundancy is a parameter of this bundle, and the General purpose
+  # level supports it.
+  - CKV_AZURE_229

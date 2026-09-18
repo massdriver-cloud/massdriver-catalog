@@ -1,0 +1,13 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # A customer managed key needs a Key Vault bundle. The catalog holds none
+  # yet. Azure encrypts the data with its own key until then.
+  - CKV_AZURE_100
+  # The account uses the network filter instead. Azure ignores a virtual
+  # network rule when public network access is off, so the two settings
+  # cannot both apply.
+  - CKV_AZURE_101
+  # A consumer reads the account with a key, and the resource type carries a
+  # read only key for that purpose. Entra ID only needs a data plane role
+  # model that the applications do not use yet.
+  - CKV_AZURE_140

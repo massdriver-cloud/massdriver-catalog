@@ -1,0 +1,55 @@
+name: cloud-account
+version: 0.0.0
+label: Cloud Account
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-subscription-factory/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: accounts
+  instructions:
+    - label: Azure Subscription
+      path: ./instructions/Azure Subscription.md
+
+schema:
+  title: Cloud Account
+  description: A billing and isolation boundary. It holds an Azure subscription, a GCP project, or an AWS account.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - landing_zone_class
+  properties:
+    id:
+      title: ID
+      description: The identifier of the account in the cloud provider.
+      type: string
+      minLength: 1
+    name:
+      title: Name
+      description: The name of the account.
+      type: string
+      minLength: 1
+    landing_zone_class:
+      title: Landing Zone Class
+      description: The rule set that applies to the account. A restricted account accepts a short list of services only.
+      type: string
+      oneOf:
+        - const: corporate
+          title: Corporate
+        - const: restricted
+          title: Restricted
+    management_group:
+      title: Management Group
+      description: The group that holds the account and its policy set.
+      type: string
+    tenant_id:
+      title: Tenant ID
+      description: The directory that owns the account.
+      type: string
+    policy_assignments:
+      title: Policy Assignments
+      description: The policies that the platform applied to the account.
+      type: array
+      items:
+        type: string

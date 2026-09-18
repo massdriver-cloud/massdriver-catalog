@@ -1,84 +1,30 @@
-# Register an existing Azure Blob Storage container
+# Import an Azure Storage Account
 
-Use this form to bring an existing Azure Storage **container** into Massdriver so other bundles can read/write to it.
+Use these steps to register a storage account that you created outside of
+Massdriver.
 
-You will need the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli):
-
-```bash
-az login
-az account set --subscription "<your-subscription-id>"
-```
-
-In Azure, what S3 calls a "bucket" is a **container** inside a **storage account**. You'll need both names below.
-
----
-
-### **ID**
-
-Use the container's full ARM resource ID:
+## Find the values
 
 ```bash
 az storage account show \
-  --resource-group <rg> --name <storage-account> \
-  --query id -o tsv
-# then append /blobServices/default/containers/<container-name>
+  --name <ACCOUNT_NAME> \
+  --query "{id:id, name:name, region:location, endpoint:primaryEndpoints.blob}"
 ```
 
-Paste the full ID into **ID**:
+## Map the values
 
-```
-/subscriptions/.../resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<storage-account>/blobServices/default/containers/<container-name>
-```
+| Field | Source |
+|---|---|
+| `id` | The `id` field of the account. |
+| `name` | The `name` field of the account. |
+| `container` | The name of the blob container that the application uses. |
+| `endpoint` | The blob endpoint, plus the container name. |
+| `region` | The `location` field of the account. |
+| `account_id` | The subscription ID that holds the account. |
+| `policies` | One entry per access level that you permit. |
 
----
+## Warning
 
-### **Name**
-
-The container name within the storage account:
-
-```bash
-az storage container list \
-  --account-name <storage-account> \
-  --query '[].name' -o tsv
-```
-
-Paste your chosen container name (3–63 lowercase chars / digits / hyphens) into **Name**.
-
----
-
-### **Endpoint** *(optional)*
-
-The blob endpoint URL for this container:
-
-```bash
-PRIMARY=$(az storage account show \
-  --resource-group <rg> --name <storage-account> \
-  --query primaryEndpoints.blob -o tsv)
-echo "${PRIMARY}<container-name>"
-```
-
-Paste the result (for example `https://acmestorage.blob.core.windows.net/orders-prod`) into **Endpoint**.
-
----
-
-### **Region** *(optional)*
-
-```bash
-az storage account show \
-  --resource-group <rg> --name <storage-account> \
-  --query location -o tsv
-```
-
-Paste the location (for example `eastus2`) into **Region**.
-
----
-
-### **Policies**
-
-Edit the policy list to match the role assignments your IaC creates. A common starter set:
-
-- `read-only` / "Read" — `Storage Blob Data Reader`
-- `read-write` / "Write" — `Storage Blob Data Contributor`
-- `admin` / "Admin" — `Storage Blob Data Owner`
-
-The **ID** is what your IaC's role-bindings key off; **Name** is what shows in dropdowns for consumers.
+Give the application the lowest access level that it needs. A policy of
+`read-write` cannot delete an object. Use `admin` only for a workload that
+manages the container.

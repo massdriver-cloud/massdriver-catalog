@@ -1,0 +1,26 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # A private API server is a parameter of this bundle. A production instance
+  # selects it, and a development instance does not.
+  - CKV_AZURE_115
+  # A disk encryption set needs a Key Vault bundle. The catalog holds none yet.
+  - CKV_AZURE_117
+  # The Helm provisioner reaches the cluster with the local account. Entra ID
+  # authentication needs a group object identifier per environment.
+  - CKV_AZURE_141
+  # The node takes 30 pods, not 50. The Azure network plugin gives every pod an
+  # address from the subnet, and 50 pods per node empties a /24 subnet after
+  # five nodes.
+  - CKV_AZURE_168
+  # An ephemeral disk needs a cache larger than the disk. The burstable sizes
+  # in this bundle carry no such cache.
+  - CKV_AZURE_226
+  # Host encryption needs the EncryptionAtHost feature on the subscription. The
+  # sandbox subscription does not register it.
+  - CKV_AZURE_227
+  # The cluster runs one node pool. A taint on that pool would leave no place
+  # for an application pod.
+  - CKV_AZURE_232
+  # An address range on the API server blocks the Massdriver provisioner, which
+  # holds no fixed address. The private cluster parameter covers this risk.
+  - CKV_AZURE_6

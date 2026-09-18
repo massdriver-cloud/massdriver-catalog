@@ -1,0 +1,8 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # A customer managed key needs a Key Vault bundle. The catalog holds none yet.
+  - CKV2_AZURE_15
+  # The pilot edits its pipelines in the studio. A git repository needs a
+  # repository and a branch per environment, which the platform team sets up
+  # after the pilot.
+  - CKV_AZURE_103
