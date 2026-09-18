@@ -17,6 +17,15 @@ resource "azurerm_resource_group" "main" {
   tags     = var.md_metadata.default_tags
 }
 
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = local.name_prefix
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = var.md_metadata.default_tags
+}
+
 resource "azurerm_kubernetes_cluster" "main" {
   lifecycle {
     precondition {
@@ -41,6 +50,11 @@ resource "azurerm_kubernetes_cluster" "main" {
   private_cluster_enabled = var.private_cluster
   local_account_disabled  = false
 
+  # Checkov CKV_AZURE_116 asks for the policy add-on, and CKV_AZURE_171 asks
+  # for an upgrade channel. Azure then applies a patch without a deployment.
+  azure_policy_enabled      = true
+  automatic_upgrade_channel = "patch"
+
   default_node_pool {
     name                 = "system"
     vm_size              = var.node_size
@@ -54,6 +68,17 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  # Checkov CKV_AZURE_4. The cluster sends its logs to this workspace.
+  oms_agent {
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  }
+
+  # Checkov CKV_AZURE_172. The driver rotates a mounted secret on its own.
+  key_vault_secrets_provider {
+    secret_rotation_enabled  = true
+    secret_rotation_interval = "2m"
   }
 
   network_profile {

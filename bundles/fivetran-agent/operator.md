@@ -1,39 +1,57 @@
+---
+templating: mustache
+---
+
 # Fivetran Agent Runbook
+
+## Health check
+
+```bash
+kubectl get pods -n {{params.namespace}} -l app.kubernetes.io/name={{params.chart.name}}
+```
 
 ## The agent does not appear in the Fivetran dashboard
 
-**Diagnosis.** The token is wrong, or the pod cannot reach Fivetran.
+The token is wrong, or the pod cannot reach Fivetran.
 
-**Fix.** Read the logs of the pod.
-
-```bash
-kubectl logs -n <NAMESPACE> -l app.kubernetes.io/name=hybrid-deployment-agent --tail=100
-```
-
-Check that the cluster reaches the internet through its outbound address.
+1. Read the logs.
+   ```bash
+   kubectl logs -n {{params.namespace}} -l app.kubernetes.io/name={{params.chart.name}} --tail=100
+   ```
+2. Confirm that the cluster reaches the internet through its outbound address.
+3. When the log shows a rejected token, correct the token in the Fivetran Account
+   resource, then deploy this instance again.
 
 ## The pod starts, and nothing happens
 
-**Diagnosis.** Helm ignored the value keys, because the names do not match the
-chart.
-
-**Fix.** Read the values that the release holds now.
+Helm ignored the value keys, because the names do not match the chart. Helm
+reports no error for a wrong key.
 
 ```bash
-helm get values -n <NAMESPACE> <RELEASE>
+helm get values -n {{params.namespace}} <RELEASE>
 ```
 
-Compare each key with the chart documentation, then correct
-`chart/values.jq`.
+Compare each key with the chart documentation, then correct `chart/values.jq`
+and publish the bundle again.
 
 ## The agent cannot reach the database
 
-**Diagnosis.** A network policy blocks the traffic, or the database answers in
-another network.
+{{#dependencies.database}}
+```bash
+kubectl run -n {{params.namespace}} netcheck --rm -it --image=busybox --restart=Never \
+  -- nc -zv {{dependencies.database.auth.hostname}} {{dependencies.database.auth.port}}
+```
 
-**Fix.** Check that the cluster and the database sit in the same network.
+The cluster and the database must sit in the same network.
+{{/dependencies.database}}
 
 ## Rotate the token
 
-Set a new value in the `FIVETRAN_AGENT_TOKEN` secret, then deploy again. Fivetran
-keeps the old token until you delete the agent in its dashboard.
+Set a new value in the Fivetran Account resource, then deploy every agent that
+uses it. Fivetran keeps the old token until you delete the agent in its
+dashboard.
+
+## Escalation
+
+- **Team**: Data Platform
+- **Slack**: #platform-support

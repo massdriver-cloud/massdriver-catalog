@@ -110,18 +110,14 @@ dependencies:
   kubernetes_cluster:
     resource_type: kubernetes-cluster@0.0.0
     required: true
+  fivetran_account:
+    resource_type: fivetran-account@0.0.0
+    required: true
   database:
     resource_type: postgres-database@0.0.0
     required: false
 
 resources: {}
-
-app:
-  secrets:
-    FIVETRAN_AGENT_TOKEN:
-      title: Agent Token
-      description: The token that Fivetran gives when you create the agent in its dashboard. Required.
-      required: true
 
 ui:
   ui:order:

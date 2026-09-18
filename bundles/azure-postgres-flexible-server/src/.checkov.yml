@@ -1,0 +1,9 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # The server sits inside a delegated subnet, which keeps it off the public
+  # network. A private endpoint solves the same problem a second time.
+  - CKV2_AZURE_57
+  # A geo redundant backup is a parameter of this bundle. Azure sets it at
+  # creation, so a production instance selects it and a development one does
+  # not.
+  - CKV_AZURE_136

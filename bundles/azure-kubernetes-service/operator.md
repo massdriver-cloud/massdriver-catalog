@@ -1,49 +1,66 @@
+---
+templating: mustache
+---
+
 # Kubernetes Runbook
 
+## Get access
+
 {{#resources.cluster}}
-| Field | Value |
-|---|---|
-| Cluster | `{{resources.cluster.data.name}}` |
-| Version | `{{resources.cluster.data.version}}` |
-| Region | `{{resources.cluster.data.region}}` |
+```bash
+az aks get-credentials --name {{resources.cluster.name}} --resource-group {{resources.cluster.name}}
+kubectl get nodes -o wide
+```
 {{/resources.cluster}}
 
 ## A pod stays in `Pending`
 
-**Diagnosis.** The subnet has no free address, or the scaler reached the maximum
-node count.
+The subnet holds no free address, or the scaler reached the maximum node count.
 
-**Fix.** Check the events, then raise the maximum, or give the network a larger
-subnet.
-
-```bash
-kubectl get events --sort-by=.lastTimestamp | tail -20
-```
+1. Read the reason.
+   ```bash
+   kubectl describe pod <POD> | sed -n '/Events/,$p'
+   ```
+2. Read the node count against the maximum of {{params.max_nodes}}.
+   ```bash
+   kubectl get nodes --no-headers | wc -l
+   ```
+3. Raise the maximum in the form, or give the network a larger subnet. The Azure
+   network plugin takes about 30 addresses per node, so a /24 subnet holds about
+   8 nodes.
 
 ## An upgrade fails
 
-**Diagnosis.** Azure upgrades one minor version at a time.
+Azure upgrades one minor version at a time.
 
-**Fix.** Upgrade to the next version, deploy, then repeat.
+{{#resources.cluster}}
+```bash
+az aks get-upgrades --name {{resources.cluster.name}} --resource-group {{resources.cluster.name}} --output table
+```
+{{/resources.cluster}}
+
+Set the next version in the form, deploy, then repeat until you reach the target.
+
+## A node is not ready
 
 ```bash
-az aks get-upgrades --name <CLUSTER> --resource-group <GROUP> --output table
+kubectl get nodes | grep -v " Ready"
+kubectl describe node <NODE> | sed -n '/Conditions/,/Addresses/p'
+```
+
+Cordon and drain the node, then delete it. The scaler builds a replacement.
+
+```bash
+kubectl drain <NODE> --ignore-daemonsets --delete-emptydir-data
+kubectl delete node <NODE>
 ```
 
 ## Nobody can reach the API server
 
-**Diagnosis.** The cluster has a private API server. It answers inside the
-network only.
+The cluster carries a private API server, and it answers inside the network
+only. Reach it from a workload inside the network, or open a private link.
 
-**Fix.** Reach it from a workload inside the network, or open a private link.
+## Escalation
 
-## Warning: the subnet fills up
-
-The Azure network plugin gives every pod an address from the subnet. A `/24`
-subnet holds about 8 nodes. Plan the range before the cluster grows.
-
-## Get a kubeconfig
-
-```bash
-az aks get-credentials --name <CLUSTER> --resource-group <GROUP>
-```
+- **Team**: Platform Engineering
+- **Slack**: #platform-support

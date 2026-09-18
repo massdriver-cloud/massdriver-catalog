@@ -1,44 +1,64 @@
+---
+templating: mustache
+---
+
 # Subscription Factory Runbook
 
+## Health check
+
 {{#resources.account}}
-| Field | Value |
-|---|---|
-| Subscription | `{{resources.account.data.id}}` |
-| Class | `{{resources.account.data.landing_zone_class}}` |
-| Management group | `{{resources.account.data.management_group}}` |
+```bash
+az account show --subscription {{resources.account.id}} \
+  --query "{name:name, state:state, tenant:tenantId}"
+```
+
+```bash
+az account management-group entity list \
+  --query "[?name=='{{resources.account.id}}'].parent.name"
+```
+
+The answer must be `{{resources.account.management_group}}`.
 {{/resources.account}}
 
 ## A deployment fails with `AuthorizationFailed` on the billing scope
 
-**Diagnosis.** The service principal cannot create a subscription.
+The service principal cannot create a subscription.
 
-**Fix.** Give it the `Owner` role on the enrollment account.
-
-```bash
-az billing account list --query "[].{name:name, type:agreementType}"
-```
+1. List the billing accounts that it can read.
+   ```bash
+   az billing account list --query "[].{name:name, type:agreementType}"
+   ```
+2. When the list is empty, ask the billing owner for the `Owner` role on the
+   enrollment account.
+3. Deploy again.
 
 ## A deployment fails with `SubscriptionAliasAlreadyExists`
 
-**Diagnosis.** An alias with this name exists. Azure keeps an alias after
-someone cancels the subscription.
-
-**Fix.** List the aliases, then pick another instance name.
+An alias with this name exists. Azure keeps an alias after someone cancels the
+subscription.
 
 ```bash
 az account alias list --query "[].name"
 ```
 
-## Warning: a cancelled subscription does not disappear
-
-Azure keeps a cancelled subscription for 90 days, and it keeps the alias. A
-decommission of this instance does not delete the data inside the subscription.
-Move or delete the resources first.
+Rename the instance, then deploy again.
 
 ## The class is wrong
 
-The class decides which bundles a project can use. Azure cannot change it here,
-because the field is immutable.
+{{#resources.account}}
+This subscription carries the class `{{resources.account.landing_zone_class}}`,
+and that class decides which bundles a project can use. The field is immutable,
+so the form blocks the change. Vend a second subscription with the correct class
+and move the workloads to it.
+{{/resources.account}}
 
-**Fix.** Vend a new subscription with the correct class, then move the
-workloads.
+## A cancelled subscription still appears
+
+Azure keeps a cancelled subscription for 90 days, and it keeps the alias. A
+decommission of this instance does not delete the resources inside the
+subscription. Move or delete those resources first.
+
+## Escalation
+
+- **Team**: Platform Engineering
+- **Slack**: #platform-support

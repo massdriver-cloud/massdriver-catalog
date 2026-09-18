@@ -13,9 +13,10 @@
     }
   },
 
-  # The agent reads the token from a secret. Massdriver holds the token, and it
-  # never writes the value into the chart.
+  # The token comes from the Fivetran account credential. One record serves
+  # every environment, and the platform team rotates it in one place.
   agent: {
-    tokenSecretName: (.md.package.name + "-token")
+    token: .connections.fivetran_account.agent_token,
+    groupId: (.connections.fivetran_account.group_id // "")
   }
 }

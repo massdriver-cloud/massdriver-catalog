@@ -16,6 +16,15 @@ variable "azure_service_principal" {
 variable "container_name" {
   type = string
 }
+variable "logs" {
+  type = object({
+    id             = string
+    name           = string
+    region         = optional(string)
+    retention_days = optional(number)
+  })
+  default = null
+}
 variable "md_metadata" {
   type = object({
     default_tags = map(string)

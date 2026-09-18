@@ -75,7 +75,21 @@ resource "azurerm_linux_web_app" "main" {
 
   app_settings = local.app_settings
 
+  # Checkov CKV_AZURE_63, CKV_AZURE_65, and CKV_AZURE_66 ask for these logs.
+  logs {
+    detailed_error_messages = true
+    failed_request_tracing  = true
+
+    http_logs {
+      file_system {
+        retention_in_days = 7
+        retention_in_mb   = 35
+      }
+    }
+  }
+
   site_config {
+    http2_enabled          = true
     always_on              = var.always_on
     health_check_path      = var.health_check_path
     ftps_state             = "Disabled"

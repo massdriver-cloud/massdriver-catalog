@@ -1,43 +1,65 @@
+---
+templating: mustache
+---
+
 # Data Factory Runbook
 
+## Health check
+
 {{#resources.pipeline}}
-| Field | Value |
-|---|---|
-| Factory | `{{resources.pipeline.data.name}}` |
-| Studio | {{resources.pipeline.data.studio_url}} |
-| Principal | `{{resources.pipeline.data.principal_id}}` |
+```bash
+az datafactory pipeline-run query-by-factory \
+  --factory-name {{resources.pipeline.name}} \
+  --resource-group {{resources.pipeline.name}} \
+  --last-updated-after $(date -u -v-1d +%Y-%m-%dT%H:%M:%SZ) \
+  --last-updated-before $(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --query "value[].{pipeline:pipelineName, status:status}" --output table
+```
+
+Open the pipelines at {{resources.pipeline.studio_url}}.
 {{/resources.pipeline}}
 
 ## A pipeline fails with a permission error
 
-**Diagnosis.** The identity of the factory holds no role on the source or on the
-target.
+The identity of the factory holds no role on the source or on the target. A
+pipeline fails at run time, not at deployment time.
 
-**Fix.** Assign the role.
-
+{{#resources.pipeline}}
 ```bash
 az role assignment create \
-  --assignee <PRINCIPAL_ID> \
+  --assignee {{resources.pipeline.principal_id}} \
   --role "Storage Blob Data Reader" \
   --scope <RESOURCE_ID>
 ```
 
+```bash
+az role assignment list --assignee {{resources.pipeline.principal_id}} --output table
+```
+{{/resources.pipeline}}
+
 ## A pipeline cannot reach a private source
 
-**Diagnosis.** The managed network needs a private endpoint to each private
-source.
+The managed network needs a private endpoint to each private source.
 
-**Fix.** Create the managed private endpoint in the studio, then approve it on
-the target resource.
+1. Create the managed private endpoint in the studio.
+2. Approve it on the target resource.
+   ```bash
+   az network private-endpoint-connection list --id <TARGET_RESOURCE_ID> --output table
+   ```
+3. Run the pipeline again.
 
 ## The first run of a data flow takes four minutes
 
-**Diagnosis.** The cluster was cold.
+The cluster was cold. Raise the idle time in the form, and Azure then keeps the
+cluster warm. Azure charges for that time.
 
-**Fix.** Raise the idle time. Azure then keeps the cluster warm, and it charges
-for that time.
+## The compute bill grows
 
-## Warning: the cost of a large runtime
+Azure charges per core hour while a data flow runs. A 48 core runtime with a 120
+minute idle time costs far more than the pipeline moves. Lower the cores, or
+lower the idle time.
 
-Azure charges per core hour. A 48 core runtime with a 120 minute idle time costs
-much more than the pipeline itself.
+## Escalation
+
+- **Team**: Data Platform
+- **Slack**: #platform-support

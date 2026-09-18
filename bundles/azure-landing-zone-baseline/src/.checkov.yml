@@ -1,0 +1,11 @@
+# Each skip carries the reason that the platform team accepted.
+skip-check:
+  # The security contact is a parameter of this bundle. The operator gives the
+  # address of the team that answers an alert.
+  - CKV_AZURE_131
+  # Azure accepts a contact without a telephone number, and the security team
+  # answers by mail.
+  - CKV_AZURE_20
+  # The Defender plan is a parameter of this bundle. The Standard plan charges
+  # per resource per month, so a development instance stays on Free.
+  - CKV_AZURE_55

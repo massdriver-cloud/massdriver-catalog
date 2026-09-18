@@ -82,6 +82,9 @@ dependencies:
   network:
     resource_type: virtual-network@0.0.0
     required: true
+  logs:
+    resource_type: log-workspace@0.0.0
+    required: false
 
 resources:
   bucket:

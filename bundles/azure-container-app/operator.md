@@ -1,65 +1,89 @@
-# Azure Container App Runbook
+---
+templating: mustache
+---
+
+# Container App Runbook
+
+## Health check
 
 {{#resources.application}}
-| Field | Value |
-|---|---|
-| Name | `{{resources.application.data.name}}` |
-| URL | {{resources.application.data.service_url}} |
-| Revision | `{{resources.application.data.deployment_id}}` |
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" {{resources.application.health_check_url}}
+```
+
+```bash
+az containerapp revision list \
+  --name {{resources.application.name}} \
+  --resource-group {{resources.application.name}} \
+  --query "[].{revision:name, active:properties.active, replicas:properties.replicas}" \
+  --output table
+```
 {{/resources.application}}
 
 ## The application does not start
 
-**Diagnosis.** The image is wrong, the container exits, or the health check
-fails.
+The image is wrong, the container exits, or the health check fails.
 
-**Fix.** Read the logs of the revision.
+{{#resources.application}}
+1. Read the logs of the running revision.
+   ```bash
+   az containerapp logs show \
+     --name {{resources.application.name}} \
+     --resource-group {{resources.application.name}} \
+     --follow
+   ```
+2. Confirm that the container listens on port {{params.port}}.
+3. Confirm that the path {{params.health_check_path}} answers 200.
+{{/resources.application}}
 
-```bash
-az containerapp logs show \
-  --name <APP_NAME> \
-  --resource-group <RESOURCE_GROUP> \
-  --follow
-```
+## A deployment fails on the processor and memory pair
 
-## A deployment fails with a subnet error
+Azure accepts one memory size per processor share: 0.25 with 0.5Gi, 0.5 with
+1Gi, 1.0 with 2Gi, 2.0 with 4Gi. Correct the pair in the form, then deploy.
 
-**Diagnosis.** The Container Apps subnet is smaller than /23, or it holds
-another service.
+## A deployment fails on the subnet
 
-**Fix.** Give the network a subnet of /23 or larger with the Container Apps
-delegation.
-
-## A deployment fails with an invalid processor and memory pair
-
-**Diagnosis.** Azure accepts one memory size per processor share.
-
-**Fix.** Use one of these pairs: 0.25 with 0.5Gi, 0.5 with 1Gi, 1.0 with 2Gi,
-2.0 with 4Gi.
+The network holds no subnet with the Container Apps delegation, or the subnet is
+smaller than /23. Add a subnet of /23 or larger with that delegation, then
+deploy again.
 
 ## The application cannot read the storage container
 
-**Diagnosis.** The role assignment is missing, or it has not taken effect yet.
-Azure needs up to five minutes to apply a new role.
+The role assignment is missing, or Azure has not applied it yet.
 
-**Fix.** Check the assignment.
-
+{{#dependencies.bucket}}
 ```bash
 az role assignment list \
-  --assignee <PRINCIPAL_ID> \
-  --scope <STORAGE_ACCOUNT_ID> \
+  --scope {{dependencies.bucket.id}} \
+  --query "[].{principal:principalId, role:roleDefinitionName}" \
   --output table
 ```
+{{/dependencies.bucket}}
+
+Azure needs up to five minutes to apply a new role. Restart the revision after
+that.
 
 ## The application cannot reach the database
 
-**Diagnosis.** The database answers inside the network only. The application
-must run in the same network.
+{{#dependencies.database}}
+The database answers inside the network only. Confirm that this application and
+the database sit in the same network, then resolve the name from inside a
+running revision.
 
-**Fix.** Check that the network connection of both instances points at the same
-virtual network.
+```bash
+az containerapp exec \
+  --name {{resources.application.name}} \
+  --resource-group {{resources.application.name}} \
+  --command "nslookup {{dependencies.database.auth.hostname}}"
+```
+{{/dependencies.database}}
 
 ## Roll back a bad release
 
-Change the image tag to the previous version and deploy again. Massdriver keeps
-the whole deployment history.
+Set the image to the previous tag and deploy. Massdriver keeps every deployment,
+so the old value is in the history of this instance.
+
+## Escalation
+
+- **Team**: Platform Engineering
+- **Slack**: #platform-support

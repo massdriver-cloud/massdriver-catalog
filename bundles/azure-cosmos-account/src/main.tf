@@ -28,6 +28,9 @@ resource "azurerm_cosmosdb_account" "main" {
   local_authentication_enabled      = true
   minimal_tls_version               = "Tls12"
 
+  # A key cannot change the account itself. Checkov CKV_AZURE_132.
+  access_key_metadata_writes_enabled = false
+
   dynamic "virtual_network_rule" {
     for_each = toset(local.subnet_ids)
 

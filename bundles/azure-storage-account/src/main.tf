@@ -6,6 +6,7 @@ locals {
   account_name = substr(replace(lower(local.name_prefix), "/[^a-z0-9]/", ""), 0, 24)
 
   subnet_ids = [for subnet in var.network.subnets : subnet.id]
+  has_logs   = try(var.logs.id, null) != null
 }
 
 resource "azurerm_resource_group" "main" {
@@ -64,4 +65,30 @@ resource "azurerm_storage_container" "main" {
   name                  = var.container_name
   storage_account_id    = azurerm_storage_account.main.id
   container_access_type = "private"
+}
+
+# Checkov CKV2_AZURE_21 asks for a record of every blob request. Connect a log
+# workspace to turn it on. Without the connection the account writes no record.
+resource "azurerm_monitor_diagnostic_setting" "blob" {
+  count = local.has_logs ? 1 : 0
+
+  name                       = "${local.name_prefix}-blob"
+  target_resource_id         = "${azurerm_storage_account.main.id}/blobServices/default"
+  log_analytics_workspace_id = var.logs.id
+
+  enabled_log {
+    category = "StorageRead"
+  }
+
+  enabled_log {
+    category = "StorageWrite"
+  }
+
+  enabled_log {
+    category = "StorageDelete"
+  }
+
+  enabled_metric {
+    category = "Transaction"
+  }
 }
