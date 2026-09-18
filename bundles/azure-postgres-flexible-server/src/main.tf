@@ -46,6 +46,11 @@ resource "azurerm_private_dns_zone_virtual_network_link" "main" {
 
 resource "azurerm_postgresql_flexible_server" "main" {
   lifecycle {
+    # Azure picks the zone at creation, and the bundle never sets one. Without
+    # this rule every later deployment tries to unset the zone, and Azure
+    # refuses the change.
+    ignore_changes = [zone, high_availability[0].standby_availability_zone]
+
     precondition {
       condition     = local.subnet_id != null
       error_message = "The connected network holds no subnet with the PostgreSQL delegation. Add one to the network, then deploy again."
