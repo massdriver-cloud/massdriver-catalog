@@ -1,0 +1,124 @@
+name: azure-kubernetes-service
+description: An Azure Kubernetes Service cluster in the connected network. A chart bundle deploys onto it.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-kubernetes-service
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      kubernetes_version: "1.31"
+      node_size: Standard_D2s_v5
+      min_nodes: 1
+      max_nodes: 3
+      service_tier: Free
+      private_cluster: false
+    - __name: Production
+      kubernetes_version: "1.31"
+      node_size: Standard_D4s_v5
+      min_nodes: 3
+      max_nodes: 10
+      service_tier: Standard
+      private_cluster: true
+  required:
+    - kubernetes_version
+    - node_size
+    - min_nodes
+    - max_nodes
+    - service_tier
+  properties:
+    kubernetes_version:
+      type: string
+      title: Kubernetes Version
+      description: The version of the control plane. Azure supports an upgrade of one minor version at a time.
+      default: "1.31"
+      oneOf:
+        - const: "1.29"
+          title: "1.29 (support ends soon)"
+        - const: "1.30"
+          title: "1.30"
+        - const: "1.31"
+          title: "1.31 (current)"
+        - const: "1.32"
+          title: "1.32 (newest)"
+    node_size:
+      type: string
+      title: Node Size
+      description: The processor and the memory of one node.
+      default: Standard_D2s_v5
+      oneOf:
+        - const: Standard_B2ms
+          title: Burstable — 2 vCPU, 8 GiB (development)
+        - const: Standard_D2s_v5
+          title: General purpose — 2 vCPU, 8 GiB
+        - const: Standard_D4s_v5
+          title: General purpose — 4 vCPU, 16 GiB
+        - const: Standard_D8s_v5
+          title: General purpose — 8 vCPU, 32 GiB
+    min_nodes:
+      type: integer
+      title: Minimum Nodes
+      description: The number of nodes that always run.
+      default: 1
+      minimum: 1
+      maximum: 100
+    max_nodes:
+      type: integer
+      title: Maximum Nodes
+      description: The largest number of nodes that the scaler starts.
+      default: 3
+      minimum: 1
+      maximum: 100
+    service_tier:
+      type: string
+      title: Service Tier
+      description: The support level of the control plane.
+      default: Free
+      oneOf:
+        - const: Free
+          title: Free — no uptime promise, up to 1000 nodes
+        - const: Standard
+          title: Standard — a 99.95 percent uptime promise, about 73 dollars per month
+    private_cluster:
+      type: boolean
+      title: Private API Server
+      description: The API server answers inside the network only. Azure sets this at creation.
+      default: false
+      $md.immutable: true
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+
+resources:
+  cluster:
+    resource_type: kubernetes-cluster@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - kubernetes_version
+    - node_size
+    - min_nodes
+    - max_nodes
+    - service_tier
+    - private_cluster
+    - "*"
+  kubernetes_version:
+    ui:help: "Azure upgrades one minor version at a time. A jump of two versions fails."
+  min_nodes:
+    ui:widget: updown
+  max_nodes:
+    ui:widget: updown
+    ui:help: "The scaler needs free addresses in the subnet. Each node takes about 30 addresses with the Azure network plugin."
+  service_tier:
+    ui:help: "The Free tier gives no uptime promise on the control plane. Production needs the Standard tier."
+  private_cluster:
+    ui:help: "Warning: a private API server needs a jump host or a private link. Azure sets this at creation, and it cannot change."

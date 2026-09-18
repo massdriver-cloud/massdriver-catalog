@@ -1,0 +1,86 @@
+name: azure-data-factory
+description: An Azure Data Factory with a managed identity and a managed virtual network. It moves data between a source and a target.
+source_url: https://github.com/massdriver-cloud/massdriver-catalog/tree/example/0921-azure-landing-zones/bundles/azure-data-factory
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Development
+      managed_virtual_network: true
+      public_network_enabled: false
+      integration_runtime_cores: 8
+      integration_runtime_ttl_minutes: 10
+    - __name: Production
+      managed_virtual_network: true
+      public_network_enabled: false
+      integration_runtime_cores: 16
+      integration_runtime_ttl_minutes: 30
+  required:
+    - managed_virtual_network
+  properties:
+    managed_virtual_network:
+      type: boolean
+      title: Managed Virtual Network
+      description: Azure runs the pipelines inside its own network, and it reaches a private source through a private endpoint.
+      default: true
+      $md.immutable: true
+    public_network_enabled:
+      type: boolean
+      title: Accept Public Traffic
+      description: Azure gives the service a public endpoint. Turn this off for a factory that reads private data only.
+      default: false
+    integration_runtime_cores:
+      type: integer
+      title: Data Flow Cores
+      description: The number of cores of the data flow runtime. Azure charges per core hour while a flow runs.
+      default: 8
+      oneOf:
+        - const: 8
+          title: 8 cores — the smallest
+        - const: 16
+          title: 16 cores
+        - const: 32
+          title: 32 cores
+        - const: 48
+          title: 48 cores
+    integration_runtime_ttl_minutes:
+      type: integer
+      title: Runtime Idle Time (minutes)
+      description: The time that Azure keeps the cluster warm after a flow ends. A longer time removes the start delay, and it costs more.
+      default: 10
+      minimum: 0
+      maximum: 120
+
+dependencies:
+  azure_service_principal:
+    resource_type: azure-service-principal@0.0.0
+    required: true
+  network:
+    resource_type: virtual-network@0.0.0
+    required: true
+  bucket:
+    resource_type: object-storage@0.0.0
+    required: false
+
+resources:
+  pipeline:
+    resource_type: data-pipeline@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - managed_virtual_network
+    - public_network_enabled
+    - integration_runtime_cores
+    - integration_runtime_ttl_minutes
+    - "*"
+  managed_virtual_network:
+    ui:help: "Azure sets this at creation. A change needs a new factory."
+  integration_runtime_cores:
+    ui:help: "Azure charges per core hour while a data flow runs. Start with 8 cores."
+  integration_runtime_ttl_minutes:
+    ui:help: "A value of 0 stops the cluster at once, and the next flow then waits about 4 minutes to start."
