@@ -1,0 +1,45 @@
+name: network-allocation
+version: 0.0.0
+label: Network Allocation
+icon: https://raw.githubusercontent.com/massdriver-cloud/massdriver-catalog/example/0921-azure-landing-zones/bundles/azure-ipam-allocation/icon.svg
+
+ui:
+  connectionOrientation: link
+  environmentDefaultGroup: networks
+  instructions:
+    - label: External IPAM
+      path: ./instructions/External IPAM.md
+
+schema:
+  title: Network Allocation
+  description: An address range that the IP address management system reserved for one network.
+  type: object
+  additionalProperties: false
+  required:
+    - cidr
+    - pool
+  properties:
+    cidr:
+      title: CIDR
+      description: The address range that the system reserved.
+      type: string
+      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$
+      message:
+        pattern: "Must be a valid IPv4 CIDR block, for example 10.10.0.0/16."
+    pool:
+      title: Pool
+      description: The parent pool that holds the range.
+      type: string
+      minLength: 1
+    allocation_id:
+      title: Allocation ID
+      description: The record identifier in the IP address management system.
+      type: string
+    region:
+      title: Region
+      description: The region that the range belongs to.
+      type: string
+    registered:
+      title: Registered
+      description: True when the platform wrote the range back to the management system.
+      type: boolean

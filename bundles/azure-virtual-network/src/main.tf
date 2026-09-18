@@ -1,6 +1,10 @@
 locals {
   name_prefix = var.md_metadata.name_prefix
 
+  # The IP address management system owns the ranges. When an allocation is
+  # connected, it wins over the value in the form.
+  cidr = try(var.allocation.cidr, null) != null ? var.allocation.cidr : var.cidr
+
   # Azure delegates a subnet to one service only. The keys match the
   # `delegation` enum in massdriver.yaml.
   delegations = {
@@ -39,7 +43,7 @@ resource "azurerm_virtual_network" "main" {
   name                = local.name_prefix
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  address_space       = [var.cidr]
+  address_space       = [local.cidr]
   dns_servers         = var.dns_servers
   tags                = var.md_metadata.default_tags
 }

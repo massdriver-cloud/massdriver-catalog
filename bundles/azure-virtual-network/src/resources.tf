@@ -5,7 +5,7 @@ resource "massdriver_resource" "network" {
   resource = jsonencode({
     id             = azurerm_virtual_network.main.id
     name           = azurerm_virtual_network.main.name
-    cidr           = var.cidr
+    cidr           = local.cidr
     region         = var.region
     account_id     = var.azure_service_principal.subscription_id
     resource_group = azurerm_resource_group.main.name
